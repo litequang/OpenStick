@@ -61,10 +61,20 @@ def test_consent_required(web):
     assert response.get_json()["code"] == "CONSENT_REQUIRED"
 
 
+@pytest.mark.parametrize("approval", [None, False, 1, "true"])
+def test_large_backup_needs_separate_explicit_consent(web, tmp_path, approval):
+    post(web, "/api/inspect", {"consent": True})
+    response = post(web, "/api/backup", {"consent": True, "backup_approved": approval,
+                                         "mode": "full", "folder": str(tmp_path)})
+    assert response.status_code == 400
+    assert response.get_json()["code"] == "BACKUP_CONSENT_REQUIRED"
+    assert not list(tmp_path.glob("backup-*"))
+
+
 def test_inspect_backup_verify_http_workflow(web, tmp_path):
     app, client, headers = web
     assert post(web, "/api/inspect", {"consent": True}).status_code == 202
-    assert post(web, "/api/backup", {"consent": True, "mode": "full", "folder": str(tmp_path)}).status_code == 202
+    assert post(web, "/api/backup", {"consent": True, "backup_approved": True, "mode": "full", "folder": str(tmp_path)}).status_code == 202
     state = client.get("/api/state", base_url=BASE, headers=headers).get_json()
     job = state["jobs"][0]
     assert job["status"] == "complete", job

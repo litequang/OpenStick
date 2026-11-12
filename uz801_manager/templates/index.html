@@ -18,7 +18,7 @@
       <a href="#history">04 <span>Lịch sử tác vụ</span></a>
     </nav>
     <div class="sidebar-note"><span class="dot"></span> CHỈ ĐỌC THIẾT BỊ<p>Giữ firmware gốc.<br>Bảo toàn dữ liệu modem.</p></div>
-    <div class="version">Bản 0.1.0 · Phase 1–3<br>Localhost / Windows</div>
+    <div class="version">Bản 0.1.1 · Phase 1–3<br>Localhost / Windows</div>
   </aside>
   <main>
     <header class="topbar"><span>Thiết bị / <strong>UZ801 V3.2</strong></span><span class="local-badge">127.0.0.1 · Phiên cục bộ</span></header>
@@ -27,7 +27,7 @@
     <section id="overview" class="section">
       <div class="section-heading"><div><p class="eyebrow">BẢO TOÀN TRƯỚC KHI THAY ĐỔI</p><h1>Hiểu thiết bị.<br>Giữ nguyên bản gốc.</h1><p class="subtitle">Kiểm tra phần cứng, sao lưu và kiểm chứng dữ liệu UZ801.</p></div><div class="read-only"><span>READ</span><strong>ONLY</strong><small>Không có chức năng ghi firmware</small></div></div>
       <div class="consent-panel">
-        <label><input id="consent" type="checkbox" {% if demo %}checked{% endif %}> Tôi cho phép ứng dụng đọc thông tin và sao lưu thiết bị đang kết nối.</label>
+        <label><input id="consent" type="checkbox" {% if demo %}checked{% endif %}> Tôi cho phép đọc thông tin USB và GPT (không bắt đầu backup lớn).</label>
         <div class="actions"><button id="inspect" class="primary">Kiểm tra USB</button><label class="monitor"><input id="monitor" type="checkbox"> Tự kiểm tra mỗi 30 giây</label></div>
       </div>
       <div class="stats">
@@ -47,6 +47,7 @@
           <label for="backup-folder">Thư mục lưu trên máy tính</label><div class="input-group"><input id="backup-folder" type="text" placeholder="D:\Backups" spellcheck="false"><button id="pick-backup" class="secondary">Chọn…</button></div>
           <label for="mode">Phạm vi sao lưu</label><select id="mode"><option value="full">Toàn bộ eMMC + phân vùng quan trọng</option><option value="critical">Chỉ các phân vùng quan trọng (10 phân vùng)</option></select>
           <div class="notice">Android đang chạy có thể tiếp tục ghi dữ liệu. Backup live không bảo đảm tính nhất quán; ưu tiên EDL offline sau khi xác minh recovery.</div>
+          <label><input id="backup-consent" type="checkbox"> Tôi cho phép bắt đầu backup lớn vào thư mục đã chọn; có thể đọc toàn bộ eMMC.</label>
           <button id="start-backup" class="primary wide" disabled>Bắt đầu sao lưu</button>
         </article>
         <article class="panel"><div class="panel-heading"><h3>Kiểm tra bản sao lưu</h3><span class="pill">SHA-256 + GPT</span></div><p class="muted">Đọc lại từng tệp, đối chiếu kích thước, SHA-256, GPT chính/dự phòng và các phân vùng quan trọng.</p>

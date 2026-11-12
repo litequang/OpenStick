@@ -34,6 +34,16 @@ class Partition:
 
 def read_gpt(read: Callable[[int, int], bytes], total_sectors: int) -> list[Partition]:
     """read(offset_bytes, size_bytes) must return exactly the requested range."""
+    return _read_gpt(read, total_sectors, verify_secondary=True)
+
+
+def read_primary_gpt(prefix: bytes, total_sectors: int) -> list[Partition]:
+    """Inspection only: no assertion about the secondary GPT or recovery readiness."""
+    return _read_gpt(lambda offset, size: prefix[offset:offset + size], total_sectors,
+                     verify_secondary=False)
+
+
+def _read_gpt(read, total_sectors, *, verify_secondary):
     def fail():
         raise SafetyError("GPT_INVALID")
 
@@ -87,10 +97,13 @@ def read_gpt(read: Callable[[int, int], bytes], total_sectors: int) -> list[Part
     if any(e[4] not in (0, 0xEE) for e in protective):
         fail()
     entry = next(e for e in protective if e[4] == 0xEE)
-    if struct.unpack_from("<II", entry, 8) != (1, min(total_sectors - 1, 0xFFFFFFFF)):
+    start, protective_size = struct.unpack_from("<II", entry, 8)
+    # Observed UZ801 Android GPT uses a saturated MBR even below 2 TiB.
+    # Never use that legacy value for geometry: sysfs + GPT bounds control reads.
+    if start != 1 or protective_size not in (min(total_sectors - 1, 0xFFFFFFFF), 0xFFFFFFFF):
         fail()
-    primary, secondary = header(1), header(total_sectors - 1)
-    if primary != secondary or primary[2] == b"\0" * 16:
+    primary = header(1)
+    if primary[2] == b"\0" * 16 or verify_secondary and primary != header(total_sectors - 1):
         fail()
     first, last, _, count, entry_size, entries = primary
     parts, names, guids = [], set(), set()

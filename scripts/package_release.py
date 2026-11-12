@@ -30,11 +30,12 @@ def main():
             notices.append(path.read_text(encoding="utf-8", errors="replace"))
     notices_path = dist / "THIRD_PARTY_NOTICES.txt"
     notices_path.write_text("\n".join(notices), encoding="utf-8")
-    archive = dist / "UZ801-OpenStick-Manager-v0.1.0-Windows-x64.zip"
+    from uz801_manager import __version__
+    archive = dist / f"UZ801-OpenStick-Manager-v{__version__}-Windows-x64.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as z:
         z.write(executable, executable.name)
         z.write(notices_path, notices_path.name)
-        for filename in ("README.md", "LICENSE"):
+        for filename in ("README.md", "LICENSE", "WEB_HOSTING_ROADMAP.md"):
             z.write(root / filename, filename)
         for path in sorted((root / "docs").glob("*.md")):
             z.write(path, "docs/" + path.name)

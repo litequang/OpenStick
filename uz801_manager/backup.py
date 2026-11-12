@@ -63,12 +63,16 @@ class BackupManager:
             raise SafetyError("INPUT_INVALID")
         if snapshot.backup_error:
             raise SafetyError(snapshot.backup_error)
+        if mode == "critical" and snapshot.info.get("gpt_secondary") == "DEFERRED_UNTIL_FULL_BACKUP":
+            raise SafetyError("FULL_BACKUP_REQUIRED")
         root = local_directory(folder)
         self.adb.assert_same(snapshot)
         # Re-read geometry and GPT immediately before allocating any backup files.
         current = self.adb.inspect()
         if current.backup_error:
             raise SafetyError(current.backup_error)
+        if mode == "critical" and current.info.get("gpt_secondary") == "DEFERRED_UNTIL_FULL_BACKUP":
+            raise SafetyError("FULL_BACKUP_REQUIRED")
         if (current.transport, current.fingerprint, current.partitions, current.info["emmc_bytes"]) != (
                 snapshot.transport, snapshot.fingerprint, snapshot.partitions, snapshot.info["emmc_bytes"]):
             raise SafetyError("DEVICE_CHANGED")
@@ -84,6 +88,8 @@ class BackupManager:
         manifest = {"schema": 1, "source": "demo" if snapshot.info.get("demo") else "adb-live",
                     "mode": mode, "status": "incomplete", "created_utc": datetime.now(timezone.utc).isoformat(),
                     "consistency": "NOT_GUARANTEED_LIVE", "flash_ready": False,
+                    "binary_transport": snapshot.info.get("binary_transport", "demo"),
+                    "inspection_gpt_secondary": snapshot.info.get("gpt_secondary", "PASS"),
                     "emmc_bytes": snapshot.info["emmc_bytes"],
                     "partitions": [p.public() for p in snapshot.partitions], "files": []}
         manifest_path = folder / "manifest.json"

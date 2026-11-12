@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uz801-openstick-manager"
-version = "0.1.0"
+version = "0.1.1"
 description = "Read-only local Windows backup manager for UZ801"
 requires-python = ">=3.11"
 dependencies = ["Flask>=3.1.3,<4", "waitress>=3.0.2,<4"]

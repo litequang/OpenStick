@@ -12,6 +12,10 @@ class Cancelled(SafetyError):
 
 
 MESSAGES = {
+    "SYNC_UNAVAILABLE": "Không mở được ADB SYNC trên phiên USB hiện tại.",
+    "SYNC_PROTOCOL": "ADB SYNC trả gói dữ liệu không hợp lệ; tác vụ đã dừng.",
+    "FULL_BACKUP_REQUIRED": "GPT dự phòng chưa được kiểm tra. Chỉ cho phép backup full với xác minh cả hai GPT.",
+    "BACKUP_CONSENT_REQUIRED": "Cần cho phép riêng tác vụ backup lớn trong mục Sao lưu.",
     "ADB_NOT_FOUND": "Không tìm thấy ADB. Cài Android Platform Tools hoặc đặt adb.exe tại C:\\adb.",
     "ADB_FAILED": "ADB báo lỗi. Kiểm tra cáp, quyền truy cập và trạng thái USB.",
     "ADB_TIMEOUT": "ADB không phản hồi trong thời gian cho phép.",

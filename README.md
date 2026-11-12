@@ -1,15 +1,15 @@
 # UZ801 OpenStick Manager
 
-Ứng dụng Windows quản lý UZ801 theo nguyên tắc **chỉ đọc thiết bị**. Bản 0.1.0 triển khai Phase 1–3: kiểm tra ADB/GPT, sao lưu eMMC, xác minh tệp và kiểm tra EDL thụ động. **Không có flash, erase, restore, reboot, đổi driver hay thay đổi IMEI.**
+Ứng dụng Windows quản lý UZ801 theo nguyên tắc **chỉ đọc thiết bị**. Bản 0.1.1 triển khai Phase 1–3: kiểm tra ADB/GPT, sao lưu eMMC, xác minh tệp và kiểm tra EDL thụ động. **Không có flash, erase, restore, reboot, đổi driver hay thay đổi IMEI.**
 
 ## Chạy ngay trên Windows
 
-Tải executable tại [GitHub Releases của litequang/OpenStick](https://github.com/litequang/OpenStick/releases). Bản đầu được đánh dấu prerelease vì chưa kiểm thử trên USB thật.
+Tải executable tại [GitHub Releases của litequang/OpenStick](https://github.com/litequang/OpenStick/releases). v0.1.1 là prerelease: đã kiểm tra nhỏ trên USB thật, chưa chạy full backup hoặc restore thật. Xem [báo cáo hardware validation](docs/HARDWARE_VALIDATION_v0.1.1.md).
 
 Mở `dist/UZ801-OpenStick-Manager.exe` hoặc `run.bat`. Ứng dụng mở trình duyệt tại `127.0.0.1:8765`. Giữ cửa sổ chương trình mở; dùng Ctrl+C để dừng an toàn. Bản `.exe` kèm Python và giao diện, không cần Node.js. ADB/EDL không được đóng gói hoặc tự tải xuống.
 
 1. Tích ô cho phép đọc và bấm **Kiểm tra USB**. Chỉ kết nối một thiết bị ADB sẵn sàng. Có thể bật tự kiểm tra mỗi 30 giây.
-2. Chọn thư mục máy tính, chọn **Toàn bộ eMMC + phân vùng quan trọng**, rồi bấm **Bắt đầu sao lưu**. Không cần nhập lệnh Linux.
+2. Chỉ khi đồng ý backup lớn: chọn thư mục máy tính, chọn **Toàn bộ eMMC + phân vùng quan trọng**, tích ô cho phép **backup lớn** riêng rồi bấm **Bắt đầu sao lưu**. Quyền kiểm tra USB không tự cấp quyền backup lớn. Không cần nhập lệnh Linux.
 3. Xem kết quả xác minh; có thể kiểm tra lại bằng thư mục chứa `manifest.json`.
 
 Mở bản mô phỏng không truy cập USB:
@@ -24,8 +24,8 @@ Mỗi phiên có token riêng trong liên kết mở trình duyệt, được ch
 
 - Tìm ADB tại `C:\adb\adb.exe`, tiếp theo trong PATH; có thể đặt biến môi trường `UZ801_ADB` tới executable tin cậy.
 - Host ADB phải cung cấp `transport_id`; thiết bị phải sẵn có `uid=0`. Ứng dụng không chạy `adb root`, `su`, cài APK hoặc sửa hệ thống.
-- Thiết bị phải hỗ trợ `exec-out`, các lệnh đọc `cat`/`dd`, CID eMMC và boot ID. **Khả năng exec-out trên Android 4.4.4 thực tế chưa được kiểm thử**. Nếu không hỗ trợ, ứng dụng dừng; không chuyển sang PTY hoặc PowerShell redirection có thể làm hỏng dữ liệu.
-- GPT chính, GPT dự phòng và dữ liệu sysfs phải khớp. Số phân vùng tham chiếu là 27; vị trí được lấy từ GPT, không dùng số phân vùng hardcode để đọc.
+- Luồng backup dùng ADB SYNC v1 binary-safe, không PTY hoặc PowerShell redirection. Firmware Android 4.4.4 đã thử không hỗ trợ `exec-out`; SYNC đọc mẫu thật thành công. Thiết bị phải cho phép RECV/LIST chỉ đọc, CID eMMC và boot ID. ADB host được ghim tại 127.0.0.1:5037.
+- GPT chính phải hợp lệ và khớp sysfs. Khi thiếu exec-out, chỉ đọc prefix 64 KiB; **GPT dự phòng được hoãn tới khi xác minh ảnh full**. Critical-only bị khóa trong trường hợp này. Một backup full chỉ hoàn tất nếu cả hai GPT trong ảnh hợp lệ, giống nhau và khớp layout vừa kiểm tra. Sentinel protective MBR FFFFFFFF được nhận diện có cảnh báo, không dùng làm dung lượng. Vị trí phân vùng lấy từ GPT, không dùng chỉ số hardcode để đọc.
 - Thư mục đích phải tồn tại trên ổ cục bộ, không phải UNC, ổ mạng ánh xạ hoặc liên kết. Cần dung lượng cho toàn bộ ảnh + các tệp phân vùng riêng + 128 MiB dự phòng (khoảng 7–8 GiB cho cấu hình đã mô tả).
 
 ## Dữ liệu được tạo
@@ -66,7 +66,7 @@ Nút EDL đọc danh sách USB/PnP Windows, tìm `05C6:9008`, kiểm tra tình t
 
 Programmer luôn là `UNKNOWN` khi chưa có bằng chứng phù hợp với đúng board, eMMC và khóa ký. Driver hoạt động không đồng nghĩa libusb/Firehose đã giao tiếp được. Backup EDL offline là phương án ưu tiên **sau khi** chứng minh đường recovery; bản này chưa có chức năng thực thi backup EDL.
 
-Xem [hướng dẫn recovery](docs/RECOVERY.md), [báo cáo kỹ thuật](docs/TECHNICAL_REPORT.md), [kết quả kiểm thử](docs/TEST_REPORT.md) và [rủi ro còn lại](docs/RISKS.md).
+Xem [hướng dẫn recovery](docs/RECOVERY.md), [báo cáo kỹ thuật](docs/TECHNICAL_REPORT.md), [kết quả kiểm thử](docs/TEST_REPORT.md) và [rủi ro còn lại](docs/RISKS.md). [WEB_HOSTING_ROADMAP.md](WEB_HOSTING_ROADMAP.md) thiết kế giai đoạn Debian/Nginx/Cloudflare, chưa flash hoặc provisioning.
 
 ## Phát triển và đóng gói
 
@@ -88,4 +88,4 @@ python -m venv .venv
 .\dist\UZ801-OpenStick-Manager.exe --self-test
 ```
 
-Phần mềm chưa ký số. Bản phát hành chỉ được kiểm chứng trên máy build này; Windows khác, ADB stock thật, programmer và quy trình khôi phục thật còn cần kiểm thử có sự cho phép.
+Phần mềm chưa ký số. Bản phát hành chỉ được kiểm chứng trên máy build này; Windows khác, backup stock đầy đủ, programmer và quy trình khôi phục thật còn cần kiểm thử có sự cho phép.

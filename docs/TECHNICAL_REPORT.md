@@ -2,7 +2,7 @@
 
 ## Phạm vi triển khai
 
-Bản 0.1.0 triển khai Phase 1–3 ở mức mã nguồn, mô phỏng và kiểm thử trên Windows. Phase 4 chỉ có đánh giá bằng chứng ban đầu. Phase 5 chưa được triển khai; không có endpoint hoặc wrapper lệnh ghi thiết bị.
+Bản 0.1.1 triển khai Phase 1–3 ở mức mã nguồn, mô phỏng, kiểm thử Windows và đọc mẫu USB thật; xem HARDWARE_VALIDATION_v0.1.1.md để biết giới hạn. Phase 4 chỉ có đánh giá bằng chứng ban đầu. Phase 5 chưa triển khai; không có endpoint hoặc wrapper lệnh ghi thiết bị.
 
 Kiến trúc: Flask + Waitress trên IPv4 loopback, HTML/CSS/JavaScript thuần, SQLite history, một worker tác vụ, subprocess ADB có phạm vi lệnh hẹp, PyInstaller onefile. Không cần Node.js, server ngoài, telemetry hoặc firmware tải tự động.
 
@@ -18,21 +18,23 @@ Nguồn được truy cập qua web và đọc mã nguồn thật, không chạy
 
 ## Device Inspector
 
-Chỉ truy vấn các thuộc tính được liệt kê sẵn: model/product/board/platform/Android, uname, uid, MemTotal, Hardware CPU, sysfs eMMC name/sector count/logical sector. Không gọi `getprop` toàn bộ hoặc ghi log `/proc/cpuinfo` nguyên bản.
+Chỉ lấy các thuộc tính được liệt kê sẵn: model/product/board/platform/Android từ build.prop, kernel release từ /proc/version, UID của adbd từ /proc/self/status, MemTotal, Hardware CPU, sysfs eMMC name/sector count/logical sector. Tất cả dùng SYNC; không lưu nguyên bản build.prop/cpuinfo/status hoặc log dữ liệu chưa lọc.
 
 CID và boot ID chỉ được dùng tạm thời tạo HMAC với khóa ngẫu nhiên trong bộ nhớ. ADB serial và transport ID giữ nội bộ. Manifest/history/UI không chứa CID, IMEI hay serial. Dùng transport ID ghim phiên kết nối và HMAC để chặn rút/cắm hoặc đổi thiết bị giữa các bước. Đây không phải chứng thực mật mã với thiết bị bị kiểm soát chủ động.
 
-GPT reader kiểm tra protective MBR, signature/revision/header CRC, entry CRC, giới hạn LBA, GUID, tên trùng, phân vùng chồng lấn và sự tương đương giữa hai GPT. Bảng GPT phải khớp start/size sysfs. Giới hạn table <=4 MiB, <=4096 entries. Chỉ hỗ trợ sector logic 512 byte trong phiên bản này.
+GPT reader kiểm tra protective MBR, signature/revision/header CRC, entry CRC, giới hạn LBA, GUID, tên trùng, phân vùng chồng lấn và hai GPT khi xác minh ảnh full. Inspector legacy chỉ kiểm tra bản chính từ prefix 64 KiB, công khai trạng thái dự phòng DEFERRED_UNTIL_FULL_BACKUP. MBR chỉ cho phép kích thước chuẩn hoặc sentinel FFFFFFFF đã quan sát; vẫn kiểm tra start LBA 1 và mọi giới hạn GPT. Layout phải khớp sysfs. Giới hạn table <=4 MiB, <=4096 entries; prefix không đủ chứa table sẽ bị từ chối. Chỉ hỗ trợ sector logic 512 byte.
 
 Các số phân vùng cấu hình tham chiếu chỉ sinh cảnh báo. Đường dẫn block được dựng từ chỉ số entry GPT đã xác minh. PCB vẫn là `NOT_VERIFIED` dù Android báo tên board giống mong đợi.
 
 ## Backup và xác minh
 
-Luồng `adb -t <id> exec-out` không PTY, stdout nhị phân được đọc bằng Python, không dùng Windows shell hoặc PowerShell redirect. `cat`/`dd` chỉ có input. Các số offset/count được kiểm tra; stderr remote được bỏ để tránh lẫn binary. Mã thoát remote được gửi bằng trailer cố định, bắt buộc xuất hiện sau đúng số byte dự kiến; còn kiểm tra mã thoát ADB host.
+Luồng backup dùng ADB SYNC v1 qua smart socket 127.0.0.1:5037, chọn host:transport-id rồi sync:. Chỉ RECV/LIST cho đường dẫn allowlist; không có SEND hoặc PTY. Gói DATA <=64 KiB, đọc chính xác dù socket chia nhỏ header/payload, tổng kích thước bị giới hạn, bắt buộc DONE và đủ byte cho full stream. Prefix là API riêng chỉ phục vụ inspection, đóng sớm và không được dùng như full-transfer PASS. Socket có idle timeout 30 giây, kiểm tra hủy mỗi lần recv, đóng khi lỗi. Không tăng bộ nhớ theo ảnh đĩa.
 
-Reader thread + queue giới hạn 8 chunk giúp hủy và timeout khi mất USB; idle timeout 30 giây, bộ nhớ không tăng theo dung lượng ảnh. Tệp `.part` được ghi, hash khi stream, flush/fsync, đọc lại toàn bộ/hash rồi mới đổi tên. Hủy hoặc lỗi giữ manifest failed/cancelled/incomplete. Không có resume ghép nhiều phiên đọc.
+exec-out chỉ dùng probe 256 byte tổng hợp và đọc range GPT qua dd khi probe binary-safe PASS. Remote trailer và exit code vẫn phải hợp lệ. Không fallback sang shell. Firmware thật trả error: closed nên dùng SYNC prefix. Cả hai đường được regression-test.
 
-Full backup đọc raw một lần, kiểm tra GPT rồi trích các sidecar từ cùng ảnh. Đọc lại các sidecar và đối chiếu hash với phạm vi trong raw. Critical-only đọc từng block riêng, không tuyên bố GPT đã kiểm tra từ backup. Phân vùng calibration toàn 00/FF gây REVIEW_REQUIRED; đây chỉ là heuristic cấu trúc, không giải mã QCN/EFS hoặc chứng minh IMEI đúng.
+Tệp `.part` được ghi, hash khi stream, flush/fsync, đọc lại toàn bộ/hash rồi mới đổi tên. Hủy hoặc lỗi giữ manifest failed/cancelled/incomplete. Không có resume ghép nhiều phiên đọc.
+
+Full backup đọc raw một lần, kiểm tra cả hai GPT rồi trích sidecar từ cùng ảnh. Đọc lại sidecar và đối chiếu hash với phạm vi trong raw. Critical-only chỉ mở khi inspector đã xác minh cả hai GPT; đọc từng block riêng và không tuyên bố GPT được kiểm tra từ backup. Calibration toàn 00/FF gây REVIEW_REQUIRED; đây chỉ là heuristic cấu trúc, không giải mã QCN/EFS hoặc chứng minh IMEI đúng.
 
 SHA-256 chỉ bảo đảm các byte cục bộ không thay đổi giữa lần ghi/đọc; không bảo đảm firmware nhất quán trong khi Android vẫn chạy. Không gửi lệnh freeze/mount/sync vì bản này chỉ đọc thiết bị.
 
@@ -41,6 +43,7 @@ SHA-256 chỉ bảo đảm các byte cục bộ không thay đổi giữa lần 
 - Waitress bind `127.0.0.1`, kiểm tra Host, Origin, Fetch-Site, session token ngẫu nhiên và JSON cho POST. Không bật CORS. CSP chặn script ngoài/inline, frame-ancestors none, no-store.
 - Frontend dùng textContent để hiển thị dữ liệu thiết bị, tránh chèn HTML.
 - Không nhận executable/remote shell từ API. ADB/EDL path chỉ cấu hình cục bộ trước khi chạy.
+- Consent đọc metadata và consent backup lớn là hai điều kiện riêng; API backup từ chối thiếu backup_approved=true.
 - Từ chối UNC, mapped network drive, traversal, symlink/junction. Manifest chỉ nhận đúng tên tệp dự kiến từ layout, không có API tải raw nội dung.
 - Một instance ứng dụng trên mỗi tài khoản Windows bằng OS file lock. Worker có khóa thread + khóa file để chặn hai tác vụ; history ghi SQLite transaction, đóng connection sau mỗi lần dùng.
 - Exception subprocess không đưa stdout/stderr vào log; UI nhận mã lỗi cố định. Log backup chỉ chứa sự kiện/tên sidecar do ứng dụng tạo.

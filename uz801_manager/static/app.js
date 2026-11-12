@@ -23,7 +23,8 @@ function consent(){if(!$("consent").checked){error("Hãy cho phép đọc thiế
 function hardware(device){
   $("hardware").replaceChildren();
   if(!device){const block=text("div","");block.append(text("dt","Chưa có dữ liệu"),text("dd","Chọn Kiểm tra USB để đọc thông tin thiết bị."));$("hardware").append(block);return;}
-  const fields=[["Model",device.model],["Product",device.product],["Board do Android báo",device.board||"Không cung cấp"],["Chipset",device.chipset],["Android",device.android],["Quyền root",device.root?"Có · uid=0":"Không có"],["RAM khả dụng",bytes(device.ram_kb*1024)],["Số sector × 512 byte",device.sectors.toLocaleString("vi-VN")],["Kernel",device.kernel]];
+  const notTested=device.demo?"Mô phỏng":"Chưa kiểm tra";
+  const fields=[["Model",device.model],["Product",device.product],["Board do Android báo",device.board||"Không cung cấp"],["Chipset",device.chipset],["Android",device.android],["Quyền root",device.root?"Có · uid=0":"Không có"],["RAM khả dụng",bytes(device.ram_kb*1024)],["Số sector × 512 byte",device.sectors.toLocaleString("vi-VN")],["Kernel",device.kernel],["Luồng nhị phân",device.binary_transport||notTested],["exec-out",device.exec_out||notTested],["GPT chính",device.gpt_primary||notTested],["GPT dự phòng",device.gpt_secondary==="DEFERRED_UNTIL_FULL_BACKUP"?"Chờ xác minh từ backup full":device.gpt_secondary||notTested]];
   for(const [key,value] of fields){const block=text("div","");block.append(text("dt",key),text("dd",value));$("hardware").append(block);}
 }
 function renderVerification(job){
@@ -41,7 +42,8 @@ function render(state){
   hardware(d);$("warnings").replaceChildren();for(const warning of d?.warnings||[])$("warnings").append(text("li",warning));if(d?.backup_error)$("warnings").append(text("li","Sao lưu bị khóa: "+d.backup_error));if(state.connection_error)$("warnings").append(text("li",state.connection_error));
   $("partitions").replaceChildren();for(const p of d?.partitions||[]){const row=document.createElement("tr");for(const value of [p.number,p.name,p.block,p.first_lba,bytes(p.size)])row.append(text("td",value));$("partitions").append(row);}
   if(!$("backup-folder").value)$("backup-folder").value=state.default_folder;
-  $("start-backup").disabled=!!active||!d?.backup_allowed||!$("consent").checked;
+  $("mode").options[1].disabled=d?.gpt_secondary==="DEFERRED_UNTIL_FULL_BACKUP";if($("mode").options[1].disabled)$("mode").value="full";
+  $("start-backup").disabled=!!active||!d?.backup_allowed||!$("consent").checked||!$("backup-consent").checked;
   for(const id of ["inspect","verify","edl"] )$(id).disabled=!!active;
   $("cancel").disabled=!active||["inspect","edl"].includes(active?.kind);
   const running=active?.detail||{};$("progress-title").textContent=active?(running.phase||label(active.kind)):"Sẵn sàng";
@@ -64,7 +66,8 @@ async function refresh(){if(polling)return;polling=true;try{render(await api("/a
 async function pick(id,kind="directory"){try{const result=await api("/api/pick",{kind});if(result.path)$(id).value=result.path;}catch(e){error(e.message);}}
 $("inspect").addEventListener("click",()=>{if(consent()){lastAutoCheck=Date.now();action("/api/inspect",{consent:true});}});
 $("consent").addEventListener("change",()=>{if(!$("consent").checked)$("monitor").checked=false;if(latest)render(latest);});
-$("start-backup").addEventListener("click",()=>{if(consent())action("/api/backup",{consent:true,folder:$("backup-folder").value,mode:$("mode").value});});
+$("backup-consent").addEventListener("change",()=>{if(latest)render(latest);});
+$("start-backup").addEventListener("click",()=>{if(consent()&&$("backup-consent").checked)action("/api/backup",{consent:true,backup_approved:true,folder:$("backup-folder").value,mode:$("mode").value});});
 $("verify").addEventListener("click",()=>action("/api/verify",{folder:$("verify-folder").value}));
 $("edl").addEventListener("click",()=>{if(consent())action("/api/edl",{consent:true,programmer:$("programmer").value});});
 $("cancel").addEventListener("click",()=>{if(activeId)action("/api/cancel",{job_id:activeId});});

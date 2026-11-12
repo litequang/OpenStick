@@ -12,9 +12,12 @@ jobs:
           python-version: '3.14'
       - run: python -m pip install -e ".[dev]"
       - run: python -m pytest -q
+      - run: python -m pip check
+      - run: node --check uz801_manager/static/app.js
       - run: python -m uz801_manager --self-test
       - run: python -m PyInstaller --noconfirm --onefile --name UZ801-OpenStick-Manager --collect-data uz801_manager launcher.py
       - run: .\dist\UZ801-OpenStick-Manager.exe --self-test
+      - run: python scripts/smoke_exe.py
       - uses: actions/upload-artifact@v4
         with:
           name: UZ801-OpenStick-Manager-Windows

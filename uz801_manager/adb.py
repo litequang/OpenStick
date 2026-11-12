@@ -7,6 +7,7 @@ import queue
 import re
 import secrets
 import shutil
+import struct
 import subprocess
 import threading
 import time
@@ -14,30 +15,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .errors import Cancelled, SafetyError
-from .gpt import Partition, read_gpt
+from .gpt import Partition, read_gpt, read_primary_gpt
+from .adb_sync import SyncReader
 
 CREATE_FLAGS = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 TRAILER = b"\nUZ801_RC=000\n"
 CRITICAL = ("modemst1", "modemst2", "fsg", "fsc", "persist", "sbl1", "aboot", "boot", "system", "userdata")
 CALIBRATION = ("modemst1", "modemst2", "fsg", "fsc", "persist")
 EXPECTED_NUMBERS = dict(zip(CRITICAL, (13, 14, 20, 16, 24, 2, 4, 22, 23, 27)))
-READS = {
-    "model": "getprop ro.product.model",
-    "product": "getprop ro.product.name",
-    "board": "getprop ro.product.board",
-    "platform": "getprop ro.board.platform",
-    "android": "getprop ro.build.version.release",
-    "kernel": "uname -a",
-    "root": "id",
-    "ram": "cat /proc/meminfo",
-    "cpu": "cat /proc/cpuinfo",
-    "sectors": "cat /sys/class/block/mmcblk0/size",
-    "logical_sector": "cat /sys/class/block/mmcblk0/queue/logical_block_size",
-    "emmc_name": "cat /sys/class/block/mmcblk0/device/name",
-    "cid": "cat /sys/class/block/mmcblk0/device/cid",
-    "boot_id": "cat /proc/sys/kernel/random/boot_id",
-    "layout": 'for p in /sys/class/block/mmcblk0p*; do echo "${p##*/}"; cat "$p/start" "$p/size"; done',
-}
+PROPERTIES = dict(model="ro.product.model", product="ro.product.name", board="ro.product.board",
+                  platform="ro.board.platform", android="ro.build.version.release")
+PATHS = dict(kernel="/proc/version", root="/proc/self/status", ram="/proc/meminfo", cpu="/proc/cpuinfo",
+             sectors="/sys/class/block/mmcblk0/size", logical_sector="/sys/class/block/mmcblk0/queue/logical_block_size",
+             emmc_name="/sys/class/block/mmcblk0/device/name", cid="/sys/class/block/mmcblk0/device/cid",
+             boot_id="/proc/sys/kernel/random/boot_id")
+READS = (*PROPERTIES, *PATHS, "layout")
 
 
 def find_adb():
@@ -68,18 +60,20 @@ class Snapshot:
 
 
 class ADB:
-    def __init__(self, executable=None, *, run=subprocess.run, popen=subprocess.Popen, idle_timeout=30):
+    def __init__(self, executable=None, *, run=subprocess.run, popen=subprocess.Popen, idle_timeout=30,
+                 sync_factory=SyncReader):
         self.executable = executable or find_adb()
         self.run = run
         self.popen = popen
         self.idle_timeout = idle_timeout
         self._salt = secrets.token_bytes(32)
+        self.sync_factory = sync_factory
 
     def _run(self, args):
         if not self.executable:
             raise SafetyError("ADB_NOT_FOUND")
         try:
-            result = self.run([self.executable, *args], capture_output=True,
+            result = self.run([self.executable, "-H", "127.0.0.1", "-P", "5037", *args], capture_output=True,
                               timeout=20, creationflags=CREATE_FLAGS, shell=False)
         except subprocess.TimeoutExpired:
             raise SafetyError("ADB_TIMEOUT") from None
@@ -110,12 +104,44 @@ class ADB:
     def _read(self, transport, key):
         if not transport.isdecimal() or key not in READS:
             raise SafetyError("INPUT_INVALID")
-        return self._run(["-t", transport, "shell", READS[key]])
+        sync = self.sync_factory(transport)
+        if key in PROPERTIES:
+            props = dict(line.split("=", 1) for line in sync.read_text("/system/build.prop").splitlines()
+                         if "=" in line and not line.lstrip().startswith("#"))
+            return props.get(PROPERTIES[key], "")
+        if key == "layout":
+            lines = []
+            for name in sync.partitions():
+                lines.extend((name, sync.read_text(f"/sys/class/block/{name}/start"),
+                              sync.read_text(f"/sys/class/block/{name}/size")))
+            return "\n".join(lines)
+        value = sync.read_text(PATHS[key])
+        if key == "root":
+            # /proc/self is adbd itself, the process servicing SYNC reads.
+            uid = re.search(r"^Uid:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$", value, re.M)
+            return "uid=0" if uid and all(n == "0" for n in uid.groups()) else "unprivileged"
+        if key == "kernel":
+            match = re.match(r"Linux version (\S+)", value)
+            if not match:
+                raise SafetyError("INVALID_DEVICE_DATA")
+            return match[1]  # Do not publish build usernames/hostnames.
+        return value
+
+    def supports_exec_out(self, transport):
+        """Synthetic 256-byte probe; no disk read and no shell/PTY fallback."""
+        expected = bytes(range(256))
+        command = "printf '" + "".join(f"\\{n:03o}" for n in range(256)) + "'"
+        out = io.BytesIO()
+        try:
+            self._stream(transport, command, len(expected), out, threading.Event(), lambda n: None)
+        except SafetyError:
+            return False
+        return out.getvalue() == expected
 
     def identity(self, transport):
         cid = self._read(transport, "cid").lower()
         boot = self._read(transport, "boot_id").lower()
-        if not re.fullmatch(r"[0-9a-f]{32}", cid) or not re.fullmatch(r"[0-9a-f-]{36}", boot):
+        if not re.fullmatch(r"[0-9a-f]{32}", cid) or not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", boot):
             raise SafetyError("IDENTITY_UNAVAILABLE")
         return hmac.new(self._salt, (cid + boot).encode(), hashlib.sha256).hexdigest()
 
@@ -157,7 +183,27 @@ class ADB:
             return snapshot
         try:
             snapshot.fingerprint = self.identity(transport)
-            parts = read_gpt(lambda off, length: self.read_range(snapshot, off, length), sectors)
+            exec_ok = self.supports_exec_out(transport)
+            info.update(binary_transport="adb-sync-v1", exec_out="PASS" if exec_ok else "UNAVAILABLE",
+                        gpt_primary="NOT_TESTED", gpt_secondary="NOT_TESTED")
+            prefix = self.sync_factory(transport).primary_prefix()
+            info["protective_mbr"] = "SATURATED_SIZE" if any(
+                prefix[446 + i * 16 + 4] == 0xEE and
+                struct.unpack_from("<I", prefix, 446 + i * 16 + 12)[0] == 0xFFFFFFFF
+                for i in range(4)) and sectors - 1 < 0xFFFFFFFF else "STANDARD_SIZE"
+            if info["protective_mbr"] == "SATURATED_SIZE":
+                warnings.append("Protective MBR dùng 0xFFFFFFFF thay vì kích thước đĩa; "
+                                "giữ nguyên dữ liệu, đối chiếu dung lượng bằng sysfs và GPT.")
+            if exec_ok:
+                parts = read_gpt(lambda off, length: self.read_range(snapshot, off, length), sectors)
+                info["gpt_secondary"] = "PASS"
+            else:
+                parts = read_primary_gpt(prefix, sectors)
+                info["gpt_secondary"] = "DEFERRED_UNTIL_FULL_BACKUP"
+                warnings.append("exec-out không khả dụng. ADB SYNC chỉ đọc đã kiểm tra GPT chính; "
+                                "GPT dự phòng sẽ kiểm tra từ ảnh full sau khi bạn cho phép backup riêng. "
+                                "Chế độ chỉ phân vùng quan trọng bị khóa.")
+            info["gpt_primary"] = "PASS"
             layout = self._read(transport, "layout").splitlines()
             if len(layout) % 3:
                 raise SafetyError("LAYOUT_MISMATCH")
@@ -203,7 +249,8 @@ class ADB:
             if partition not in snapshot.partitions or not 1 <= partition.number <= 4096:
                 raise SafetyError("INPUT_INVALID")
             block, size = partition.block, partition.size
-        self._stream(snapshot.transport, f"cat {block}", size, output, cancel, progress)
+        self.sync_factory(snapshot.transport).receive(block, output, cancel, progress,
+                                                       expected=size, limit=size)
         self.assert_same(snapshot)
 
     def _stream(self, transport, command, expected, output, cancel, progress):
@@ -213,7 +260,7 @@ class ADB:
         # The command is built solely from fixed strings and checked integers.
         script = command + " 2>/dev/null; rc=$?; printf '\\nUZ801_RC=%03d\\n' \"$rc\""
         try:
-            proc = self.popen([self.executable, "-t", transport, "exec-out", script],
+            proc = self.popen([self.executable, "-H", "127.0.0.1", "-P", "5037", "-t", transport, "exec-out", script],
                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                               stdin=subprocess.DEVNULL, shell=False, creationflags=CREATE_FLAGS)
         except OSError:

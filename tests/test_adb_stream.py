@@ -14,8 +14,8 @@ def make_stream(tmp_path, payload, *, code=0, delay=0, timeout=1):
     script = tmp_path / "mock_adb.py"
     script.write_text("import sys,time\n" + f"sys.stdout.buffer.write({payload!r})\nsys.stdout.buffer.flush()\ntime.sleep({delay})\nsys.exit({code})\n")
     def popen(args, **kwargs):
-        assert args[1:4] == ["-t", "1", "exec-out"]
-        assert "of=" not in args[4]
+        assert args[1:8] == ["-H", "127.0.0.1", "-P", "5037", "-t", "1", "exec-out"]
+        assert "of=" not in args[8]
         assert kwargs["shell"] is False
         return subprocess.Popen([sys.executable, str(script)], **kwargs)
     return ADB("mock-adb", popen=popen, idle_timeout=timeout)
@@ -62,6 +62,13 @@ class InspectorADB(ADB):
         self.demo = DemoADB(delay=0)
         self.root = root
         self.replacement = False
+        demo = self.demo
+        class FakeSync:
+            def __init__(self, transport):
+                pass
+            def primary_prefix(self):
+                return demo.image[:65536]
+        self.sync_factory = FakeSync
 
     def connection(self):
         return ("synthetic-serial", "2" if self.replacement else "1")
@@ -75,6 +82,9 @@ class InspectorADB(ADB):
                   "layout": "\n".join(f"mmcblk0p{p.number}\n{p.first_lba}\n{p.size // 512}" for p in self.demo.snapshot.partitions)}
         assert set(values) == set(READS)
         return values[key]
+
+    def supports_exec_out(self, transport):
+        return True
 
     def read_range(self, snapshot, offset, length):
         return self.demo.image[offset:offset + length]

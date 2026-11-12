@@ -108,6 +108,8 @@ def create_app(*, directory=None, adb=None, edl=None, port=8765, token=None, dem
     def start_backup():
         value = body()
         consent(value)
+        if value.get("backup_approved") is not True:
+            raise SafetyError("BACKUP_CONSENT_REQUIRED")
         snapshot = state["device"]
         if not snapshot:
             raise SafetyError("INSPECT_REQUIRED")
