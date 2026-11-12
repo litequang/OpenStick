@@ -1,5 +1,6 @@
 """Test the frozen Windows server over loopback without accessing real USB."""
 import json
+import argparse
 import socket
 import subprocess
 import tempfile
@@ -10,7 +11,9 @@ from pathlib import Path
 
 
 def main():
-    executable = Path(__file__).resolve().parents[1] / "dist/UZ801-OpenStick-Manager.exe"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exe", type=Path, default=Path(__file__).resolve().parents[1] / "dist/UZ801-OpenStick-Manager.exe")
+    executable = parser.parse_args().exe.resolve()
     subprocess.run([str(executable), "--self-test"], check=True, timeout=60)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))

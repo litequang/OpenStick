@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = ["Flask>=3.1.3,<4", "waitress>=3.0.2,<4"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "pyinstaller>=6.22,<7"]
+dev = ["pytest>=8,<10", "pyinstaller>=6.22,<7", "jsonschema>=4.23,<5"]
 
 [project.scripts]
 uz801-manager = "uz801_manager.__main__:main"
@@ -19,7 +19,7 @@ uz801-manager = "uz801_manager.__main__:main"
 include = ["uz801_manager*"]
 
 [tool.setuptools.package-data]
-uz801_manager = ["templates/*.html", "static/*.css", "static/*.js"]
+uz801_manager = ["templates/*.html", "static/*.css", "static/*.js", "schemas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

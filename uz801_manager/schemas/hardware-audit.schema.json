@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/litequang/OpenStick/hardware-audit.schema.json",
+  "title": "Read-only Compatibility Audit v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "source": {
+      "enum": [
+        "android-live",
+        "demo"
+      ]
+    },
+    "created_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "enum": [
+        "UNVERIFIED",
+        "BLOCKED"
+      ]
+    },
+    "session": {
+      "enum": [
+        "VERIFIED",
+        "UNVERIFIED",
+        "BLOCKED"
+      ]
+    },
+    "deployment": {
+      "const": "NO_GO"
+    },
+    "flash_enabled": {
+      "const": false
+    },
+    "read_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2097152
+    },
+    "requests": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 256
+    },
+    "limits": {
+      "const": [
+        "VERIFIED ch\u1ec9 x\u00e1c nh\u1eadn quan s\u00e1t Android hi\u1ec7n t\u1ea1i, kh\u00f4ng ch\u1ee9ng nh\u1eadn ch\u1ee9c n\u0103ng Debian/V3.2.",
+        "Kh\u00f4ng \u0111\u1ecdc SIM identifiers, SMS, MAC/IP/SSID, credentials ho\u1eb7c d\u1eef li\u1ec7u calibration; kh\u00f4ng m\u1edf modem nodes.",
+        "Ch\u1ec9 parse thu\u1ed9c t\u00ednh build allowlist; kh\u00f4ng l\u01b0u/xu\u1ea5t build.prop ho\u1eb7c l\u1ed7i remote nguy\u00ean b\u1ea3n.",
+        "Kh\u00f4ng g\u1eedi AT/QMI/RIL, SMS/USSD, kh\u00f4ng b\u1eadt data, kh\u00f4ng thay route/Wi-Fi/USB ho\u1eb7c th\u1eed failover.",
+        "Kh\u00f4ng ph\u00e1t hi\u1ec7n th\u00e0nh ph\u1ea7n kh\u00f4ng c\u00f3 ngh\u0129a ph\u1ea7n c\u1ee9ng kh\u00f4ng h\u1ed7 tr\u1ee3; l\u1ed7i \u0111\u1ecdc c\u00f3 th\u1ec3 l\u00e0 thi\u1ebfu file/quy\u1ec1n.",
+        "Board v\u1eadt l\u00fd, firmware/DTB Linux v\u00e0 recovery ch\u01b0a \u0111\u01b0\u1ee3c x\u00e1c minh; tri\u1ec3n khai l\u00ean thi\u1ebft b\u1ecb NO-GO."
+      ]
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "status",
+          "facts",
+          "sources"
+        ],
+        "properties": {
+          "key": {
+            "enum": [
+              "android_identity",
+              "physical_board",
+              "kernel",
+              "device_tree",
+              "memory",
+              "partition_layout",
+              "usb_gadget",
+              "network_interfaces",
+              "wifi_components",
+              "modem_components",
+              "userspace",
+              "modem_firmware",
+              "wifi_sta",
+              "wifi_ap",
+              "usb_uplink",
+              "lte_data",
+              "sms",
+              "ussd"
+            ]
+          },
+          "status": {
+            "enum": [
+              "VERIFIED",
+              "UNVERIFIED",
+              "BLOCKED"
+            ]
+          },
+          "facts": {
+            "type": "array",
+            "maxItems": 1024,
+            "items": {
+              "type": "string",
+              "maxLength": 240
+            }
+          },
+          "sources": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "maxLength": 240
+            }
+          }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "maxItems": 257,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "code"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "code": {
+            "enum": [
+              "ADB_FAILED",
+              "ADB_NOT_FOUND",
+              "ADB_TIMEOUT",
+              "AUDIT_DATA_INVALID",
+              "AUDIT_FAILED",
+              "AUDIT_LIMIT",
+              "AUDIT_READ_UNAVAILABLE",
+              "DEVICE_CHANGED",
+              "MULTIPLE_DEVICES",
+              "NO_DEVICE",
+              "STREAM_FAILED",
+              "STREAM_TIMEOUT",
+              "SYNC_PROTOCOL",
+              "SYNC_UNAVAILABLE",
+              "TRANSPORT_UNSUPPORTED"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "created_utc",
+    "status",
+    "session",
+    "deployment",
+    "flash_enabled",
+    "read_bytes",
+    "requests",
+    "limits",
+    "observations",
+    "issues"
+  ]
+}

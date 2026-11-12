@@ -26,6 +26,7 @@ def main():
         parser.error("Port must be 1024–65535")
     if args.self_test:
         import tkinter
+        from importlib.resources import files
         tcl_version = tkinter.Tcl().eval("info patchlevel")
         with tempfile.TemporaryDirectory(prefix="uz801-selftest-") as directory:
             app = create_app(directory=directory, adb=DemoADB(delay=0), demo=True)
@@ -41,7 +42,16 @@ def main():
                 response = client.get("/api/state", base_url=base, headers=headers).get_json()
                 assert len(response["device"]["partitions"]) == 27
                 assert response["readiness"]["flash_enabled"] is False
+                assert client.post("/api/compatibility", json={"consent": True}, base_url=base, headers=headers).status_code == 202
+                app.extensions["uz801"]["jobs"].thread.join(5)
+                audit = client.get("/api/compatibility/report", base_url=base, headers=headers).get_json()
+                assert audit["source"] == "demo" and audit["deployment"] == "NO_GO"
+                assert all(o["status"] == "UNVERIFIED" for o in audit["observations"])
+                assert client.get("/api/compatibility/report?format=md", base_url=base, headers=headers).status_code == 200
+                schema = json.loads(files("uz801_manager").joinpath("schemas/hardware-audit.schema.json").read_text(encoding="utf-8"))
+                assert schema["properties"]["flash_enabled"]["const"] is False
             print(json.dumps({"packaged_assets": "PASS", "api": "PASS", "demo_inspector": "PASS",
+                              "compatibility_demo_exports": "PASS", "audit_schema_asset": "PASS",
                               "tcl_runtime": tcl_version, "hardware": "NOT_TESTED"}))
         return 0
     directory = args.data_dir or (data_directory() / ("demo" if args.demo else "runtime"))

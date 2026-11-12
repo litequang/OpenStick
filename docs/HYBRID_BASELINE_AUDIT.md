@@ -6,7 +6,7 @@ Ngày kiểm tra: 2026-11-12 (Asia/Saigon). Phạm vi nhiệm vụ dừng sau Ph
 
 - HEAD ban đầu: `232fb377334c07cabf3f0ec19dc300e1b9eadcf3`, branch `main`, working tree sạch.
 - Origin: `https://github.com/litequang/OpenStick.git`; fetch và đối chiếu tag v0.1.1, target đúng HEAD trên. [Release v0.1.1](https://github.com/litequang/OpenStick/releases/tag/v0.1.1) là prerelease.
-- Branch làm việc mới: `audit/hybrid-v2-feasibility`. Không sửa/merge main, không tạo release trong nhiệm vụ này.
+- Branch làm việc mới: `codex/hybrid-v2-feasibility`. Không sửa/merge main, không tạo release trong nhiệm vụ này.
 - Đã đọc toàn bộ các module Python hiện có trong `uz801_manager`, HTML/CSS/JS, toàn bộ 9 tệp test baseline, launcher, spec, build/package/smoke scripts, pyproject, lockfile và workflow CI trước khi sửa sản phẩm.
 
 ## Kiến trúc và kết luận audit

@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "source": "android-live",
+  "created_utc": "2026-11-12T08:24:55.209539+00:00",
+  "status": "UNVERIFIED",
+  "session": "VERIFIED",
+  "deployment": "NO_GO",
+  "flash_enabled": false,
+  "observations": [
+    {
+      "key": "physical_board",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Ch\u01b0a \u0111\u1ed1i chi\u1ebfu PCB v\u1eadt l\u00fd; t\u00ean Android kh\u00f4ng x\u00e1c minh V3.2."
+      ],
+      "sources": []
+    },
+    {
+      "key": "modem_firmware",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Kh\u00f4ng \u0111\u1ecdc modem/calibration image; ch\u01b0a \u0111\u1ed1i chi\u1ebfu hash firmware v\u1edbi kernel Linux m\u1ee5c ti\u00eau."
+      ],
+      "sources": []
+    },
+    {
+      "key": "wifi_sta",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Kh\u00f4ng association/scan/connect; interface ho\u1eb7c driver kh\u00f4ng ch\u1ee9ng minh STA ho\u1ea1t \u0111\u1ed9ng."
+      ],
+      "sources": []
+    },
+    {
+      "key": "wifi_ap",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Kh\u00f4ng th\u1eed AP; hotspot n\u1eb1m ngo\u00e0i m\u1ee5c ti\u00eau s\u1ea3n ph\u1ea9m."
+      ],
+      "sources": []
+    },
+    {
+      "key": "usb_uplink",
+      "status": "UNVERIFIED",
+      "facts": [
+        "RNDIS/gadget hi\u1ec7n di\u1ec7n kh\u00f4ng ch\u1ee9ng minh USB nh\u1eadn Internet t\u1eeb Windows; kh\u00f4ng \u0111\u1ed5i ICS/route."
+      ],
+      "sources": []
+    },
+    {
+      "key": "lte_data",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Kh\u00f4ng k\u00edch ho\u1ea1t bearer/mobile data ho\u1eb7c th\u1eed l\u01b0u l\u01b0\u1ee3ng."
+      ],
+      "sources": []
+    },
+    {
+      "key": "sms",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Ch\u1ec9 nh\u1eadn di\u1ec7n \u1ee9ng vi\u00ean backend; kh\u00f4ng m\u1edf channel, \u0111\u1ecdc n\u1ed9i dung ho\u1eb7c g\u1eedi SMS."
+      ],
+      "sources": []
+    },
+    {
+      "key": "ussd",
+      "status": "UNVERIFIED",
+      "facts": [
+        "Ch\u01b0a ch\u1ee9ng minh backend/vendor/network h\u1ed7 tr\u1ee3; kh\u00f4ng t\u1ea1o session USSD."
+      ],
+      "sources": []
+    },
+    {
+      "key": "android_identity",
+      "status": "VERIFIED",
+      "facts": [
+        "ro.product.model=UZ801",
+        "ro.product.name=msm8916_32_512",
+        "ro.product.board=ALK",
+        "ro.board.platform=msm8916",
+        "ro.build.version.release=4.4.4"
+      ],
+      "sources": [
+        "/system/build.prop"
+      ]
+    },
+    {
+      "key": "kernel",
+      "status": "VERIFIED",
+      "facts": [
+        "release=3.10.28"
+      ],
+      "sources": [
+        "/proc/version"
+      ]
+    },
+    {
+      "key": "device_tree",
+      "status": "UNVERIFIED",
+      "facts": [
+        "DTB/model kh\u00f4ng \u0111\u01b0\u1ee3c nh\u1eadn di\u1ec7n; kh\u00f4ng suy \u0111o\u00e1n t\u1eeb SoC."
+      ],
+      "sources": [
+        "/proc/device-tree/model",
+        "/proc/device-tree/compatible"
+      ]
+    },
+    {
+      "key": "memory",
+      "status": "VERIFIED",
+      "facts": [
+        "ram_kb=397824",
+        "sectors_512=7569408",
+        "emmc_bytes=3875536896",
+        "logical_sector=512",
+        "emmc_name=XINYH"
+      ],
+      "sources": [
+        "/proc/meminfo",
+        "/sys/class/block/mmcblk0/size",
+        "/sys/class/block/mmcblk0/device/name"
+      ]
+    },
+    {
+      "key": "partition_layout",
+      "status": "VERIFIED",
+      "facts": [
+        "mmcblk0p1:start=131072,sectors=131072",
+        "mmcblk0p10:start=272384,sectors=1024",
+        "mmcblk0p11:start=273408,sectors=1024",
+        "mmcblk0p12:start=274432,sectors=2048",
+        "mmcblk0p13:start=276480,sectors=3072",
+        "mmcblk0p14:start=279552,sectors=3072",
+        "mmcblk0p15:start=282624,sectors=2048",
+        "mmcblk0p16:start=284672,sectors=2",
+        "mmcblk0p17:start=284674,sectors=16",
+        "mmcblk0p18:start=284690,sectors=20480",
+        "mmcblk0p19:start=393216,sectors=64",
+        "mmcblk0p2:start=262144,sectors=1024",
+        "mmcblk0p20:start=393280,sectors=3072",
+        "mmcblk0p21:start=396352,sectors=32",
+        "mmcblk0p22:start=396384,sectors=32768",
+        "mmcblk0p23:start=429152,sectors=1638400",
+        "mmcblk0p24:start=2067552,sectors=65536",
+        "mmcblk0p25:start=2133088,sectors=262144",
+        "mmcblk0p26:start=2395232,sectors=32768",
+        "mmcblk0p27:start=2428000,sectors=5141375",
+        "mmcblk0p3:start=263168,sectors=1024",
+        "mmcblk0p4:start=264192,sectors=2048",
+        "mmcblk0p5:start=266240,sectors=2048",
+        "mmcblk0p6:start=268288,sectors=1024",
+        "mmcblk0p7:start=269312,sectors=1024",
+        "mmcblk0p8:start=270336,sectors=1024",
+        "mmcblk0p9:start=271360,sectors=1024"
+      ],
+      "sources": [
+        "/sys/class/block"
+      ]
+    },
+    {
+      "key": "usb_gadget",
+      "status": "VERIFIED",
+      "facts": [
+        "idVendor=05c6",
+        "idProduct=90b6",
+        "function=diag",
+        "function=rndis",
+        "enabled=1",
+        "state=CONFIGURED"
+      ],
+      "sources": [
+        "/sys/class/android_usb/android0/functions",
+        "/sys/class/android_usb/android0/idVendor",
+        "/sys/class/android_usb/android0/idProduct"
+      ]
+    },
+    {
+      "key": "network_interfaces",
+      "status": "VERIFIED",
+      "facts": [
+        "interface=lo",
+        "lo:operstate=unknown",
+        "interface=rmnet0",
+        "rmnet0:operstate=down",
+        "interface=rmnet1",
+        "rmnet1:operstate=down",
+        "interface=rmnet2",
+        "rmnet2:operstate=down",
+        "interface=rmnet3",
+        "rmnet3:operstate=down",
+        "interface=rmnet4",
+        "rmnet4:operstate=down",
+        "interface=rmnet5",
+        "rmnet5:operstate=down",
+        "interface=rmnet6",
+        "rmnet6:operstate=down",
+        "interface=rmnet7",
+        "rmnet7:operstate=down",
+        "interface=rmnet_usb0",
+        "rmnet_usb0:operstate=down",
+        "interface=rndis0",
+        "rndis0:operstate=up",
+        "interface=wlan0",
+        "wlan0:operstate=up"
+      ],
+      "sources": [
+        "/sys/class/net"
+      ]
+    },
+    {
+      "key": "wifi_components",
+      "status": "VERIFIED",
+      "facts": [
+        "module=cfg80211",
+        "module=wlan",
+        "module_file=wlan.ko",
+        "firmware_entry=wlan",
+        "wiphy=phy0"
+      ],
+      "sources": [
+        "/sys/module",
+        "/sys/class/ieee80211",
+        "/sys/bus/sdio/devices"
+      ]
+    },
+    {
+      "key": "modem_components",
+      "status": "VERIFIED",
+      "facts": [
+        "node=diag",
+        "node=smd1",
+        "node=smd11",
+        "node=smd2",
+        "node=smd21",
+        "node=smd22",
+        "node=smd3",
+        "node=smd36",
+        "node=smd4",
+        "node=smd5",
+        "node=smd6",
+        "node=smd7",
+        "node=smd8",
+        "node=smdcntl0",
+        "node=smdcntl1",
+        "node=smdcntl10",
+        "node=smdcntl11",
+        "node=smdcntl2",
+        "node=smdcntl3",
+        "node=smdcntl4",
+        "node=smdcntl5",
+        "node=smdcntl6",
+        "node=smdcntl7",
+        "node=smdcntl8",
+        "node=smdcntl9",
+        "module=bam_dmux",
+        "module=cdc_ncm"
+      ],
+      "sources": [
+        "/dev",
+        "/sys/module"
+      ]
+    },
+    {
+      "key": "userspace",
+      "status": "VERIFIED",
+      "facts": [
+        "/system/bin/hostapd",
+        "/system/bin/ip",
+        "/system/bin/ndc",
+        "/system/bin/netcfg",
+        "/system/bin/netmgrd",
+        "/system/bin/qmuxd",
+        "/system/bin/rild",
+        "/system/bin/wpa_supplicant",
+        "/system/lib/libreference-ril.so",
+        "/system/lib/libril.so",
+        "/system/vendor/lib/libqmi.so",
+        "/system/vendor/lib/libqmi_cci.so",
+        "/system/vendor/lib/libqmi_client_qmux.so",
+        "/system/vendor/lib/libqmi_common_so.so",
+        "/system/vendor/lib/libril-qc-qmi-1.so",
+        "/system/app/TelephonyProvider.apk",
+        "/system/priv-app/Mms.apk",
+        "/system/priv-app/TeleService.apk"
+      ],
+      "sources": [
+        "/system/bin",
+        "/system/lib",
+        "/system/app"
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "source": "/proc/device-tree/model",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/proc/device-tree/compatible",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/lo/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet0/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet1/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet2/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet3/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet4/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet5/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet6/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet7/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    },
+    {
+      "source": "/sys/class/net/rmnet_usb0/device/uevent",
+      "code": "AUDIT_READ_UNAVAILABLE"
+    }
+  ],
+  "limits": [
+    "VERIFIED ch\u1ec9 x\u00e1c nh\u1eadn quan s\u00e1t Android hi\u1ec7n t\u1ea1i, kh\u00f4ng ch\u1ee9ng nh\u1eadn ch\u1ee9c n\u0103ng Debian/V3.2.",
+    "Kh\u00f4ng \u0111\u1ecdc SIM identifiers, SMS, MAC/IP/SSID, credentials ho\u1eb7c d\u1eef li\u1ec7u calibration; kh\u00f4ng m\u1edf modem nodes.",
+    "Ch\u1ec9 parse thu\u1ed9c t\u00ednh build allowlist; kh\u00f4ng l\u01b0u/xu\u1ea5t build.prop ho\u1eb7c l\u1ed7i remote nguy\u00ean b\u1ea3n.",
+    "Kh\u00f4ng g\u1eedi AT/QMI/RIL, SMS/USSD, kh\u00f4ng b\u1eadt data, kh\u00f4ng thay route/Wi-Fi/USB ho\u1eb7c th\u1eed failover.",
+    "Kh\u00f4ng ph\u00e1t hi\u1ec7n th\u00e0nh ph\u1ea7n kh\u00f4ng c\u00f3 ngh\u0129a ph\u1ea7n c\u1ee9ng kh\u00f4ng h\u1ed7 tr\u1ee3; l\u1ed7i \u0111\u1ecdc c\u00f3 th\u1ec3 l\u00e0 thi\u1ebfu file/quy\u1ec1n.",
+    "Board v\u1eadt l\u00fd, firmware/DTB Linux v\u00e0 recovery ch\u01b0a \u0111\u01b0\u1ee3c x\u00e1c minh; tri\u1ec3n khai l\u00ean thi\u1ebft b\u1ecb NO-GO."
+  ],
+  "read_bytes": 59971,
+  "requests": 110
+}
