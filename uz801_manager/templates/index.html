@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UZ801 · OpenStick Manager</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-demo="{{ 'true' if demo else 'false' }}">
+  <aside class="sidebar">
+    <a class="brand" href="#overview"><span class="brand-mark">U</span><span>OPENSTICK<small>UZ801 MANAGER</small></span></a>
+    <div class="nav-label">KHÔNG GIAN THIẾT BỊ</div>
+    <nav aria-label="Điều hướng">
+      <a href="#overview">01 <span>Tổng quan</span></a>
+      <a href="#backup">02 <span>Sao lưu & xác minh</span></a>
+      <a href="#recovery">03 <span>EDL & khôi phục</span></a>
+      <a href="#history">04 <span>Lịch sử tác vụ</span></a>
+    </nav>
+    <div class="sidebar-note"><span class="dot"></span> CHỈ ĐỌC THIẾT BỊ<p>Giữ firmware gốc.<br>Bảo toàn dữ liệu modem.</p></div>
+    <div class="version">Bản 0.1.0 · Phase 1–3<br>Localhost / Windows</div>
+  </aside>
+  <main>
+    <header class="topbar"><span>Thiết bị / <strong>UZ801 V3.2</strong></span><span class="local-badge">127.0.0.1 · Phiên cục bộ</span></header>
+    {% if demo %}<div class="demo-banner">CHẾ ĐỘ MÔ PHỎNG · Dữ liệu giả lập 2 MiB. Không kết nối USB thật.</div>{% endif %}
+    <div id="error" class="error" role="alert" hidden></div>
+    <section id="overview" class="section">
+      <div class="section-heading"><div><p class="eyebrow">BẢO TOÀN TRƯỚC KHI THAY ĐỔI</p><h1>Hiểu thiết bị.<br>Giữ nguyên bản gốc.</h1><p class="subtitle">Kiểm tra phần cứng, sao lưu và kiểm chứng dữ liệu UZ801.</p></div><div class="read-only"><span>READ</span><strong>ONLY</strong><small>Không có chức năng ghi firmware</small></div></div>
+      <div class="consent-panel">
+        <label><input id="consent" type="checkbox" {% if demo %}checked{% endif %}> Tôi cho phép ứng dụng đọc thông tin và sao lưu thiết bị đang kết nối.</label>
+        <div class="actions"><button id="inspect" class="primary">Kiểm tra USB</button><label class="monitor"><input id="monitor" type="checkbox"> Tự kiểm tra mỗi 30 giây</label></div>
+      </div>
+      <div class="stats">
+        <article class="stat"><span>KẾT NỐI ADB</span><strong id="connection">Chưa kiểm tra</strong><small id="checked">Chưa đọc thiết bị thật</small></article>
+        <article class="stat"><span>BỘ NHỚ EMMC</span><strong id="capacity">—</strong><small id="emmc-name">Dung lượng đọc từ thiết bị</small></article>
+        <article class="stat"><span>PHÂN VÙNG</span><strong id="partition-count">—</strong><small>Đối chiếu GPT và kernel</small></article>
+        <article class="stat"><span>CÀI ĐẶT LINUX</span><strong class="locked">Đang khóa</strong><small>Chưa có đủ bằng chứng</small></article>
+      </div>
+      <div class="panel"><div class="panel-heading"><h2>Thông tin thiết bị</h2><span class="pill">ĐỌC TỪ THIẾT BỊ</span></div><dl id="hardware" class="hardware"><div><dt>Đang chờ</dt><dd>Cho phép đọc và chọn “Kiểm tra USB”.</dd></div></dl><ul id="warnings" class="warnings"></ul>
+        <details><summary>Xem bảng phân vùng</summary><div class="table-scroll"><table><thead><tr><th>Số</th><th>Tên GPT</th><th>Block</th><th>LBA bắt đầu</th><th>Dung lượng</th></tr></thead><tbody id="partitions"></tbody></table></div></details>
+      </div>
+    </section>
+    <section id="backup" class="section">
+      <div class="section-title"><div><p class="eyebrow">01 / GIỮ DỮ LIỆU GỐC</p><h2>Sao lưu & xác minh</h2></div><span class="muted">Dữ liệu chỉ được lưu trên máy tính</span></div>
+      <div class="columns">
+        <article class="panel"><div class="panel-heading"><h3>Tạo bản sao lưu</h3><span class="pill">ADB LIVE</span></div><p class="muted">Bản full gồm ảnh eMMC và các tệp phân vùng quan trọng trích từ ảnh. Cần khoảng gấp đôi dung lượng eMMC trên máy tính.</p>
+          <label for="backup-folder">Thư mục lưu trên máy tính</label><div class="input-group"><input id="backup-folder" type="text" placeholder="D:\Backups" spellcheck="false"><button id="pick-backup" class="secondary">Chọn…</button></div>
+          <label for="mode">Phạm vi sao lưu</label><select id="mode"><option value="full">Toàn bộ eMMC + phân vùng quan trọng</option><option value="critical">Chỉ các phân vùng quan trọng (10 phân vùng)</option></select>
+          <div class="notice">Android đang chạy có thể tiếp tục ghi dữ liệu. Backup live không bảo đảm tính nhất quán; ưu tiên EDL offline sau khi xác minh recovery.</div>
+          <button id="start-backup" class="primary wide" disabled>Bắt đầu sao lưu</button>
+        </article>
+        <article class="panel"><div class="panel-heading"><h3>Kiểm tra bản sao lưu</h3><span class="pill">SHA-256 + GPT</span></div><p class="muted">Đọc lại từng tệp, đối chiếu kích thước, SHA-256, GPT chính/dự phòng và các phân vùng quan trọng.</p>
+          <label for="verify-folder">Thư mục chứa manifest.json</label><div class="input-group"><input id="verify-folder" type="text" placeholder="Chọn thư mục của một lần sao lưu" spellcheck="false"><button id="pick-verify" class="secondary">Chọn…</button></div>
+          <button id="verify" class="secondary wide">Xác minh bản sao lưu</button><div id="verification" class="verification"><span class="muted">Chưa có kết quả xác minh.</span></div>
+        </article>
+      </div>
+      <article class="panel progress-panel"><div class="panel-heading"><div><span class="eyebrow">TÁC VỤ HIỆN TẠI</span><h3 id="progress-title">Sẵn sàng</h3></div><button id="cancel" class="danger" disabled>Hủy an toàn</button></div><progress id="progress" value="0" max="100" aria-label="Tiến độ tác vụ"></progress><div class="progress-meta"><span id="progress-bytes">Chưa có tác vụ đang chạy</span><span id="progress-speed">—</span></div></article>
+    </section>
+    <section id="recovery" class="section">
+      <div class="section-title"><div><p class="eyebrow">02 / KHẢ NĂNG KHÔI PHỤC</p><h2>EDL & mức độ sẵn sàng</h2></div><span class="pill amber">CHƯA XÁC MINH RECOVERY</span></div>
+      <div class="columns"><article class="panel"><h3>Qualcomm 9008</h3><p class="muted">Kiểm tra thiết bị USB, driver Windows và khả năng mở trợ giúp của công cụ EDL. Không tự chuyển chế độ USB.</p>
+        <label for="programmer">Programmer cục bộ (tùy chọn, chỉ kiểm tra tệp)</label><div class="input-group"><input id="programmer" type="text" placeholder="Chưa chọn programmer" spellcheck="false"><button id="pick-programmer" class="secondary">Chọn…</button></div><button id="edl" class="secondary wide">Kiểm tra EDL & driver</button><div id="edl-result" class="result-block">Chưa kiểm tra.</div>
+      </article><article class="panel"><h3>Cài Debian / OpenStick</h3><p class="muted">Chức năng ghi firmware chưa được triển khai trong bản này.</p><ul id="readiness" class="checklist"></ul><div class="notice">Một tên model hoặc programmer “8916” chưa chứng minh tương thích V3.2. Không sử dụng backup kiểm tra PASS để suy ra thiết bị đã sẵn sàng flash.</div></article></div>
+    </section>
+    <section id="history" class="section"><div class="section-title"><div><p class="eyebrow">03 / DẤU VẾT KIỂM CHỨNG</p><h2>Lịch sử tác vụ</h2></div><span class="muted">Lưu cục bộ bằng SQLite</span></div><div class="panel table-scroll"><table><thead><tr><th>Thời gian</th><th>Tác vụ</th><th>Trạng thái</th><th>Kết quả / lỗi</th></tr></thead><tbody id="history-rows"><tr><td colspan="4">Chưa có tác vụ.</td></tr></tbody></table></div></section>
+    <footer>UZ801 OpenStick Manager · Bảo toàn firmware, dữ liệu modem và khả năng khôi phục.<span>Không thu thập telemetry.</span></footer>
+  </main>
+</body>
+</html>

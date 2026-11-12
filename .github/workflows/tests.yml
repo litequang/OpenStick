@@ -1,0 +1,21 @@
+name: Windows tests
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest -q
+      - run: python -m uz801_manager --self-test
+      - run: python -m PyInstaller --noconfirm --onefile --name UZ801-OpenStick-Manager --collect-data uz801_manager launcher.py
+      - run: .\dist\UZ801-OpenStick-Manager.exe --self-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UZ801-OpenStick-Manager-Windows
+          path: dist/UZ801-OpenStick-Manager.exe
