@@ -6,6 +6,7 @@ build/
 dist/
 artifacts/
 backups/
+/BACKUP/
 runtime/
 *.img
 *.bin
