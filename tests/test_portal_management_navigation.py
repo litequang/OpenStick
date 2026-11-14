@@ -42,7 +42,8 @@ def test_bottom_dock_preserves_fast_sms_ussd_and_goes_to_two_hubs():
 ])
 def test_children_highlight_their_parent_group_without_false_current_page(page, group):
     html = chrome(page)
-    match = re.search(r'<a href="/' + group + r'"[^>]*>', html)
+    dock = re.search(r'<nav class="app-bottom-nav"[^>]*>(.*?)</nav>', html, re.S).group(1)
+    match = re.search(r'<a href="/' + group + r'"[^>]*>', dock)
     assert match is not None
     assert 'data-section-active="true"' in match.group(0)
     assert 'aria-current="page"' not in match.group(0)
@@ -73,9 +74,8 @@ def test_connection_hub_lists_correct_grouped_destinations():
 def test_connection_hub_does_not_show_unsupported_links():
     html = render("connections.html", "connections", has_policy=False, has_modem=False,
                   has_setup=False, has_hotspot=False)
-    assert 'href="/"' in html
-    assert 'href="/hotspot"' not in html and 'href="/modem/network"' not in html
-    assert 'href="/internet"' not in html and 'href="/setup"' not in html
+    cards = re.findall(r'<a class="portal-feature-link" href="([^"]+)"', html)
+    assert cards == ["/"]
 
 
 def test_management_hub_separates_site_and_lan_access_settings():
