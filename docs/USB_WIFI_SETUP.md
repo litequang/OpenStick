@@ -34,7 +34,9 @@ For subsequent use on a saved network, a suitable USB power supply is enough;
 a computer provides power and management access but is not the Internet
 upstream. Enter credentials for a new network through USB, or through an
 already enabled LAN session while it is still reachable. Changing Wi-Fi can
-disconnect that LAN session. This configuration does not create a Wi-Fi hotspot.
+disconnect that LAN session. The separate [automatic setup hotspot](SETUP_HOTSPOT.md)
+restores phone configuration access when no saved Wi-Fi connects. It needs
+no SIM or mobile data; provision its private connection card once over USB.
 
 For a separately selected SIM-powered AP, see [SIM → Wi-Fi hotspot](SIM_WIFI_HOTSPOT.md).
 It is opt-in and replaces the Wi-Fi client role; it is not enabled by default.

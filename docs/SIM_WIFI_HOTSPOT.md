@@ -2,6 +2,12 @@
 
 ## Scope and current evidence
 
+Local configuration without SIM is available from the same `/hotspot` menu:
+see [automatic Wi-Fi setup](SETUP_HOTSPOT.md). It uses a local-only AP and never
+activates SIM data. The owner confirmed phone access to its setup page.
+Both generated AP profiles disable unsupported PMF while retaining WPA2/CCMP.
+This AP evidence does not verify SIM Internet sharing.
+
 This is a standalone 2.4 GHz AP using SIM Internet, not a Wi-Fi repeater.
 The physical FY_UZ801_V3.2 running postmarketOS v26.06,
 kernel `6.12.1-msm8916`, reports `wcn36xx` AP support and NetworkManager
@@ -85,9 +91,9 @@ by status or placed in command arguments/logs. Only fixed bounded probe
 URLs are allowed. Roaming is disabled in the generated cellular profile.
 Starting/keeping the mode authorizes data use; it is not enabled on install.
 
-Saved Wi-Fi roaming, selectable Wi-Fi/SIM failover, phone-style SMS threads
-and SMS archive/delete are separate unfinished work. This feature does not
-claim those functions are implemented.
+Saved Wi-Fi profiles, opt-in Internet policies and phone-style SMS with a
+private archive are now implemented separately. Hardware SIM-data failover
+and Internet sharing still require actual data-session acceptance.
 
 ## Primary references
 

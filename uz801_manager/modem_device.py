@@ -121,11 +121,15 @@ def system_bus():
 
 
 class ModemManager:
-    def __init__(self, *, bus_factory=system_bus, journal=None, radio=None, lock_factory=modem_lock):
+    def __init__(self, *, bus_factory=system_bus, journal=None, radio=None, lock_factory=modem_lock,
+                 ussd_grace=12, clock=time.monotonic, sleep=time.sleep, ussd_transport=None):
         self.bus_factory = bus_factory
         self.journal = journal or OperationJournal()
         self.radio = radio or RadioPreference()
         self.lock_factory = lock_factory
+        self.ussd_grace, self.clock, self.sleep = ussd_grace, clock, sleep
+        from .ussd_qmi import QmiUssd
+        self.ussd_transport = ussd_transport or QmiUssd()
 
     def call(self, action, **values):
         validate_action({'action': action, **values})
@@ -167,6 +171,11 @@ class ModemManager:
             ussd = USSD in interfaces and present and unlocked
             registered = state >= 8
             session = int(get(USSD, 'State')) if ussd else 0
+            qmi_available = ussd and self.ussd_transport.available()
+            qmi_session = self.ussd_transport.status() if qmi_available else {}
+            if qmi_session.get('state') in (2, 3):session = qmi_session['state']
+            retry_after = max(0, int(qmi_session.get('cooldown_until', 0) - time.time()) + 1) if qmi_session.get('cooldown_until') else 0
+            use_qmi = qmi_available and (action != 'ussd_cancel' or qmi_session.get('cid'))
             modes = [[int(a), int(p)] for a, p in get(MODEM, 'SupportedModes')]
             modes = [m for m in modes if m[0] and not m[1] & ~m[0]][:64]
             current_mode = [int(n) for n in get(MODEM, 'CurrentModes')]
@@ -195,7 +204,9 @@ class ModemManager:
                       'signal_percent': signal, 'signal_recent': recent,
                       'registered': registered, 'sms_available': messaging,
                       'can_send': messaging and registered, 'ussd_available': ussd,
-                      'can_ussd': ussd and registered, 'ussd_state': session,
+                      'can_ussd': ussd and registered and not retry_after, 'ussd_state': session,
+                      'ussd_retry_after_seconds': retry_after,
+                      'ussd_backend': 'qmi-ascii' if qmi_available else 'modemmanager',
                       'can_enable': present and unlocked and state == 3,
                       'supported_modes': modes, 'current_mode': current_mode,
                       'saved_mode': self.radio.load(),
@@ -205,6 +216,10 @@ class ModemManager:
                 if ussd:
                     status['ussd_prompt'] = str(get(USSD, 'NetworkRequest'))[:8192]
                     status['ussd_notification'] = str(get(USSD, 'NetworkNotification'))[:8192]
+                    if qmi_session:
+                        status['ussd_prompt'] = str(qmi_session.get('prompt', ''))[:8192]
+                        status['ussd_notification'] = str(qmi_session.get('notification', ''))[:8192]
+                        status['ussd_received_at'] = qmi_session.get('received_at')
                 return status
             if not present:
                 raise RuntimeError('SIM_REQUIRED')
@@ -227,20 +242,28 @@ class ModemManager:
                 invoke(path, MODEM, 'SetCurrentModes', '(uu)', (tuple(pair),), timeout=60)
                 self.radio.save(*pair)
                 return {'mode_requested': pair, 'saved': True}
-            if action == 'messages':
+            if action in ('messages', 'delete'):
                 if not messaging:
                     raise RuntimeError('UNSUPPORTED')
                 messages = list(get(MESSAGING, 'Messages'))
                 result = []
-                for item in messages[-20:]:
+                for item in (messages[-200:] if action == 'messages' else [values['path']]):
                     item = str(item)
+                    if item not in [str(p) for p in messages]:raise RuntimeError('MESSAGE_NOT_ON_MODEM')
                     if not re.fullmatch(re.escape(ROOT) + r'/SMS/[0-9]+', item):
                         continue
                     row = {k.lower(): str(get(SMS, k, item))[:4096]
                            for k in ('Number', 'Text', 'Timestamp')}
                     row['state'] = int(get(SMS, 'State', item))
+                    row['path'] = item
+                    if action == 'delete':
+                        from .sms_archive import message_fingerprint
+                        if message_fingerprint(row) != values['fingerprint']:raise RuntimeError('MESSAGE_CHANGED')
+                        try:invoke(path, MESSAGING, 'Delete', 'o', (item,))
+                        except Exception:raise RuntimeError('RESULT_UNKNOWN') from None
+                        return {'deleted': True}
                     result.append(row)
-                return {'messages': result, 'limited': len(messages) > 20}
+                return {'messages': result, 'limited': len(messages) > 200}
             if not registered:
                 raise RuntimeError('NOT_REGISTERED')
             if action == 'send' and not messaging:
@@ -248,19 +271,26 @@ class ModemManager:
             if action.startswith('ussd_'):
                 if not ussd:
                     raise RuntimeError('UNSUPPORTED')
+                if action == 'ussd_start' and retry_after:raise RuntimeError('MODEM_BUSY')
                 if ((action == 'ussd_start' and session != 1)
                         or (action == 'ussd_reply' and session != 3)
                         or (action == 'ussd_cancel' and session not in (2, 3))):
                     raise RuntimeError('USSD_SESSION_STATE')
+            baseline = {}
+            if action in ('ussd_start', 'ussd_reply') and not use_qmi:
+                baseline = {name: str(get(USSD, name))[:8192]
+                            for name in ('NetworkRequest', 'NetworkNotification')}
             receipt = self.journal.begin(values['operation'], action)
             try:
-                if action == 'send':
+                if action.startswith('ussd_') and use_qmi:
+                    result = self.ussd_transport.call(action, **values)
+                elif action == 'send':
                     sms = str(invoke(path, MESSAGING, 'Create', 'a{sv}',
                                      ({'number': values['number'], 'text': values['text']},)))
                     if not re.fullmatch(re.escape(ROOT) + r'/SMS/[0-9]+', sms):
                         raise RuntimeError('INVALID_SMS_PATH')
                     invoke(sms, SMS, 'Send', timeout=60)
-                    result = {'submitted': True, 'delivery_verified': False}
+                    result = {'submitted': True, 'delivery_verified': False, 'path': sms}
                 elif action == 'ussd_start':
                     # QMI USSD waits up to 100 seconds in ModemManager. The
                     # caller must not abandon the result at 60 seconds.
@@ -270,10 +300,14 @@ class ModemManager:
                     reply = invoke(path, USSD, 'Respond', 's', (values['text'],), timeout=115)
                     result = {'reply': str(reply)[:8192]}
                 elif action == 'ussd_cancel':
-                    invoke(path, USSD, 'Cancel', timeout=30)
-                    result = {'cancelled': True}
+                    # QMI cancellation has the same 100-second modem timeout.
+                    invoke(path, USSD, 'Cancel', timeout=115)
+                    result = {'cancelled': True, 'modem_acknowledged': True}
                 else:
                     raise ValueError('INPUT_INVALID')
+                if action in ('ussd_start', 'ussd_reply') and not use_qmi:
+                    if not result.get('reply'):raise RuntimeError('USSD_EMPTY_REPLY')
+                    result.update(response_source='MODEMMANAGER_METHOD', modem_acknowledged=True)
                 self.journal.finish(receipt, 'COMPLETED')
                 return {**result, 'operation': values['operation']}
             except Exception as exc:
@@ -290,8 +324,41 @@ class ModemManager:
                     'org.freedesktop.DBus.Error.Timeout': 'TIMEOUT',
                 }
                 failure = 'TIMEOUT' if isinstance(exc, TimeoutError) else categories.get(name, 'OPERATION_FAILED')
+                if action == 'ussd_cancel' and not use_qmi:
+                    # QMI resets the exported session even when Cancel returns
+                    # an error (e.g. the network has already ended it). Confirm
+                    # that state instead of falsely leaving a stuck-session UI.
+                    try:ended = int(get(USSD, 'State')) == 1
+                    except Exception:ended = False
+                    if ended:
+                        self.journal.finish(receipt, 'COMPLETED')
+                        return {'cancelled': True, 'modem_acknowledged': False,
+                                'operation': values['operation']}
+                if baseline and failure not in ('UNSUPPORTED',):
+                    # A QMI method error can precede a separate network URC.
+                    # Observe only changed, nonempty properties; cached content
+                    # from an earlier request must never become a new result.
+                    deadline = self.clock() + self.ussd_grace
+                    while True:
+                        try:
+                            current = int(get(USSD, 'State'))
+                            for prop in ('NetworkRequest', 'NetworkNotification'):
+                                reply = str(get(USSD, prop))[:8192]
+                                if (reply and reply != baseline[prop]
+                                        and (prop != 'NetworkRequest' or current == 3)):
+                                    self.journal.finish(receipt, 'RESPONSE_OBSERVED')
+                                    return {'reply': reply, 'response_source': prop,
+                                            'modem_acknowledged': False,
+                                            'operation': values['operation']}
+                        except Exception:
+                            break
+                        remaining = deadline - self.clock()
+                        if remaining <= 0:break
+                        self.sleep(min(.5, remaining))
                 self.journal.finish(receipt, 'UNKNOWN', failure)
-                error = ({'UNSUPPORTED': 'USSD_UNSUPPORTED', 'NO_NETWORK': 'USSD_NO_NETWORK',
+                from .ussd_qmi import ERRORS as QMI_ERRORS
+                error = (str(exc) if use_qmi and str(exc) in QMI_ERRORS else
+                         {'UNSUPPORTED': 'USSD_UNSUPPORTED', 'NO_NETWORK': 'USSD_NO_NETWORK',
                           'TIMEOUT': 'USSD_TIMEOUT'}.get(failure, 'USSD_FAILED')
                          if action.startswith('ussd_') else 'RESULT_UNKNOWN')
                 raise RuntimeError(error) from None

@@ -18,6 +18,7 @@ let status={state:'failed',sim_missing:true,sim_present:false,sim_locked:false,r
  sms_available:false,can_send:false,ussd_available:false,can_ussd:false,ussd_state:0,
  can_enable:false,can_set_mode:false,supported_modes:[[4,0],[8,0],[12,8],[12,4]],current_mode:[8,0]};
 const context={console,Date,setTimeout,clearTimeout,Uint8Array,
+ window:{confirm:()=>true,addEventListener:()=>{}},
  crypto:{getRandomValues:webcrypto.getRandomValues.bind(webcrypto)},setInterval:()=>0,
  Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},
  document:{hidden:false,getElementById:id=>elements[id]||null,
@@ -30,6 +31,7 @@ const context={console,Date,setTimeout,clearTimeout,Uint8Array,
    if(body.action==='mode'){status={...status,current_mode:[body.allowed,body.preferred]};result={saved:true};}
    if(body.action==='messages')result={messages:[{number:'fixture',text:'<script>synthetic OTP</script>',state:3,timestamp:''}]};
    if(body.action==='ussd_start')result={reply:'Synthetic USSD reply'};
+   if(body.action==='ussd_cancel'){status={...status,ussd_state:1};result={cancelled:true};}
    return {ok:true};
   }
   return {ok:true,json:async()=>({busy:false,error:null,result})};
@@ -83,6 +85,10 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
   assert.equal(posts.filter(p=>p.action==='ussd_start').length,0);
   await context.ussd('ussd_start',{code:'*101#'});
   assert.equal(elements['ussd-result'].textContent,'Synthetic USSD reply');
+  const beforeShortcut=posts.filter(p=>p.action==='ussd_start').length;
+  await elements['ussd-account'].onclick();
+  assert.equal(posts.filter(p=>p.action==='ussd_start').length,beforeShortcut+1);
+  assert.equal(posts.findLast(p=>p.action==='ussd_start').code,'*101#');
   status={...status,ussd_notification:'<script>late account notification</script>'};
   await context.refresh();
   assert.equal(elements['ussd-notification-box'].hidden,false);
@@ -92,7 +98,20 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
   await context.refresh();
   assert.match(elements['ussd-state'].textContent,/đang chờ/);
   assert(elements['ussd-fields'].disabled&&!elements['ussd-cancel'].disabled);
+  assert(elements['ussd-account'].disabled);
+  const blockedCount=posts.filter(p=>p.action==='ussd_start').length;
+  await elements['ussd-account'].onclick();
+  assert.equal(posts.filter(p=>p.action==='ussd_start').length,blockedCount);
   assert.equal(elements['ussd-result'].textContent,'Synthetic USSD reply');
+  const sentBefore=posts.filter(p=>p.action==='ussd_start').length;
+  await context.changeUssdRadio([4,0]);
+  assert.equal(posts.filter(p=>p.action==='ussd_start').length,sentBefore);
+  assert(posts.some(p=>p.action==='ussd_cancel'));
+  assert.equal(posts.findLast(p=>p.action==='mode').allowed,4);
+  assert.equal(elements['ussd-3g'].disabled,true);
+  context.window.confirm=()=>false;
+  await context.changeUssdRadio([8,0]);
+  assert.equal(posts.findLast(p=>p.action==='mode').allowed,4);
  }
  status={...status,signal_recent:false};await context.refresh();
  assert.match(elements['network-status'].textContent,/số liệu cũ/);

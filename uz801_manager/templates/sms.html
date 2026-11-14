@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
+<title>OpenStick — Tin nhắn</title><link rel="stylesheet" href="/static/sms.css"></head>
+<body class="sms-page" data-sms-view="list"><main>
+{% include 'portal_chrome.html' %}
+<div id="sms-app" data-token="{{ token }}">
+<p id="sms-notice" class="sms-notice" role="status">Đang tải tin nhắn…</p>
+<div id="sms-list-view">
+  <div class="page-title"><h1>Tin nhắn</h1><button id="sms-sync" class="secondary">Đồng bộ</button></div>
+  <label class="sms-search"><span class="sr-only">Tìm số hoặc nội dung tin nhắn</span><input id="sms-search" type="search" placeholder="Tìm tin nhắn" autocomplete="off"></label>
+  <details class="sms-options"><summary>Tùy chọn tin nhắn</summary>
+    <label class="check"><input id="sms-auto" type="checkbox" checked>Tự đồng bộ mỗi 15 giây khi mở trang.</label>
+    <label class="check"><input id="sms-delete-modem" type="checkbox">Khi xóa tin, xóa cả bản trên modem (hỏi lại từng tin).</label>
+    <p class="muted">Lịch sử được lưu riêng trên USB. Nội dung tin và bản nháp không lưu vào bộ nhớ trình duyệt.</p>
+    <form id="sms-tariff"><label for="sms-unit-vnd">Đơn giá để ước tính cước (đồng/tin)</label><div class="sms-tariff-row"><input id="sms-unit-vnd" type="number" min="0" max="100000" step="1" required><button class="secondary">Lưu</button></div></form>
+    <p id="sms-tariff-result" role="status"></p>
+  </details>
+  <div id="sms-conversations" class="sms-conversation-list" role="list" aria-label="Danh sách hội thoại"></div>
+  <button id="sms-new" class="sms-new-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14Z"/></svg><span>Soạn tin</span></button>
+</div>
+<section id="sms-thread-view" class="sms-detail-view" hidden>
+  <div class="sms-view-heading"><button id="sms-thread-back" class="sms-back secondary" aria-label="Về danh sách hội thoại">←</button><div><h1 id="sms-thread-title"></h1><p id="sms-thread-count" class="muted"></p></div></div>
+  <div id="sms-thread-messages" class="sms-message-log" role="log" aria-label="Nội dung hội thoại" aria-live="polite"></div>
+  <p id="sms-no-reply" class="muted" hidden>Địa chỉ gửi này không hỗ trợ trả lời bằng số điện thoại.</p>
+  <div id="sms-thread-composer"></div>
+</section>
+<section id="sms-new-view" class="sms-detail-view" hidden>
+  <div class="sms-view-heading"><button id="sms-new-back" class="sms-back secondary" aria-label="Về danh sách hội thoại">←</button><h1>Tin nhắn mới</h1></div>
+  <div id="sms-new-composer">
+    <form id="sms-compose-form" class="sms-composer">
+      <div id="sms-recipient-field"><label for="sms-recipient">Người nhận</label><input id="sms-recipient" type="tel" inputmode="tel" pattern="\+?[0-9]{3,20}" placeholder="Số điện thoại" required autocomplete="off"></div>
+      <label for="sms-body" class="sr-only">Nội dung SMS</label>
+      <div class="sms-compose-row"><textarea id="sms-body" maxlength="70" placeholder="Tin nhắn SMS" required rows="2"></textarea><button id="sms-send" type="submit" disabled>Gửi</button></div>
+      <div class="sms-composer-meta"><span id="sms-character-count">0/70</span><span>Bấm Gửi có thể phát sinh cước SMS.</span></div>
+      <p id="sms-send-result" class="sms-notice" role="status"></p>
+    </form>
+  </div>
+</section>
+</div>
+<script src="/static/sms_conversations.js"></script>
+</main></body></html>

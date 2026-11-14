@@ -12,14 +12,16 @@ def validate_action(body):
         raise ValueError('INPUT_INVALID')
     action = body.get('action')
     fields = {
-        'status': set(), 'messages': set(), 'enable': {'confirm'},
+        'status': set(), 'messages': set(), 'archive': set(), 'enable': {'confirm'},
+        'archive_delete': {'id', 'delete_modem', 'confirm'},
+        'delete': {'path', 'fingerprint', 'confirm'},
         'mode': {'allowed', 'preferred', 'confirm'},
         'send': {'number', 'text', 'operation', 'confirm'},
         'ussd_start': {'code', 'operation', 'confirm'},
         'ussd_reply': {'text', 'operation', 'confirm'},
         'ussd_cancel': {'operation', 'confirm'},
     }
-    if action not in fields or set(body) != fields[action] | {'action'}:
+    if not isinstance(action, str) or action not in fields or set(body) != fields[action] | {'action'}:
         raise ValueError('INPUT_INVALID')
     if 'confirm' in body and body['confirm'] is not True:
         raise ValueError('CONFIRM_REQUIRED')
@@ -27,6 +29,14 @@ def validate_action(body):
         value = body['operation']
         if not isinstance(value, str) or str(uuid.UUID(value)) != value:
             raise ValueError('INPUT_INVALID')
+    if action == 'archive_delete':
+        if (not isinstance(body['id'], str) or str(uuid.UUID(body['id'])) != body['id']
+                or type(body['delete_modem']) is not bool):raise ValueError('INPUT_INVALID')
+    if action == 'delete':
+        if (not isinstance(body['path'], str)
+                or not re.fullmatch(r'/org/freedesktop/ModemManager1/SMS/[0-9]+', body['path'])
+                or not isinstance(body['fingerprint'], str)
+                or not re.fullmatch('[0-9a-f]{64}', body['fingerprint'])):raise ValueError('INPUT_INVALID')
     if action == 'mode':
         for key in ('allowed', 'preferred'):
             value = body[key]
@@ -54,6 +64,7 @@ def register_modem_routes(app, backend, token):
     lock = threading.Lock()
     state = {'busy': False, 'result': {}, 'error': None}
     last_ussd = {}
+    receipts = {}  # Small private result cache; polling tabs cannot replace it.
     app.extensions['modem'] = {'state': state}
 
     @app.get('/modem')
@@ -65,11 +76,17 @@ def register_modem_routes(app, backend, token):
         titles = {'sms': 'Gửi / nhận SMS', 'ussd': 'USSD', 'network': 'Mạng SIM'}
         if page not in titles:
             abort(404)
-        return render_template('modem.html', token=token, page=page, title=titles[page])
+        return render_template('sms.html' if page == 'sms' else 'modem.html',
+                               token=token, page=page, title=titles[page])
 
     @app.get('/api/modem/state')
     def modem_state():
         with lock:
+            operation = request.args.get('operation')
+            if operation is not None:
+                if not re.fullmatch('[0-9a-f-]{36}', operation):return jsonify(error='INPUT_INVALID'), 400
+                if operation not in receipts:return jsonify(error='OPERATION_NOT_FOUND'), 404
+                return jsonify(receipts[operation])
             return jsonify(state)
 
     @app.post('/api/modem')
@@ -77,11 +94,17 @@ def register_modem_routes(app, backend, token):
         body = request.get_json(silent=True)
         try:
             action = validate_action(body)
+            if action == 'delete':raise ValueError('INPUT_INVALID')  # Internal verified archive reference only.
         except (ValueError, TypeError, UnicodeError, AttributeError):
             return jsonify(error='INPUT_INVALID'), 400
         with lock:
             if state['busy']:
                 return jsonify(error='BUSY'), 409
+            operation = body.get('operation')
+            if operation in receipts:return jsonify(error='ALREADY_ATTEMPTED'), 409
+            if operation:
+                while len(receipts) >= 16:receipts.pop(next(iter(receipts)))
+                receipts[operation] = {'busy': True, 'result': {}, 'error': None}
             state.update(busy=True, result={}, error=None)
             if action.startswith('ussd_'):
                 last_ussd.clear()
@@ -102,7 +125,8 @@ def register_modem_routes(app, backend, token):
                 allowed = {'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
                            'MODEM_UNAVAILABLE', 'MODEM_AMBIGUOUS', 'ALREADY_ATTEMPTED',
                            'RESULT_UNKNOWN', 'USSD_SESSION_STATE', 'MODEM_BUSY',
-                           'USSD_TIMEOUT', 'USSD_UNSUPPORTED', 'USSD_NO_NETWORK', 'USSD_FAILED'}
+                           'USSD_TIMEOUT', 'USSD_UNSUPPORTED', 'USSD_NO_NETWORK', 'USSD_FAILED', 'USSD_MONITOR_UNAVAILABLE',
+                           'MESSAGE_NOT_FOUND', 'MESSAGE_NOT_ON_MODEM', 'MESSAGE_CHANGED'}
                 code = str(exc)
                 with lock:
                     state.update(result={}, error=code if code in allowed else 'MODEM_OPERATION_FAILED')
@@ -112,6 +136,7 @@ def register_modem_routes(app, backend, token):
                 body.clear()
                 with lock:
                     state['busy'] = False
+                    if operation:receipts[operation] = dict(state)
         thread = threading.Thread(target=work, daemon=True)
         app.extensions['modem']['thread'] = thread
         thread.start()

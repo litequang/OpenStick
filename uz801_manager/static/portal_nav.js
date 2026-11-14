@@ -10,16 +10,34 @@ function portalTechnology(value){if(value==null||value===0)return 'chưa xác đ
 function renderHeader(c){
  const set=(id,text)=>{const e=document.getElementById(id);if(e)e.textContent=text};
  const state=(id,value)=>{const e=document.getElementById('chip-'+id);if(e)e.dataset.state=value};
- if(!c){for(const k of ['modem','sim','network','signal']){set('chip-'+k+'-label','Chờ');state(k,'warning')}return}
+ if(!c){for(const k of ['modem','sim','network']){set('chip-'+k+'-label','Chờ');state(k,'warning')}return}
  set('chip-modem-label',c.registered?'Online':c.state||'Modem');state('modem',c.registered?'ready':'warning');
- set('chip-sim-label',c.sim_present?(c.sim_locked?'Khóa':'SIM'):'No SIM');state('sim',c.sim_present&&!c.sim_locked?'ready':'warning');
+ set('chip-sim-label',!c.sim_present?'No SIM':c.sim_locked?'Khóa':c.signal_percent==null?'SIM':'SIM '+c.signal_percent+'%');state('sim',c.sim_present&&!c.sim_locked&&c.signal_recent?'ready':'warning');
  set('chip-network-label',c.access_technologies&16384?'4G':c.registered?'Mạng':'Tìm');state('network',c.registered?'ready':'warning');
- set('chip-signal-label',c.signal_percent==null?'--':c.signal_percent+'%');state('signal',c.signal_recent?'ready':'warning');
  set('modem-status','Modem: '+(c.state||'chưa xác định')+'\n'+(c.registered?'Đã đăng ký mạng.':'Chưa đăng ký mạng.'));
  set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Vào Mạng SIM để bật.':'Đang chờ SIM hoặc đăng ký mạng.');
  set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'SIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
  set('network-status','Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nMạng đang dùng: '+portalTechnology(c.access_technologies)+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
  set('signal-status',c.signal_percent==null?'Chưa có số liệu mức sóng.':c.signal_percent+'% — chất lượng do modem báo.\n'+(c.signal_recent?'Số liệu gần đây.':'Số liệu cũ, chưa có cập nhật mới.'));
+}
+function renderWifiHeader(w){
+ const chip=document.getElementById('chip-wifi'),label=document.getElementById('chip-wifi-label'),detail=document.getElementById('wifi-status'),link=document.getElementById('wifi-settings-link');
+ if(!chip||!label||!detail)return;
+ if(!w){label.textContent='Wi-Fi ?';chip.dataset.state='warning';detail.textContent='Chưa đọc được trạng thái Wi-Fi. Thông tin có thể đã thay đổi.';return}
+ const ap=w.hotspot_active===true,connected=w.connected===true;
+ label.textContent=w.setup_active?'Cài Wi-Fi':ap?'Hotspot':connected?'Wi-Fi':'Wi-Fi tắt';chip.dataset.state=ap||connected?'ready':'warning';
+ const lines=[ap?'Chế độ: phát Wi-Fi từ USB':connected?'Chế độ: kết nối Wi-Fi':'Wi-Fi chưa kết nối / không phát hotspot'];
+ if(ap||connected){lines.push('Tên mạng: '+(w.ssid||'chưa xác định'));if(ap)lines.push('Kênh: '+(w.channel||'chưa xác định'));else lines.push('Mức sóng: '+(w.signal_percent==null?'chưa có số liệu':w.signal_percent+'%')+(w.signal_dbm==null?'':' ('+w.signal_dbm+' dBm)'));lines.push('IPv4: '+((w.ipv4||[]).join(', ')||'chưa có'));if(!ap)lines.push('Gateway: '+(w.gateway||'chưa có'));lines.push('Kết nối Wi-Fi không xác nhận Internet đang hoạt động.')}
+ if(w.setup_active)lines.push('Hotspot cài đặt: không cần SIM, không chia sẻ Internet.');
+ detail.textContent=lines.join('\n');if(link){link.href=w.setup_active?'/setup':ap?'/hotspot':'/';link.textContent=ap?'Quản lý hotspot →':'Cài đặt Wi-Fi →'}
+}
+function setupHeaderStatus(){
+ const header=document.querySelector('.portal-header'),token=header?.dataset.statusToken;if(!token)return;
+ let pending=false;
+ const refresh=async()=>{if(pending||document.hidden)return;pending=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);if(value.modem_status)renderHeader(value.modem_status)}catch(_){renderWifiHeader(null)}finally{clearTimeout(timer);pending=false}
+ };
+ refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 }
 function setupStatusPopovers(root=document){
  const chips=Array.from(root.querySelectorAll('.status-chip'));
@@ -30,6 +48,7 @@ function setupStatusPopovers(root=document){
 }
 if(typeof window!=='undefined')window.addEventListener('DOMContentLoaded',()=>{
  setupStatusPopovers();
+ setupHeaderStatus();
  const nav=document.getElementById('portal-nav');if(!nav)return;
  const root=document.scrollingElement||document.documentElement;
  const position=()=>boundedScrollPosition(root.scrollTop,root.scrollHeight-root.clientHeight);

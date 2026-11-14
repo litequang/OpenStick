@@ -1,5 +1,12 @@
 # UZ801 OpenStick Manager
 
+> **Panel quản trị Linux trên USB / tiếp tục phát triển:** đọc
+> [bàn giao chi tiết cho AI](docs/AI_CONTINUATION.md),
+> [trạng thái phiên hiện tại](docs/SESSION_HANDOFF.md) và
+> [Wi-Fi cài đặt không cần SIM](docs/SETUP_HOTSPOT.md).
+> Nhánh phát triển: `codex/uz801-v32-postmarketos`.
+> AP/điện thoại đã hoạt động; lỗi nối Wi-Fi từ AP còn đang xử lý.
+
 Ứng dụng Windows quản lý UZ801 theo nguyên tắc **chỉ đọc thiết bị**. Bản 0.1.1 triển khai Phase 1–3: kiểm tra ADB/GPT, sao lưu eMMC, xác minh tệp và kiểm tra EDL thụ động. **Không có flash, erase, restore, reboot, đổi driver hay thay đổi IMEI.**
 
 ## Chạy ngay trên Windows

@@ -1,0 +1,20 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Nguồn Internet</title>
+<style>label{display:block;margin:16px 0 8px}select{width:100%;padding:12px;border:1px solid;border-radius:9px;font:inherit}.check{display:flex;gap:10px;align-items:flex-start}.check input{flex:none;margin-top:5px}.profile{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid #303540;padding:12px 0}.profile span{flex:1;min-width:130px;overflow-wrap:anywhere}button{margin:8px 6px 0 0}.notice{padding:14px;white-space:pre-wrap}</style></head><body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><h1>Nguồn Internet</h1><button id="policy-refresh" class="secondary">Làm mới</button></div>
+<p><a href="/">Wi-Fi &amp; Web</a> · <a href="/hotspot">Phát Wi-Fi từ SIM</a></p>
+<section><h2>Chỉ SMS / USSD — tắt dữ liệu SIM</h2><p>Đây là chế độ mặc định. SIM vẫn đăng ký mạng để gửi, nhận SMS và dùng USSD; không cần mở dữ liệu Internet. Nút dưới ngắt dữ liệu SIM do OpenStick quản lý và tắt tự chuyển sang SIM, giữ nguyên Wi-Fi đang kết nối.</p><button id="data-off">Tắt dữ liệu SIM</button><p class="muted">Nếu đang phát hotspot, <a href="/hotspot">dừng hotspot</a> trước. Chọn chế độ 3G/4G cho SMS/USSD tại <a href="/modem/network">Mạng SIM</a>.</p></section>
+<section><h2>Tự chọn đường Internet</h2><p id="policy-status" class="notice" role="status">Đang đọc cấu hình…</p>
+<form id="policy-form"><fieldset id="policy-fields" disabled style="border:0;padding:0;min-width:0">
+<label for="internet-mode">Chính sách</label><select id="internet-mode"><option value="wifi_only">Chỉ Wi-Fi</option><option value="sim_only">Chỉ SIM</option><option value="wifi_preferred">Ưu tiên Wi-Fi, dự phòng SIM</option><option value="sim_preferred">Ưu tiên SIM, dự phòng Wi-Fi</option></select>
+<label class="check"><input id="policy-enabled" type="checkbox">Bật tự quản lý nguồn Internet (chạy cả khi đóng trang).</label>
+<label class="check"><input id="policy-auto-wifi" type="checkbox">Tìm Wi-Fi đã lưu khác khi Wi-Fi hiện tại mất Internet.</label>
+<label class="check"><input id="policy-cellular" type="checkbox">Cho phép tạo kết nối dữ liệu SIM và phát sinh cước theo chính sách đã chọn.</label>
+<label class="check"><input id="policy-confirm" type="checkbox" required>Tôi đồng ý áp dụng thay đổi mạng. Chỉ SIM sẽ ngắt Wi-Fi nhận Internet; nên thao tác qua cáp USB.</label>
+<button>Áp dụng</button></fieldset></form><p class="muted">Chu kỳ kiểm tra 15 giây, cần 3 lần lỗi/phục hồi và nghỉ ít nhất 120 giây giữa các lần chuyển. Kiểm tra Internet tạo một ít lưu lượng trên từng đường đang kết nối. SIM cần APN đã lưu ở trang Phát Wi-Fi từ SIM. Chính sách này dùng vai trò Wi-Fi nhận Internet; hãy tắt tự quản lý trước khi thử hotspot.</p>
+<p class="muted">Tắt tự quản lý giữ nguyên kết nối hiện tại, không tự ngắt dữ liệu SIM. Chọn và áp dụng Chỉ Wi-Fi để ngắt kết nối SIM do OpenStick quản lý.</p>
+<p id="policy-notice" class="notice" role="status">Cần kiểm thử chuyển mạng trên thiết bị thật.</p></section>
+<section><h2>Wi-Fi đã lưu</h2><button id="profiles-refresh" class="secondary">Xem danh sách</button><p class="muted">Sử dụng mật khẩu đã lưu. Kết nối thủ công thử Internet và hoàn tác nếu thất bại. Chỉ xóa mạng đang không kết nối.</p><div id="saved-profiles" aria-live="polite"></div></section>
+</main><script>
+const policyToken={{ token|tojson }};
+</script><script src="/static/internet.js"></script></body></html>

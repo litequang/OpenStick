@@ -159,10 +159,14 @@ def test_ap_is_not_reported_as_connected_wifi_upstream_or_scanned():
     calls = []
     def run(args, timeout=15):
         calls.append(args)
+        if args[1:3] == ['-g', '802-11-wireless.ssid,802-11-wireless.channel']:
+            return 'Fixture USB\n6\n'
         return 'GENERAL.STATE:100 (connected)\nGENERAL.CONNECTION:openstick-hotspot\nIP4.ADDRESS[1]:192.168.8.1/24\n'
     value = remote_functions(run=run)['wifi_status']()
     assert value['hotspot_active'] and not value['connected']
-    assert len(calls) == 1 and value['signal_percent'] is None
+    assert len(calls) == 2 and value['signal_percent'] is None
+    assert value['ssid'] == 'Fixture USB' and value['channel'] == 6
+    assert not any('psk' in arg or arg == '--show-secrets' for call in calls for arg in call)
 
 
 @pytest.mark.parametrize('response,success', [('200 2097152 1250000 1.68', True),

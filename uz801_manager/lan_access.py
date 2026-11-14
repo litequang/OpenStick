@@ -101,6 +101,7 @@ def install_lan_auth(app, settings, limiter=None):
             return None
         if session.get('credential_version') != current['version']:
             session.clear()
+            if request.path == '/setup':session['login_destination'] = '/setup'
             return (jsonify(error='LOGIN_REQUIRED'), 401) if request.path.startswith('/api/') else redirect('/login')
 
     @app.context_processor
@@ -117,10 +118,11 @@ def install_lan_auth(app, settings, limiter=None):
             password = request.form.get('password', '')
             current = settings.private()
             if len(password) <= 128 and current and check_password_hash(current['password_hash'], password):
+                destination = '/setup' if session.get('login_destination') == '/setup' else '/overview'
                 session.clear()
                 session.permanent = True
                 session.update(credential_version=current['version'], csrf=secrets.token_urlsafe(32))
-                return redirect('/overview')
+                return redirect(destination)
             error = 'Mật khẩu chưa đúng.'
         session.setdefault('csrf', secrets.token_urlsafe(32))
         return render_template('lan_login.html', csrf=session['csrf'], error=error)

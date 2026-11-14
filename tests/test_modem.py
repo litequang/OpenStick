@@ -37,7 +37,7 @@ def test_modem_page_bootstraps_usb_token_and_preserves_guards():
     assert client.get('/modem', headers={'Host': '172.16.42.1'}).location == '/modem/sms'
     response = client.get('/modem/sms', headers={'Host': '172.16.42.1'})
     page = response.get_data(as_text=True)
-    assert response.status_code == 200 and 'Gửi / nhận SMS' in page
+    assert response.status_code == 200 and 'Tin nhắn' in page
     assert 'test-token' in page
     assert response.headers['Cache-Control'] == 'no-store'
     assert response.headers['X-Frame-Options'] == 'DENY'
@@ -99,6 +99,10 @@ def test_last_ussd_reply_survives_status_refresh_without_retaining_code():
         response = client.get('/api/modem/state', headers=headers())
         assert response.json['result']['last_ussd']['result']['reply'] == '<script>private fixture</script>'
         assert '*101#' not in response.text and '"code"' not in response.text
+    receipt=client.get('/api/modem/state?operation='+payload['operation'],headers=headers())
+    assert receipt.json['result']['reply']=='<script>private fixture</script>'
+    assert client.post('/api/modem',json=payload,headers=headers()).status_code==409
+    assert '*101#' not in receipt.text
 
 
 def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
@@ -107,6 +111,8 @@ def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
         response = client.get(route, headers={'Host': '172.16.42.1'})
         assert response.status_code == 200 and 'id="portal-nav"' in response.text
         assert 'id="chip-sim"' in response.text and 'id="chip-modem"' in response.text
+        assert 'id="chip-wifi"' in response.text and 'id="chip-signal"' not in response.text
+        assert 'id="signal-status"' in response.text
         assert response.headers['Cache-Control'] == 'no-store'
     assert client.get('/overview', headers={'Host': 'evil.invalid'}).status_code == 403
     node = shutil.which('node')
@@ -118,10 +124,27 @@ def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_header_snapshot_is_private_and_does_not_overwrite_wifi_job():
+    class Wifi:
+        def call(self, action, **values):
+            assert action == 'status' and not values
+            return {'connected': True, 'ssid': '<script>fixture SSID</script>'}
+    app = create_hosting_app(backend=Wifi(), modem_backend=Backend(), usb_portal=True, token='test-token')
+    client = app.test_client()
+    state = app.extensions['hosting']['state']
+    state.update(busy=True, result={'operation': 'keep this result'}, error=False)
+    before = dict(state)
+    assert client.get('/api/header', headers={'Host': '172.16.42.1'}).status_code == 403
+    assert client.get('/api/header', headers=headers(Origin='https://evil.invalid')).status_code == 403
+    result = client.get('/api/header', headers=headers())
+    assert result.status_code == 200 and result.json['connected']
+    assert result.headers['Cache-Control'] == 'no-store' and state == before
+
+
 @pytest.mark.parametrize('section,present,absent', [
-    ('sms', 'sms-fields', ('ussd-fields', 'mode-fields')),
-    ('ussd', 'ussd-fields', ('sms-fields', 'mode-fields')),
-    ('network', 'mode-fields', ('sms-fields', 'ussd-fields')),
+    ('sms', 'sms-compose-form', ('ussd-fields', 'mode-fields')),
+    ('ussd', 'ussd-fields', ('sms-compose-form', 'mode-fields')),
+    ('network', 'mode-fields', ('sms-compose-form', 'ussd-fields')),
 ])
 def test_separate_pages_contain_only_their_own_forms(section, present, absent):
     _, client, _ = setup()
@@ -141,6 +164,7 @@ def test_real_ui_script_handles_private_http_and_lost_send_reply(tmp_path, secti
     app, client, _ = setup()
     page = tmp_path / 'modem.html'
     page.write_text(client.get('/modem/' + section, headers={'Host': '172.16.42.1'}).get_data(as_text=True), encoding='utf-8')
-    result = subprocess.run([node, str(Path(__file__).with_name('modem_ui_fixture.cjs')), str(page), section],
+    fixture = 'sms_ui_fixture.cjs' if section == 'sms' else 'modem_ui_fixture.cjs'
+    result = subprocess.run([node, str(Path(__file__).with_name(fixture)), str(page), section],
                             capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stdout + result.stderr

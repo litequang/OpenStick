@@ -6,10 +6,13 @@ import sys
 
 from waitress import serve
 
-from .hosting import REMOTE, create_hosting_app
+from .hosting import REMOTE, WIFI_ERRORS, create_hosting_app
 from .modem_device import ModemManager
 from .static_site import StaticSite
 from .hotspot import Hotspot
+from .sms_archive import ArchivedModem
+from .network_policy import NetworkPolicy
+from .setup_ap import SetupAP
 
 
 class LocalWifi:
@@ -19,10 +22,14 @@ class LocalWifi:
     def call(self, action, **values):
         result = self.run([sys.executable, '-c', REMOTE],
                           input=json.dumps({'action': action, **values}).encode(),
-                          capture_output=True, timeout=50, shell=False)
-        if result.returncode or len(result.stdout) > 65536:
+                          capture_output=True, timeout=110 if action == 'connect' else 50, shell=False)
+        if len(result.stdout) > 65536:
             raise RuntimeError('NETWORK_OPERATION_FAILED')
-        parsed = json.loads(result.stdout)
+        try:parsed = json.loads(result.stdout)
+        except (ValueError, UnicodeError):raise RuntimeError('NETWORK_OPERATION_FAILED') from None
+        if isinstance(parsed, dict) and parsed.get('error') in WIFI_ERRORS:
+            raise RuntimeError(parsed['error'])
+        if result.returncode:raise RuntimeError('NETWORK_OPERATION_FAILED')
         if not isinstance(parsed, dict) or 'error' in parsed:
             raise RuntimeError('NETWORK_OPERATION_FAILED')
         return parsed
@@ -51,8 +58,8 @@ def main():
     with open('/etc/openstick/hosting.json', encoding='utf-8') as source:
         hostname = json.load(source)['hostname']
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
-                             modem_backend=ModemManager(), lan_settings=LanSettings(address=wifi_ipv4),
-                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot())
+                             modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
+                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP())
     with usb_socket() as sock:
         serve(app, sockets=[sock], threads=2, channel_timeout=30,
               max_request_body_size=1500000, ident='OpenStick')

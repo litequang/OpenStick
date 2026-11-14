@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+name="OpenStick Internet policy"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.network_policy"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
+
+depend() {
+    need networkmanager
+    after openstick-hotspot openstick-modem
+}

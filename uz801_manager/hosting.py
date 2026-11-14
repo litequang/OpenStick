@@ -14,6 +14,8 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 from waitress import serve
 
+WIFI_ERRORS = {'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND', 'HOTSPOT_ACTIVE', 'SETUP_ACTIVE', 'POLICY_ACTIVE', 'NETWORK_BUSY'}
+
 
 REMOTE = r'''
 import hashlib,json,os,re,shutil,subprocess,sys,uuid
@@ -22,8 +24,15 @@ if os.path.isdir('/opt/openstick'):sys.path.insert(0,'/opt/openstick')
 value=json.load(sys.stdin)
 guard=ExitStack()
 def run(args,timeout=15):
-    p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
-    if p.returncode:raise RuntimeError('NETWORK_OPERATION_FAILED')
+    try:p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
+    except subprocess.TimeoutExpired:raise RuntimeError('WIFI_TIMEOUT') from None
+    if p.returncode:
+        if 'connection' in args and 'up' in args:
+            error=p.stderr or ''
+            if 'Secrets were required' in error or 'No secrets' in error:raise RuntimeError('WIFI_AUTH_REQUIRED')
+            if 'Timeout expired' in error:raise RuntimeError('WIFI_TIMEOUT')
+            if 'SSID' in error and 'not found' in error:raise RuntimeError('WIFI_NOT_FOUND')
+        raise RuntimeError('NETWORK_OPERATION_FAILED')
     return p.stdout
 def fields(line):
     out=[];part='';escaped=False
@@ -33,6 +42,16 @@ def fields(line):
         elif c==':':out.append(part);part=''
         else:part+=c
     return out+[part]
+
+def station_profile(ssid,password,identity):
+    psk=hashlib.pbkdf2_hmac('sha1',password.encode(),ssid.encode(),4096,32).hex()
+    escaped=ssid.replace('\\','\\\\').replace(';','\\;')
+    profile='openstick-'+hashlib.sha256(ssid.encode()).hexdigest()[:16]
+    return ('[connection]\nid='+profile+'\nuuid='+identity+
+        '\ntype=wifi\ninterface-name=wlan0\nautoconnect=true\nautoconnect-priority=10\n\n'
+        '[wifi]\nmode=infrastructure\ncloned-mac-address=permanent\npowersave=2\nssid='+escaped+
+        '\n\n[wifi-security]\nkey-mgmt=wpa-psk\npsk='+psk+
+        '\n\n[ipv4]\nmethod=auto\nroute-metric=100\n\n[ipv6]\nmethod=auto\nroute-metric=100\n')
 def wifi_status():
     output=run(['nmcli','-t','-e','yes','-f','GENERAL.STATE,GENERAL.CONNECTION,IP4.ADDRESS,IP4.GATEWAY','device','show','wlan0'])
     rows={}
@@ -45,8 +64,16 @@ def wifi_status():
             'signal_dbm':None,'tx_mbps':None,'rx_mbps':None,
             'ipv4':[v for k,v in rows.items() if k.startswith('IP4.ADDRESS')],
             'gateway':rows.get('IP4.GATEWAY','')}
-    result['hotspot_active']=result['connected'] and result['connection']=='openstick-hotspot'
-    if result['hotspot_active']:result['connected']=False
+    result['setup_active']=result['connected'] and result['connection']=='openstick-setup'
+    result['hotspot_active']=result['connected'] and result['connection'] in ('openstick-hotspot','openstick-setup')
+    if result['hotspot_active']:
+        result['connected']=False
+        try:
+            ap=run(['nmcli','-g','802-11-wireless.ssid,802-11-wireless.channel',
+                    'connection','show','id',result['connection']]).splitlines()
+            if ap:result['ssid']=ap[0][:32]
+            result['channel']=int(ap[1]) if len(ap)>1 and ap[1].isdigit() else None
+        except (RuntimeError,OSError,subprocess.SubprocessError):pass
     if result['connected']:
         try:cached=run(['nmcli','-t','-e','yes','-f','IN-USE,SSID,SIGNAL','device','wifi','list','ifname','wlan0','--rescan','no'])
         except (RuntimeError,OSError,subprocess.SubprocessError):cached=''
@@ -91,10 +118,15 @@ try:
     action=value['action']
     if action in ('scan','connect','speed') and os.path.isdir('/opt/openstick'):
         from uz801_manager.hotspot import Hotspot,Network,AP_UUID,network_lock
+        from uz801_manager.setup_ap import SETUP_UUID
         guard.enter_context(network_lock())
         hotspot=Hotspot()
+        if Network().active('wlan0')==SETUP_UUID or hotspot.read('setup-pending.json'):raise RuntimeError('SETUP_ACTIVE')
         if (hotspot.read('hotspot.json').get('enabled') or hotspot.read('hotspot-pending.json')
                 or Network().active('wlan0')==AP_UUID):raise RuntimeError('HOTSPOT_ACTIVE')
+        if action=='connect':
+            from uz801_manager.network_policy import NetworkPolicy
+            if NetworkPolicy().config()['enabled']:raise RuntimeError('POLICY_ACTIVE')
     if action=='scan':
         output=run(['nmcli','-t','-e','yes','-f','SSID,SIGNAL,SECURITY','device','wifi','list','ifname','wlan0','--rescan','yes'])
         networks={}
@@ -118,8 +150,6 @@ try:
         assert isinstance(ssid,str) and 1<=len(ssid.encode())<=32
         assert isinstance(password,str) and 8<=len(password)<=63
         assert not any(ord(c)<32 for c in ssid+password)
-        psk=hashlib.pbkdf2_hmac('sha1',password.encode(),ssid.encode(),4096,32).hex()
-        escaped=ssid.replace('\\','\\\\').replace(';','\\;')
         profile='openstick-'+hashlib.sha256(ssid.encode()).hexdigest()[:16]
         target='/etc/NetworkManager/system-connections/'+profile+'.nmconnection'
         existing=''
@@ -127,18 +157,19 @@ try:
             with open(target) as f:existing=f.read(8192)
         match=re.search(r'^uuid=([0-9a-f-]{36})$',existing,re.M)
         identity=str(uuid.UUID(match[1])) if match else str(uuid.uuid4())
-        data='[connection]\nid='+profile+'\nuuid='+identity+'\ntype=wifi\ninterface-name=wlan0\nautoconnect=true\nautoconnect-priority=10\n\n[wifi]\nmode=infrastructure\nssid='+escaped+'\n\n[wifi-security]\nkey-mgmt=wpa-psk\npsk='+psk+'\n\n[ipv4]\nmethod=auto\nroute-metric=100\n\n[ipv6]\nmethod=auto\nroute-metric=100\n'
+        data=station_profile(ssid,password,identity)
         temp=target+'.tmp'
         fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
         with os.fdopen(fd,'w') as f:f.write(data);f.flush();os.fsync(f.fileno())
         os.replace(temp,target)
         run(['nmcli','connection','load',target])
-        run(['nmcli','-w','35','connection','up','id',profile],40)
+        run(['nmcli','-w','55','connection','up','uuid',identity],60)
         result={'connected':True}
     else:raise RuntimeError('INPUT_INVALID')
     print(json.dumps(result))
-except Exception:
-    print(json.dumps({'error':'NETWORK_OPERATION_FAILED'}));sys.exit(1)
+except Exception as error:
+    allowed={'WIFI_AUTH_REQUIRED','WIFI_TIMEOUT','WIFI_NOT_FOUND','HOTSPOT_ACTIVE','SETUP_ACTIVE','POLICY_ACTIVE','NETWORK_BUSY'}
+    print(json.dumps({'error':str(error) if str(error) in allowed else 'NETWORK_OPERATION_FAILED'}));sys.exit(1)
 finally:guard.close()
 '''
 
@@ -155,11 +186,15 @@ class LinuxWifi:
                 '-i', str(self.directory / 'manager_ed25519'), 'user@172.16.42.1',
                 'sudo -n python3 -c ' + shlex.quote(REMOTE)]
         result = self.run(args, input=json.dumps({'action': action, **values}).encode(),
-                          capture_output=True, timeout=50, shell=False,
+                          capture_output=True, timeout=110 if action == 'connect' else 50, shell=False,
                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-        if result.returncode or len(result.stdout) > 65536:
+        if len(result.stdout) > 65536:
             raise RuntimeError('USB_SSH_UNAVAILABLE')
-        parsed = json.loads(result.stdout)
+        try:parsed = json.loads(result.stdout)
+        except (ValueError, UnicodeError):raise RuntimeError('USB_SSH_UNAVAILABLE') from None
+        if isinstance(parsed, dict) and parsed.get('error') in WIFI_ERRORS:
+            raise RuntimeError(parsed['error'])
+        if result.returncode:raise RuntimeError('USB_SSH_UNAVAILABLE')
         if not isinstance(parsed, dict) or 'error' in parsed:
             raise RuntimeError('NETWORK_OPERATION_FAILED')
         return parsed
@@ -180,14 +215,17 @@ HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewp
 <script>
 const token=__OPENSTICK_BOOTSTRAP_TOKEN__||new URLSearchParams(location.hash.slice(1)).get('token')||sessionStorage.getItem('openstick-hosting-token')||'';if(token)sessionStorage.setItem('openstick-hosting-token',token);history.replaceState(null,'',location.pathname);
 const status=document.getElementById('status'),networks=document.getElementById('networks'),notice=document.getElementById('operation-status');let busy=false,wifiConnected=false,initialized=false;
+let lastWifiError='';
+const wifiErrors={WIFI_AUTH_REQUIRED:'Wi-Fi yêu cầu lại mật khẩu. Nhập mật khẩu của mạng Wi-Fi, không phải mật khẩu quản trị LAN.',WIFI_TIMEOUT:'Kết nối Wi-Fi hết thời gian chờ. Kiểm tra lại mật khẩu và bộ phát.',WIFI_NOT_FOUND:'Không tìm thấy mạng Wi-Fi. Tìm lại danh sách mạng.',HOTSPOT_ACTIVE:'Dừng hotspot trước khi kết nối Wi-Fi nhận Internet.',POLICY_ACTIVE:'Tắt tự quản lý Internet trước khi lưu Wi-Fi mới.',NETWORK_BUSY:'USB đang thực hiện thao tác mạng khác. Thử lại sau.'};
 function renderStatus(s){if(typeof renderHeader==='function')renderHeader(s.modem_status);wifiConnected=s.connected===true;const details=document.getElementById('wifi-settings');details.hidden=s.hotspot_active===true;if(s.hotspot_active){details.open=false;status.textContent='Wi-Fi đang phát từ USB. Quản lý tại mục Phát Wi-Fi từ SIM 4G bên dưới. Internet cho web dùng phiên dữ liệu SIM; không phải Wi-Fi nhà.';document.getElementById('speed').disabled=true;return}if(!initialized||!wifiConnected)details.open=!wifiConnected;initialized=true;document.getElementById('wifi-summary').textContent=wifiConnected?'Đổi Wi-Fi':'Chọn Wi-Fi để kết nối';const quality=s.signal_percent==null?'chưa có số liệu':`${s.signal_percent}%`;const dbm=s.signal_dbm==null?'':` (${s.signal_dbm} dBm)`;const rate=value=>value==null?'chưa có số liệu':`${value} Mbps`;status.textContent=`Wi-Fi: ${wifiConnected?'đã kết nối':'chưa kết nối'}\nTên mạng: ${s.ssid||'chưa xác định'}\nMức sóng: ${quality}${dbm}\nLiên kết TX: ${rate(s.tx_mbps)} • RX: ${rate(s.rx_mbps)}\nIPv4: ${(s.ipv4||[]).join(', ')||'chưa có'}\nGateway: ${s.gateway||'chưa có'}\nIP quản trị USB: 172.16.42.1 (riêng với IP Wi-Fi)`;document.getElementById('speed').disabled=busy||!wifiConnected}
-async function call(action,extra={}){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);notice.textContent=action==='speed'?'Đang tải mẫu 2 MiB qua Wi-Fi…':'Đang kiểm tra…';try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':token},body:JSON.stringify({action,...extra})});if(!r.ok)throw Error();await poll();if(action==='connect')setTimeout(()=>call('status'),0)}catch(e){notice.textContent='Thao tác chưa thành công. Kiểm tra kết nối USB/Wi-Fi rồi thử lại.'}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('speed').disabled=!wifiConnected}}
-async function poll(){const end=Date.now()+60000;while(Date.now()<end){const r=await fetch('/api/state',{headers:{'X-OpenStick-Token':token}});if(!r.ok)throw Error();const s=await r.json();if(s.busy){await new Promise(r=>setTimeout(r,700));continue}if(s.error){notice.textContent='Thao tác Wi-Fi chưa thành công. Kết quả tốc độ có thể không có nếu máy chủ đo không phản hồi.';return}if(s.result.networks){networks.replaceChildren(new Option('Chọn mạng hoặc nhập tên bên dưới',''));for(const n of s.result.networks)networks.add(new Option(`${n.ssid} — ${n.signal}% — ${n.security||'mở'}`,n.ssid));document.getElementById('wifi-settings').open=true;notice.textContent=`Đã tìm thấy ${s.result.networks.length} mạng.`}else if(s.result.download_mbps!=null){document.getElementById('speed-result').textContent=`Tốc độ tải: ${s.result.download_mbps} Mbps • Mẫu 2 MiB • ${s.result.duration_s} giây\nĐo lúc ${new Date().toLocaleTimeString()}`;notice.textContent='Đã đo qua Wi-Fi.'}else if(s.result.state){renderStatus(s.result);notice.textContent='Đã cập nhật trạng thái.'}else if(s.result.connected){document.getElementById('password').value='';document.getElementById('wifi-settings').open=false;notice.textContent='Đã kết nối Wi-Fi.'}return}throw Error('TIMEOUT')}
+const renderStationStatus=renderStatus;renderStatus=function(s){if(!s.setup_active){renderStationStatus(s);return}wifiConnected=false;document.getElementById('wifi-settings').hidden=true;document.getElementById('speed').disabled=true;status.textContent='Wi-Fi setup: '+(s.ssid||'')+' ? http://192.168.8.1:8765/setup';const a=document.createElement('a');a.href='/setup';a.textContent=' Mở trang cài Wi-Fi →';status.append(a)};wifiErrors.SETUP_ACTIVE='Đang phát Wi-Fi cài đặt. Mở mục Wi-Fi cài đặt để đổi mạng.';
+async function call(action,extra={}){if(busy)return;if(action!=='status')lastWifiError='';busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);notice.textContent=action==='speed'?'Đang tải mẫu 2 MiB qua Wi-Fi…':'Đang kiểm tra…';try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':token},body:JSON.stringify({action,...extra})});if(!r.ok)throw Error();const ok=await poll();if(action==='connect'&&ok)setTimeout(()=>call('status'),0)}catch(e){notice.textContent='Thao tác chưa thành công. Kiểm tra kết nối USB/Wi-Fi rồi thử lại.'}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('speed').disabled=!wifiConnected}}
+async function poll(){const end=Date.now()+120000;while(Date.now()<end){const r=await fetch('/api/state',{headers:{'X-OpenStick-Token':token}});if(!r.ok)throw Error();const s=await r.json();if(s.busy){await new Promise(r=>setTimeout(r,700));continue}if(s.error){if(wifiErrors[s.error_code]){lastWifiError=wifiErrors[s.error_code];notice.textContent=lastWifiError;return false}notice.textContent='Thao tác Wi-Fi chưa thành công. Kết quả tốc độ có thể không có nếu máy chủ đo không phản hồi.';return}if(s.result.networks){networks.replaceChildren(new Option('Chọn mạng hoặc nhập tên bên dưới',''));for(const n of s.result.networks)networks.add(new Option(`${n.ssid} — ${n.signal}% — ${n.security||'mở'}`,n.ssid));document.getElementById('wifi-settings').open=true;notice.textContent=`Đã tìm thấy ${s.result.networks.length} mạng.`}else if(s.result.download_mbps!=null){document.getElementById('speed-result').textContent=`Tốc độ tải: ${s.result.download_mbps} Mbps • Mẫu 2 MiB • ${s.result.duration_s} giây\nĐo lúc ${new Date().toLocaleTimeString()}`;notice.textContent='Đã đo qua Wi-Fi.'}else if(s.result.state){renderStatus(s.result);if(s.result.connected)lastWifiError='';notice.textContent=lastWifiError||'Đã cập nhật trạng thái.'}else if(s.result.connected){document.getElementById('password').value='';document.getElementById('wifi-settings').open=false;notice.textContent='Đã kết nối Wi-Fi.'}return true}throw Error('TIMEOUT')}
 networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=networks.value};document.getElementById('scan').onclick=()=>call('scan');document.getElementById('check').onclick=()=>call('status');document.getElementById('speed').onclick=()=>call('speed');document.getElementById('wifi').onsubmit=e=>{e.preventDefault();call('connect',{ssid:document.getElementById('ssid').value,password:document.getElementById('password').value})};setInterval(()=>{if(!busy&&!document.hidden)call('status')},15000);call('status');
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -230,13 +268,17 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     def index():
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
         if usb_portal and modem_backend is not None:
-            page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi'), 1)
+            page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi', token=token), 1)
         if usb_portal and lan_settings is not None and lan_auth is None:
             page = page.replace('</main>', render_template('lan_settings.html') + '</main>', 1)
         if usb_portal and site_backend is not None:
             page = page.replace('</main>', '<section><h2>Quản lý website</h2><p>Tạo và sửa HTML/CSS/JS, tải hình ảnh và tài nguyên cho web tĩnh.</p><a href="/website">Mở trình quản lý Website →</a></section></main>', 1)
         if usb_portal and hotspot_backend is not None:
             page = page.replace('</main>', '<section><h2>Phát Wi-Fi từ SIM 4G</h2><p>Dùng SIM làm nguồn Internet cho website và điểm phát Wi-Fi của USB.</p><a href="/hotspot">Cài đặt SIM → Wi-Fi →</a></section></main>', 1)
+        if usb_portal and network_backend is not None:
+            page = page.replace('</main>', '<section><h2>Nguồn Internet &amp; Wi-Fi đã lưu</h2><p>Chọn ưu tiên Wi-Fi/SIM, dự phòng và chuyển giữa các mạng đã lưu.</p><a href="/internet">Quản lý nguồn Internet →</a></section></main>', 1)
+        if usb_portal and setup_backend is not None:
+            page = page.replace('</main>', '<section><h2>Wi-Fi cài đặt tự động</h2><p>Không nối được Wi-Fi đã lưu: USB tự phát hotspot để điện thoại vào cài, không cần SIM.</p><a href="/setup">Cài đặt &amp; lưu thẻ kết nối →</a></section></main>', 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -267,15 +309,17 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             if state['busy']:
                 return jsonify(error='BUSY'), 409
             state.update(busy=True, result={}, error=False)
+            state.pop('error_code', None)
 
         def work():
             try:
                 result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:
                     state.update(result=result)
-            except Exception:
+            except Exception as exc:
                 with lock:
                     state.update(error=True, result={})
+                    if str(exc) in WIFI_ERRORS:state['error_code'] = str(exc)
             finally:
                 body.clear()  # do not retain a password in job/history state
                 with lock:
@@ -286,6 +330,13 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         return jsonify(accepted=True), 202
 
     if usb_portal and modem_backend is not None:
+        @app.get('/api/header')
+        def header_status():
+            # Read-only snapshot; do not overwrite an in-flight Wi-Fi job or
+            # its result when a different page updates the shared header.
+            try:return jsonify(backend.call('status'))
+            except Exception:return jsonify(error='STATUS_UNAVAILABLE'), 503
+
         @app.get('/overview')
         def overview():
             return render_template('overview.html', token=token, page='overview', hostname=hostname)
@@ -307,6 +358,12 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     if usb_portal and hotspot_backend is not None:
         from .hotspot_web import register_hotspot_routes
         register_hotspot_routes(app, hotspot_backend, token)
+    if usb_portal and network_backend is not None:
+        from .network_web import register_network_routes
+        register_network_routes(app, network_backend, token)
+    if usb_portal and setup_backend is not None:
+        from .setup_web import register_setup_routes
+        register_setup_routes(app, setup_backend, token)
     return app
 
 

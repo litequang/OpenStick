@@ -203,6 +203,9 @@ class Hotspot:
         validate_hotspot({'action': action, **values})
         with self.lock_factory():
             if action == 'status':return self.status()
+            from .setup_ap import SETUP_UUID
+            if self.network.active('wlan0') == SETUP_UUID or self.read('setup-pending.json'):
+                raise RuntimeError('SETUP_ACTIVE')
             if action == 'configure':return self.configure(values)
             with self.modem_lock_factory():
                 if action == 'start':return self.start()
@@ -223,7 +226,7 @@ class Hotspot:
         ap = (f'[connection]\nid=openstick-hotspot\nuuid={AP_UUID}\ntype=wifi\ninterface-name=wlan0\n'
               'autoconnect=false\nautoconnect-priority=100\n\n'
               f'[wifi]\nmode=ap\nband=bg\nchannel={values["channel"]}\nssid={ssid}\n'
-              f'\n[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\nproto=rsn;\npairwise=ccmp;\ngroup=ccmp;\n'
+              f'\n[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\nproto=rsn;\npairwise=ccmp;\ngroup=ccmp;\npmf=1\n'
               f'\n[ipv4]\nmethod=shared\naddress1={AP_ADDRESS}/24\nnever-default=true\n\n[ipv6]\nmethod=disabled\n')
         gsm = 'auto-config=true' if not values['apn'] else 'auto-config=false\napn=' + values['apn']
         cell = (f'[connection]\nid=openstick-cellular\nuuid={CELL_UUID}\ntype=gsm\ninterface-name={devices[0]}\n'
@@ -239,6 +242,7 @@ class Hotspot:
         return self.status()
 
     def start(self):
+        if self.read('network-policy.json').get('enabled'):raise RuntimeError('POLICY_ACTIVE')
         config = self.read('hotspot.json')
         if not config.get('ssid'):raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
         if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:raise RuntimeError('HOTSPOT_ACTIVE')

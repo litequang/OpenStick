@@ -1,0 +1,23 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Wi-Fi cài đặt</title></head><body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><h1>Wi-Fi cài đặt</h1><a href="/hotspot">Phát Wi-Fi</a></div>
+<p>Không kết nối được Wi-Fi đã lưu trong khoảng 60 giây? USB tự phát Wi-Fi để điện thoại vào cài, kể cả không có SIM. Chế độ này không tự bật dữ liệu SIM.</p>
+<section id="setup-connect-pane"><h2>Kết nối USB vào Wi-Fi mới</h2><form id="setup-connect">
+<p><button id="setup-scan" type="button" class="secondary">Quét mạng Wi-Fi</button></p>
+<label for="setup-networks">Chọn Wi-Fi từ lần quét gần nhất</label><select id="setup-networks"><option value="">Nhập tên bên dưới hoặc quét mạng</option></select>
+<p id="setup-scan-note" class="metric-note">Chọn mạng chỉ điền tên, chưa đổi kết nối. Có thể nhập tay tên mạng ẩn.</p>
+<label for="setup-ssid">Tên Wi-Fi 2,4 GHz (SSID)</label><input id="setup-ssid" required maxlength="32" autocomplete="off">
+<label for="setup-password">Mật khẩu Wi-Fi</label><input id="setup-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password">
+<button id="setup-submit">Lưu &amp; kết nối Wi-Fi</button></form>
+<p>Nhập đúng tên mạng, kể cả chữ hoa/thường. USB ngừng phát để thử Wi-Fi mới; điện thoại sẽ mất kết nối tạm thời. Nếu thành công, nối điện thoại vào cùng Wi-Fi và mở địa chỉ quản trị mới từ router. Nếu thất bại, sau khoảng 1–2 phút hãy nối lại Wi-Fi cài đặt để sửa. Hotspot cài đặt không phát và nhận Wi-Fi đồng thời.</p>
+<p class="metric-note">Khi cắm vào PC, trang <a href="http://172.16.42.1/setup">172.16.42.1/setup</a> vẫn dùng được trong lúc đổi Wi-Fi. Không bắt buộc PC cho các lần đổi mạng sau.</p></section>
+<section><h2>Trạng thái</h2><p id="setup-state" role="status" style="white-space:pre-wrap">Đang kiểm tra…</p>
+<p id="setup-notice" aria-live="polite"></p>
+<p><button id="setup-enable">Bật tự phát khi mất Wi-Fi</button> <button id="setup-disable" class="secondary">Tắt tự phát</button></p>
+<p><button id="setup-start">Phát Wi-Fi cài đặt ngay</button> <button id="setup-stop" class="secondary">Dừng &amp; thử Wi-Fi cũ</button></p>
+<p class="metric-note">Nếu đã bật hotspot dùng SIM hoặc có phiên dữ liệu SIM, USB giữ chế độ bạn đã chọn. Dừng chế độ đó trước để dùng Wi-Fi cài đặt. Wi-Fi còn kết nối nhưng không có Internet sẽ không tự chuyển sang hotspot.</p></section>
+<section><h2>Lưu thông tin trước khi mang đi</h2><p>Wi-Fi cài đặt có mật khẩu riêng, giữ nguyên qua các lần cấp nguồn. Lưu vào điện thoại để dùng khi chỉ cắm USB vào sạc hoặc pin dự phòng.</p>
+<button id="setup-reveal" class="secondary">Xem thông tin kết nối</button><pre id="setup-credentials" hidden style="white-space:pre-wrap"></pre><p><button id="setup-card" class="secondary">Tải thẻ kết nối</button></p>
+<p>Kết nối điện thoại vào Wi-Fi USB, chọn <strong>tiếp tục kết nối dù không có Internet</strong>, rồi mở <a href="http://192.168.8.1:8765/setup">http://192.168.8.1:8765/setup</a>. Đăng nhập bằng mật khẩu quản trị LAN đã đặt; mật khẩu này khác mật khẩu Wi-Fi.</p></section>
+
+<script src="/static/setup.js"></script></main></body></html>

@@ -64,7 +64,8 @@ def make_modem(tmp_path, monkeypatch):
         monkeypatch.setattr(journal, '_sync_directory', lambda: None)
         radio = RadioPreference(tmp_path / 'radio')
         monkeypatch.setattr(radio, '_sync_directory', lambda: None)
-        return ModemManager(bus_factory=lambda: bus, journal=journal, radio=radio, lock_factory=nullcontext)
+        return ModemManager(bus_factory=lambda: bus, journal=journal, radio=radio, lock_factory=nullcontext,
+                            ussd_grace=0)
     return make
 
 
@@ -190,6 +191,96 @@ def test_locked_and_unregistered_modems_cannot_send(make_modem):
     with pytest.raises(RuntimeError, match='SIM_LOCKED'):
         make_modem(bus).call(**request('ussd_start', code='*101#'))
     assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
+
+
+def test_ussd_late_notification_after_method_failure_is_observed_without_resend(make_modem, tmp_path):
+    class ErrorBus(Bus):
+        attempts = 0
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'Initiate':
+                self.attempts += 1
+                self.props[USSD]['State'] = 2
+                raise TimeoutError('private balance')
+            return super().call_blocking(service, path, interface, method, signature, args, **kwargs)
+    bus = ErrorBus()
+    bus.props[USSD]['NetworkNotification'] = 'old cached balance'
+    modem = make_modem(bus)
+    elapsed = [0]
+    modem.clock = lambda: elapsed[0]
+    def sleep(seconds):
+        elapsed[0] += seconds
+        bus.props[USSD].update(State=1, NetworkNotification='<script>new private balance</script>')
+    modem.sleep, modem.ussd_grace = sleep, 2
+    values = request('ussd_start', code='*101#')
+    result = modem.call(**values)
+    assert result['reply'] == '<script>new private balance</script>'
+    assert result['response_source'] == 'NetworkNotification' and not result['modem_acknowledged']
+    assert bus.attempts == 1
+    stored = json.loads(next(tmp_path.glob('*.json')).read_text())
+    assert stored['state'] == 'RESPONSE_OBSERVED' and 'balance' not in json.dumps(stored)
+    with pytest.raises(RuntimeError, match='ALREADY_ATTEMPTED'):modem.call(**values)
+    assert bus.attempts == 1
+
+
+def test_ussd_cached_content_is_not_mistaken_for_response_and_observation_is_bounded(make_modem):
+    class ErrorBus(Bus):
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'Initiate':raise TimeoutError()
+            return super().call_blocking(service, path, interface, method, signature, args, **kwargs)
+    bus = ErrorBus()
+    bus.props[USSD]['NetworkNotification'] = 'old cached balance'
+    modem = make_modem(bus)
+    elapsed = [0]
+    modem.clock = lambda: elapsed[0]
+    modem.sleep = lambda seconds: elapsed.__setitem__(0, elapsed[0] + seconds)
+    modem.ussd_grace = 2
+    with pytest.raises(RuntimeError, match='USSD_TIMEOUT'):
+        modem.call(**request('ussd_start', code='*101#'))
+    assert elapsed[0] == 2
+
+
+@pytest.mark.parametrize('ended', [True, False])
+def test_cancel_error_uses_observed_session_state(make_modem, ended):
+    class CancelBus(Bus):
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'Cancel':
+                assert kwargs['timeout'] == 115
+                if ended:self.props[USSD]['State'] = 1
+                raise TimeoutError('private error')
+            return super().call_blocking(service, path, interface, method, signature, args, **kwargs)
+    modem = make_modem(CancelBus(session=2))
+    if ended:
+        result = modem.call(**request('ussd_cancel'))
+        assert result['cancelled'] and not result['modem_acknowledged']
+    else:
+        with pytest.raises(RuntimeError, match='USSD_TIMEOUT'):
+            modem.call(**request('ussd_cancel'))
+
+
+def test_qmi_transport_uses_current_response_even_when_text_matches_cache(make_modem):
+    class Transport:
+        def available(self):return True
+        def status(self):return {'state':1,'cid':None,'notification':'identical reply'}
+        def call(self,action,**values):
+            assert action=='ussd_start' and values['code']=='*101#'
+            return {'reply':'identical reply','ussd_state':1,'response_source':'QMI_METHOD_RESPONSE'}
+    bus=Bus();modem=make_modem(bus);modem.ussd_transport=Transport()
+    bus.props[USSD]['NetworkNotification']='identical reply'
+    for _ in range(2):
+        result=modem.call(**request('ussd_start',code='*101#'))
+        assert result['reply']=='identical reply' and result['response_source']=='QMI_METHOD_RESPONSE'
+    assert not any(c[2]=='Initiate' for c in bus.calls)
+
+
+def test_qmi_session_state_blocks_radio_changes_and_survives_new_portal_status(make_modem):
+    class Transport:
+        def available(self):return True
+        def status(self):return {'state':3,'cid':5,'prompt':'private current prompt','notification':''}
+    bus=Bus();modem=make_modem(bus);modem.ussd_transport=Transport()
+    status=modem.call('status')
+    assert status['ussd_state']==3 and status['ussd_prompt']=='private current prompt'
+    with pytest.raises(RuntimeError,match='USSD_SESSION_STATE'):
+        modem.call('mode',allowed=8,preferred=0,confirm=True)
 
 
 @pytest.mark.parametrize('lock,label', [(3, 'pin2'), (5, 'puk2')])

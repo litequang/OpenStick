@@ -18,12 +18,13 @@ It uses ordinary private local links and lightweight JavaScript, without React.
 |---|---|---|
 | Tổng quan | `/overview` | RAM, root-filesystem storage, modem signal, sensor temperature/CPU load, SMS submission counts, eMMC health/writes, swap, connections and service state |
 | Wi-Fi & Web | `/` | Current SSID/IP/signal/TX-RX rates, change network, explicit 2 MiB download sample, public website link |
-| SMS | `/modem/sms` | Read cached inbox, compose with confirmation, save a local per-message tariff for estimates |
+| SMS | `/modem/sms` | Conversation list → full thread/reply → separate new message, private durable archive |
 | USSD | `/modem/ussd` | Initiate/respond/cancel, show session state and last modem notification separately |
 | Mạng SIM | `/modem/network` | Actual advertised 3G/4G choices; explain SIM-data/APN readiness |
+| Wi-Fi cài đặt | `/setup` | Enter SSID/password, save and connect autonomously, recover AP on failure; no SIM needed |
 
-Header icons open native keyboard-accessible details for modem, SIM, network
-and signal. An already registered modem is labeled operational rather than
+Header icons open native keyboard-accessible details for modem, combined
+SIM/signal, network and Wi-Fi station/hotspot. An already registered modem is labeled operational rather than
 showing an unexplained disabled activation button. Only a disabled modem offers
 activation on Mạng SIM. Details contain no IMSI, ICCID, IMEI or own-number fields.
 

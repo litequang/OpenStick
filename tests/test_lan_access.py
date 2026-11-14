@@ -44,6 +44,12 @@ def test_lan_requires_login_even_if_api_token_is_known(lan):
     assert 'fixture-token' not in client.get('/login', base_url=BASE).text
 
 
+def test_login_returns_to_requested_setup_page(lan):
+    _, client, _ = lan
+    assert client.get('/setup', base_url=BASE).location == '/login'
+    assert login(client).location == '/setup'
+
+
 def test_login_logout_cookie_and_host_origin_guards(lan):
     app, client, _ = lan
     assert client.post('/login', base_url=BASE, data={'password': PASSWORD}).status_code == 403
