@@ -1,13 +1,23 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Đèn thông báo</title></head><body><main>
 {% include 'portal_chrome.html' %}
 <div class="page-title"><h1>Đèn thông báo</h1><button id="led-refresh" class="secondary" type="button">Đọc lại</button></div>
-<p>Chọn cách hoạt động riêng cho từng màu. Bấm Lưu để áp dụng ngay và dùng lại sau khi cấp nguồn.</p>
-<p class="muted">Đèn trên USB này hỗ trợ bật/tắt từng màu, không chỉnh độ sáng liên tục. Chế độ theo Wi-Fi báo hoạt động Wi-Fi, không xác nhận Internet hay dữ liệu SIM.</p>
+<p>Chọn trạng thái, rồi phối cả ba đèn: tắt, sáng liên tục hoặc nháy với tốc độ riêng. Khi USB đổi trạng thái, cả bộ đèn tự đổi theo trong khoảng 3 giây.</p>
+<p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
+<form id="led-network-form"><fieldset id="led-network-fields" disabled style="border:0;padding:0;min-width:0">
+<section><h2><span class="ux-step">1</span> Chọn trạng thái</h2><p id="led-network-current" class="metric-note"></p>
+<label for="led-network-state">Trạng thái muốn chỉnh</label><select id="led-network-state" style="width:100%"><option value="sim_hotspot">Phát hotspot từ SIM</option><option value="wifi_station">USB đang nhận Wi-Fi</option><option value="setup_hotspot">Phát hotspot cài đặt</option><option value="cellular_data">Kết nối dữ liệu SIM, không dùng Wi-Fi</option><option value="offline">Chưa có kết nối</option><option value="unknown">Chưa đọc được trạng thái mạng</option></select>
+<p class="metric-note">Chuyển lựa chọn chỉ để sửa cấu hình; không đổi mạng hoặc bật dữ liệu SIM.</p></section>
+<section><h2><span class="ux-step">2</span> Phối đèn cho trạng thái này</h2><div id="led-network-controls" class="manage-grid"></div><p class="metric-note">Mỗi màu có thể sáng hoặc nháy đồng thời với các màu khác. Thời gian sáng/tắt từ 100 đến 5000 ms; 500 + 500 ms tương đương một nhịp mỗi giây.</p><button id="led-network-off" type="button" class="secondary">Chọn tắt cả ba cho trạng thái này</button></section>
+<p class="ux-action-row"><button id="led-network-save" type="submit">Lưu quy tắc và bật tự động</button><button id="led-network-disable" class="secondary" type="button">Tắt tự động, dùng chế độ cố định</button></p>
+<p class="metric-note">Lưu giữ lựa chọn cho mọi trạng thái bạn vừa sửa và dùng lại sau khi cấp nguồn. Nếu nhiều kết nối cùng hoạt động, USB chọn một bộ theo thứ tự: hotspot cài đặt → hotspot SIM → nhận Wi-Fi → dữ liệu SIM.</p>
+</fieldset></form>
+<p class="metric-note">Nhận Wi-Fi là đã kết nối và có IP, kể cả khi mất Internet. Dữ liệu SIM là đã thiết lập kết nối, khác với chỉ có sóng 4G và chưa tự xác nhận Internet. Hotspot cài đặt chỉ báo đúng vai trò đang phát.</p>
+<details class="ux-advanced"><summary>Chế độ cố định và hoạt động Wi-Fi của driver</summary><p>Lưu phần này sẽ tắt tự đổi theo trạng thái. Các quy tắc mạng vẫn được giữ để bật lại.</p>
 <form id="led-form"><fieldset id="led-fields" disabled style="border:0;padding:0;min-width:0">
 <div id="led-controls" class="manage-grid"></div>
-<p class="ux-action-row"><button id="led-save" type="submit">Lưu và áp dụng</button><button id="led-all-off" class="secondary" type="button">Chọn tắt tất cả</button><button id="led-default" class="secondary" type="button">Chọn mặc định</button></p>
+<p class="ux-action-row"><button id="led-save" type="submit">Lưu chế độ cố định</button><button id="led-all-off" class="secondary" type="button">Chọn tắt tất cả</button><button id="led-default" class="secondary" type="button">Chọn mặc định</button></p>
 </fieldset></form>
-<p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
-<p class="metric-note">Mặc định khôi phục trạng thái trước lần lưu tùy chỉnh đầu tiên. Đọc lại sẽ bỏ các lựa chọn chưa lưu. Chỉ những chế độ thiết bị đang hỗ trợ mới được hiển thị.</p>
+<p class="metric-note">Mặc định khôi phục trạng thái trước lần lưu tùy chỉnh đầu tiên. Đèn không có độ sáng liên tục; hoạt động Wi-Fi của driver không xác nhận Internet.</p></details>
+<p class="metric-note">Đọc lại sẽ bỏ các lựa chọn chưa lưu.</p>
 <script>const ledToken={{ token|tojson }};</script><script src="/static/leds.js"></script>
 </main></body></html>

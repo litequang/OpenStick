@@ -1,19 +1,13 @@
 #!/sbin/openrc-run
-name="OpenStick saved notification LED settings"
+name="OpenStick notification LEDs and network roles"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.leds"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
 
 depend() {
     need localmount
     after networkmanager
-}
-
-start() {
-    ebegin "Applying saved OpenStick LED settings"
-    cd /opt/openstick || return 1
-    /usr/bin/python3 -m uz801_manager.leds
-    eend $?
-}
-
-stop() {
-    # This is an apply-on-boot task, not a background LED process.
-    return 0
 }
