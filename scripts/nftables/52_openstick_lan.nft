@@ -1,0 +1,7 @@
+# The application binds only to wlan0 and requires an explicitly configured
+# password. Keep USB rules, WWAN ingress protection and forwarding unchanged.
+table inet filter {
+    chain input {
+        meta nfproto ipv4 iifname "wlan0" tcp dport 8765 accept comment "OpenStick authenticated LAN administration"
+    }
+}

@@ -1,0 +1,10 @@
+#!/sbin/openrc-run
+name="OpenStick local setup DHCP"
+supervisor=supervise-daemon
+command=/usr/sbin/dnsmasq
+command_args="--keep-in-foreground --conf-file=/dev/null --interface=wlan0 --bind-dynamic --listen-address=192.168.8.1 --port=53 --no-resolv --no-hosts --interface-name=openstick.local,wlan0/4 --local=/openstick.local/ --dhcp-authoritative --dhcp-range=192.168.8.20,192.168.8.100,255.255.255.0,1h --dhcp-option=3 --dhcp-option=6,192.168.8.1 --dhcp-leasefile=/run/openstick/setup.leases --pid-file=/run/openstick/setup-dhcp.pid"
+respawn_delay=5
+respawn_max=0
+depend() {
+    need networkmanager nftables
+}

@@ -1,0 +1,7 @@
+# Local name discovery for the authenticated Wi-Fi administration listener.
+# USB already has its own allow rule. No WWAN ingress or forwarding changes.
+table inet filter {
+    chain input {
+        meta nfproto ipv4 iifname "wlan0" ip ttl 255 udp dport 5353 accept comment "OpenStick local Wi-Fi name discovery"
+    }
+}

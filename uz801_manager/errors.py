@@ -12,6 +12,12 @@ class Cancelled(SafetyError):
 
 
 MESSAGES = {
+    "AUDIT_REQUIRED": "Chạy Compatibility Audit trước khi xuất báo cáo.",
+    "AUDIT_DATA_INVALID": "Báo cáo audit không đạt kiểm tra định dạng; không xuất dữ liệu.",
+    "AUDIT_PATH_REJECTED": "Phép đọc ngoài danh sách cho phép đã bị chặn.",
+    "AUDIT_LIMIT": "Audit đã đạt giới hạn số byte, số phép đọc hoặc thời gian.",
+    "AUDIT_READ_UNAVAILABLE": "Không đọc được metadata: có thể thiếu tệp hoặc thiếu quyền.",
+    "AUDIT_FAILED": "Audit chưa hoàn tất; không thể xác nhận phiên thiết bị.",
     "SYNC_UNAVAILABLE": "Không mở được ADB SYNC trên phiên USB hiện tại.",
     "SYNC_PROTOCOL": "ADB SYNC trả gói dữ liệu không hợp lệ; tác vụ đã dừng.",
     "FULL_BACKUP_REQUIRED": "GPT dự phòng chưa được kiểm tra. Chỉ cho phép backup full với xác minh cả hai GPT.",

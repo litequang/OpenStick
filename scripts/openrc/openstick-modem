@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+name="OpenStick SMS modem readiness"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.modem_device"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
+output_log=/var/log/openstick-modem.log
+error_log=/var/log/openstick-modem.log
+
+depend() {
+    need modemmanager rmtfs
+}

@@ -13,6 +13,7 @@
     <div class="nav-label">KHÔNG GIAN THIẾT BỊ</div>
     <nav aria-label="Điều hướng">
       <a href="#overview">01 <span>Tổng quan</span></a>
+      <a href="#compatibility">A <span>Compatibility Audit</span></a>
       <a href="#backup">02 <span>Sao lưu & xác minh</span></a>
       <a href="#recovery">03 <span>EDL & khôi phục</span></a>
       <a href="#history">04 <span>Lịch sử tác vụ</span></a>
@@ -39,6 +40,16 @@
       <div class="panel"><div class="panel-heading"><h2>Thông tin thiết bị</h2><span class="pill">ĐỌC TỪ THIẾT BỊ</span></div><dl id="hardware" class="hardware"><div><dt>Đang chờ</dt><dd>Cho phép đọc và chọn “Kiểm tra USB”.</dd></div></dl><ul id="warnings" class="warnings"></ul>
         <details><summary>Xem bảng phân vùng</summary><div class="table-scroll"><table><thead><tr><th>Số</th><th>Tên GPT</th><th>Block</th><th>LBA bắt đầu</th><th>Dung lượng</th></tr></thead><tbody id="partitions"></tbody></table></div></details>
       </div>
+    </section>
+    <section id="compatibility" class="section">
+      <div class="section-title"><div><p class="eyebrow">HYBRID MODE / PHASE 00–04</p><h2>Compatibility Audit</h2></div><span class="pill amber">CHƯA CHO PHÉP TRIỂN KHAI</span></div>
+      <article class="panel">
+        <p class="muted">Chỉ đọc metadata Android, kernel, giao diện và thành phần phần mềm. Không gửi SMS/USSD, không mở kênh modem, bật data hay đổi cấu hình mạng. Hotspot nằm ngoài mục tiêu.</p>
+        <label><input id="audit-consent" type="checkbox"> Tôi cho phép audit metadata chỉ đọc trên USB đang kết nối.</label>
+        <div class="actions"><button id="audit" class="primary">Kiểm tra tương thích</button><button id="audit-json" class="secondary" disabled>Tải JSON</button><button id="audit-md" class="secondary" disabled>Tải Markdown</button></div>
+        <div class="notice">VERIFIED chỉ là quan sát trên Android hiện tại, không đồng nghĩa Debian hỗ trợ đúng board V3.2. Những tính năng chưa thử luôn là UNVERIFIED.</div>
+        <div id="audit-result" class="result-block" aria-live="polite">Chưa chạy audit.</div>
+      </article>
     </section>
     <section id="backup" class="section">
       <div class="section-title"><div><p class="eyebrow">01 / GIỮ DỮ LIỆU GỐC</p><h2>Sao lưu & xác minh</h2></div><span class="muted">Dữ liệu chỉ được lưu trên máy tính</span></div>

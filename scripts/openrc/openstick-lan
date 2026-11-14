@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+name="OpenStick optional authenticated LAN portal"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.lan_device"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
+output_log=/var/log/openstick-lan.log
+error_log=/var/log/openstick-lan.log
+depend() {
+    need networkmanager nftables
+}

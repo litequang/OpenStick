@@ -1,0 +1,91 @@
+# OpenStick USB Wi-Fi setup
+
+Status on the tested FY_UZ801_V3.2 unit: installed. USB HTTP, Wi-Fi status
+and scan, public HTTPS through the fixed Cloudflare hostname, and NTP
+synchronization passed live checks. The owner confirmed that the dark
+dashboard, bottom navigation and header detail icons work. Automated visual
+inspection remains unverified because Edge screenshot capture timed out twice.
+See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
+restart verification and remaining limits.
+
+After installation, connect the dongle to a computer and open
+`http://172.16.42.1` in a browser. The current SSID, IP, signal and negotiated
+TX/RX link rates appear first. When connected, network selection is collapsed
+under **Đổi Wi-Fi**; when disconnected, it opens automatically. Select
+**Tìm mạng Wi-Fi**, choose a WPA/WPA2
+Personal network, enter its password and select **Kết nối**. Profiles are
+saved per SSID with autoconnect enabled. Passwords are never returned by the
+API or stored in job history.
+
+Status refresh uses cached access-point information without requesting an
+active rescan. **Đo tốc độ tải Internet** explicitly downloads a fixed 2 MiB
+HTTPS sample from Cloudflare, bound to `wlan0`, with byte and time limits.
+It does not run automatically, upload a sample or fall back to SIM data.
+Negotiated TX/RX rates are not Internet throughput. One explicit live sample
+passed at about 13.1 Mbps; throughput is variable, not a capacity guarantee.
+
+The dark [dashboard and navigation](PORTAL_UI.md) are at `/overview`.
+
+Optional password-protected Wi-Fi administration and the `/website`
+static file editor are described in [LAN and website management](LAN_AND_WEBSITE.md).
+USB remains the way to enable/disable LAN access and set its password.
+
+For subsequent use on a saved network, a suitable USB power supply is enough;
+a computer provides power and management access but is not the Internet
+upstream. Enter credentials for a new network through USB, or through an
+already enabled LAN session while it is still reachable. Changing Wi-Fi can
+disconnect that LAN session. The separate [automatic setup hotspot](SETUP_HOTSPOT.md)
+restores phone configuration access when no saved Wi-Fi connects. It needs
+no SIM or mobile data; provision its private connection card once over USB.
+
+For a separately selected SIM-powered AP, see [SIM → Wi-Fi hotspot](SIM_WIFI_HOTSPOT.md).
+It is opt-in and replaces the Wi-Fi client role; it is not enabled by default.
+
+The portal listens on `172.16.42.1:80` and binds its socket to Linux interface
+`usb0` using `SO_BINDTODEVICE`; failure to bind stops the service. Its API
+requires a random same-origin token, strict Host/Origin checks and rejects
+cross-site requests. USB access is the administrative trust boundary. The
+portal must never be added to Cloudflare Tunnel ingress.
+
+Public static content is served separately by Nginx on `127.0.0.1:8080` from
+`/var/www/openstick`. The tunnel routes only the configured public hostname
+to that listener. Tunnel credentials, SSH keys, Wi-Fi profiles and device
+identifiers remain local and must not be committed.
+
+Nginx runs in the foreground under the OpenRC service
+[`openstick-web`](../scripts/openrc/openstick-web). The stock daemon service
+is disabled to avoid two services managing the same listener. On this image,
+NetworkManager can report started before loopback receives `127.0.0.1`;
+stock Nginx then exited with `Address not available`. The foreground service
+retries a failed process after three seconds. The portal and tunnel are also
+supervised. None of these services changes firmware or partition layout.
+
+For maintenance over the local pinned SSH key, the account is `user` at
+`172.16.42.1`. Upload website files using SFTP into `/var/www/openstick`;
+Nginx serves changes directly. SSH password authentication and root login
+are disabled; authentication is restricted to the USB subnet. SSH listens
+without requiring the USB IP to exist at daemon startup, and its default
+runlevel is explicitly enabled. Keep the management private key locally.
+
+Chronyd starts automatically; the NetworkManager Wi-Fi-up dispatcher also
+restarts it to refresh time after reconnection. An initial clock correction
+was needed during first provisioning. A running chronyd process alone is
+not proof of synchronization: verify `chronyc tracking` reports a nonzero
+stratum and `Leap status: Normal` after startup. Tunnel startup can take
+longer while Wi-Fi, DNS and time synchronization become available.
+
+The optional Windows launcher uses key-pinned USB SSH and `sudo -n` against
+the Linux account. It requires the local `pmos_known_hosts` pin and
+`manager_ed25519` key. The browser portal is intended to work without this
+launcher after device installation.
+
+The read-only Android backup Manager retains its existing safety gates.
+The Linux Wi-Fi modules contain no flash, erase, restore or firmware APIs.
+
+The installed USB portal separates SMS, USSD and 3G/4G mode
+selection. The inserted SIM is registered and the modem exposes Messaging
+and USSD interfaces. A secondary PIN2 report is displayed without treating
+it as a primary SIM lock. A MobiFone USSD account notification was received;
+end-to-end SMS and interactive USSD remain unverified;
+see [SMS/USSD readiness and usage](UZ801_SMS_USSD.md). This does not enable
+Internet data over the SIM or expose SMS through the public website.

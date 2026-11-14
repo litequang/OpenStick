@@ -44,7 +44,8 @@ function render(state){
   if(!$("backup-folder").value)$("backup-folder").value=state.default_folder;
   $("mode").options[1].disabled=d?.gpt_secondary==="DEFERRED_UNTIL_FULL_BACKUP";if($("mode").options[1].disabled)$("mode").value="full";
   $("start-backup").disabled=!!active||!d?.backup_allowed||!$("consent").checked||!$("backup-consent").checked;
-  for(const id of ["inspect","verify","edl"] )$(id).disabled=!!active;
+  for(const id of ["inspect","verify","edl","audit"] )$(id).disabled=!!active;
+  renderAudit(state.compatibility,!!active);
   $("cancel").disabled=!active||["inspect","edl"].includes(active?.kind);
   const running=active?.detail||{};$("progress-title").textContent=active?(running.phase||label(active.kind)):"Sẵn sàng";
   $("progress").value=active&&running.total?Math.min(100,100*(running.bytes||0)/running.total):0;
@@ -62,6 +63,27 @@ function render(state){
   $("readiness").replaceChildren();for(const check of state.readiness.checks){const li=document.createElement("li");li.append(text("span",check.name),text("span",label(check.status)));$("readiness").append(li);}
   if(state.edl){const e=state.edl;$("edl-result").replaceChildren();for(const s of ["USB 9008: "+(e.edl_detected?"Đã phát hiện":"Chưa phát hiện"),"Driver: "+label(e.driver_status),"Công cụ EDL: "+label(e.tool.status),"Programmer tương thích: "+label(e.programmer.compatibility),e.programmer.sha256?"SHA-256 programmer: "+e.programmer.sha256:null,e.guidance].filter(Boolean))$("edl-result").append(text("p",s));}
 }
+let lastAuditReport=null;
+function renderAudit(report,busy){
+  $("audit-json").disabled=$("audit-md").disabled=busy||!report;
+  if(lastAuditReport===JSON.stringify(report))return;
+  lastAuditReport=JSON.stringify(report);const box=$("audit-result");box.replaceChildren();
+  if(!report){box.append(text("p","Chưa có kết quả audit của lần kiểm tra hiện tại."));return;}
+  box.append(text("strong",`${report.source} · ${report.status} · Triển khai: NO-GO`));
+  const table=document.createElement("table"),head=document.createElement("thead"),row=document.createElement("tr");
+  for(const title of ["Hạng mục","Trạng thái","Bằng chứng quan sát"])row.append(text("th",title));head.append(row);table.append(head);
+  const body=document.createElement("tbody");for(const item of report.observations){const tr=document.createElement("tr");for(const value of [item.key,item.status,item.facts.join("; ")])tr.append(text("td",value));body.append(tr);}table.append(body);
+  const scroll=text("div","","table-scroll");scroll.append(table);box.append(scroll);
+  for(const limit of report.limits)box.append(text("p",limit));
+  if(report.issues.length)box.append(text("p",`${report.issues.length} phép đọc chưa hoàn tất; xem chi tiết trong JSON/Markdown. Không suy ra phần cứng không hỗ trợ.`));
+}
+async function exportAudit(format){
+  try{const response=await fetch(`/api/compatibility/report?format=${format}`,{headers:{"X-UZ801-Token":token}});if(!response.ok){const value=await response.json();throw new Error(value.message||value.code);}
+    const url=URL.createObjectURL(await response.blob()),link=document.createElement("a");link.href=url;link.download=`openstick-compatibility.${format}`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){error(e.message);}
+}
+$("audit").addEventListener("click",()=>{if(!$("audit-consent").checked){error("Cần cho phép audit metadata chỉ đọc trước.");return;}action("/api/compatibility",{consent:true});});
+$("audit-json").addEventListener("click",()=>exportAudit("json"));$("audit-md").addEventListener("click",()=>exportAudit("md"));
 async function refresh(){if(polling)return;polling=true;try{render(await api("/api/state"));}catch(e){error(e.message);}finally{polling=false;}}
 async function pick(id,kind="directory"){try{const result=await api("/api/pick",{kind});if(result.path)$(id).value=result.path;}catch(e){error(e.message);}}
 $("inspect").addEventListener("click",()=>{if(consent()){lastAutoCheck=Date.now();action("/api/inspect",{consent:true});}});

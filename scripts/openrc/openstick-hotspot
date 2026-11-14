@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+name="OpenStick hotspot trial recovery"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.hotspot"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
+output_log=/var/log/openstick-hotspot.log
+error_log=/var/log/openstick-hotspot.log
+depend() {
+    need networkmanager nftables
+}

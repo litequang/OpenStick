@@ -4,17 +4,18 @@ import threading
 import time
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from .adb import ADB
 from .backup import BackupManager, verify_backup
+from .compatibility import CompatibilityAuditor, report_markdown, validate_report
 from .edl import EDLInspector, readiness
 from .errors import SafetyError, message
 from .storage import Jobs, atomic_json, data_directory, local_directory
 
 
-def create_app(*, directory=None, adb=None, edl=None, port=8765, token=None, demo=False):
+def create_app(*, directory=None, adb=None, edl=None, auditor=None, port=8765, token=None, demo=False):
     app = Flask(__name__)
     app.config.update(MAX_CONTENT_LENGTH=8192, JSON_AS_ASCII=False)
     token = token or secrets.token_urlsafe(32)
@@ -24,7 +25,8 @@ def create_app(*, directory=None, adb=None, edl=None, port=8765, token=None, dem
     adb = adb or ADB()
     edl = edl or EDLInspector()
     backup = BackupManager(adb)
-    state = {"device": None, "edl": None, "last_checked": None, "connection_error": None}
+    auditor = auditor or CompatibilityAuditor(adb, demo=demo)
+    state = {"device": None, "edl": None, "compatibility": None, "last_checked": None, "connection_error": None}
     picker_lock = threading.Lock()
     app.extensions["uz801"] = {"jobs": jobs, "token": token, "state": state, "origin": origin}
 
@@ -83,6 +85,7 @@ def create_app(*, directory=None, adb=None, edl=None, port=8765, token=None, dem
     def status():
         snapshot = state["device"]
         return jsonify(device=snapshot.public() if snapshot else None, edl=state["edl"],
+                       compatibility=state["compatibility"],
                        last_checked=state["last_checked"], connection_error=state["connection_error"],
                        jobs=jobs.history(), readiness=readiness(), demo=demo,
                        adb_found=bool(adb.executable), default_folder=str(Path.home()))
@@ -120,6 +123,34 @@ def create_app(*, directory=None, adb=None, edl=None, port=8765, token=None, dem
         if mode not in ("full", "critical"):
             raise SafetyError("INPUT_INVALID")
         return jsonify(job_id=jobs.start("backup", lambda cancel, update: backup.create(snapshot, folder, mode, cancel, update))), 202
+
+    @app.post("/api/compatibility")
+    def compatibility():
+        value = body()
+        consent(value)
+        if set(value) != {"consent"}:
+            raise SafetyError("INPUT_INVALID")
+        def work(cancel, update):
+            state["compatibility"] = None
+            report = auditor.inspect(cancel)
+            validate_report(report)
+            state["compatibility"] = report
+            return {"message": "Audit chỉ đọc đã kết thúc; xem bằng chứng và phần chưa xác minh.",
+                    "audit_status": report["status"]}
+        return jsonify(job_id=jobs.start("compatibility", work)), 202
+
+    @app.get("/api/compatibility/report")
+    def compatibility_report():
+        report = state["compatibility"]
+        if report is None:
+            raise SafetyError("AUDIT_REQUIRED")
+        validate_report(report)
+        format_ = request.args.get("format", "json")
+        if format_ not in ("json", "md"):
+            raise SafetyError("INPUT_INVALID")
+        response = jsonify(report) if format_ == "json" else Response(report_markdown(report), content_type="text/markdown; charset=utf-8")
+        response.headers["Content-Disposition"] = f'attachment; filename="openstick-compatibility.{format_}"'
+        return response
 
     @app.post("/api/verify")
     def verify():
