@@ -201,9 +201,9 @@ class LinuxWifi:
 
 
 HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenStick — Wi-Fi & Web</title><style>
+<title>OpenStick — Kết nối Wi-Fi</title><style>
 *{box-sizing:border-box}body{margin:0;font:16px system-ui;background:#f2f6fa;color:#173047}main{max-width:740px;margin:5vh auto;padding:24px}section{background:white;padding:24px;border-radius:18px;box-shadow:0 8px 40px #17304710;margin:20px 0}h1{font-size:30px;margin-bottom:8px}p{line-height:1.6}.sub{color:#52677b}label{display:block;margin:18px 0 8px}input,select,button{font:inherit;padding:12px;border-radius:9px;border:1px solid #c9d5df}input,select{width:100%}button{cursor:pointer;background:#006d77;color:white;border:0;margin-top:16px}button.secondary{background:#e6eff4;color:#173047}button:disabled{opacity:.5;cursor:wait}#status{padding:14px;background:#eaf3f6;border-radius:9px;white-space:pre-wrap}.row{display:flex;gap:12px;flex-wrap:wrap}small{color:#52677b}a{color:#006d77}</style>
-<main><h1>Wi-Fi & Web</h1><p class="sub">Chọn Wi-Fi cấp Internet cho website và Cloudflare Tunnel. Cấu hình SIM nằm ở màn Mạng SIM.</p>
+<main><h1>Wi-Fi nhận Internet</h1><p class="sub">Kết nối Wi-Fi cho website và các dịch vụ. Quản lý SIM, điểm phát và nguồn Internet ở trung tâm Kết nối.</p>
 <section><h2>Wi-Fi đang sử dụng</h2><div id="status" role="status">Đang kiểm tra kết nối USB…</div><button id="check" class="secondary">Cập nhật trạng thái</button><p><small>Tự cập nhật mỗi 15 giây khi mở trang. Tốc độ liên kết TX/RX do driver báo, không phải tốc độ tải Internet.</small></p></section>
 <section><h2>Tốc độ tải Internet qua Wi-Fi</h2><div id="speed-result" role="status">Chưa đo. Phép đo tải 2 MiB từ Cloudflare qua Wi-Fi, không thử tải lên.</div><button id="speed" disabled>Đo tốc độ tải Internet</button><p><small>Kết quả là mẫu tải ngắn tới một máy chủ; không phải cam kết băng thông. Chỉ đo khi bạn bấm nút.</small></p></section>
 <section><details id="wifi-settings" open><summary id="wifi-summary" style="cursor:pointer;font-weight:600">Chọn Wi-Fi để kết nối</summary><button id="scan" class="secondary">Tìm mạng Wi-Fi</button>
@@ -211,7 +211,7 @@ HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewp
 <form id="wifi"><label for="ssid">Tên Wi-Fi (SSID)</label><input id="ssid" name="ssid" maxlength="32" autocomplete="off" required>
 <label for="password">Mật khẩu Wi-Fi</label><input id="password" name="password" type="password" minlength="8" maxlength="63" autocomplete="new-password" required><button id="connect" type="submit">Kết nối Wi-Fi</button></form>
 <p><small>Mật khẩu không hiển thị trong báo cáo. Thiết bị lưu khóa Wi-Fi để tự kết nối sau khi bật nguồn. Nếu đổi mạng không thành công, vẫn có thể cấu hình lại qua USB.</small></p></details><p id="operation-status" role="status"></p></section>
-<section><strong>Website công khai</strong><p><a href="https://__OPENSTICK_HOSTNAME__" target="_blank" rel="noopener">__OPENSTICK_HOSTNAME__</a></p><small>Quản trị qua USB hoặc Wi-Fi có đăng nhập nếu đã bật. Sau khi lưu Wi-Fi, có thể cắm nguồn USB để thiết bị tự kết nối và chạy website.</small></section></main>
+</main>
 <script>
 const token=__OPENSTICK_BOOTSTRAP_TOKEN__||new URLSearchParams(location.hash.slice(1)).get('token')||sessionStorage.getItem('openstick-hosting-token')||'';if(token)sessionStorage.setItem('openstick-hosting-token',token);history.replaceState(null,'',location.pathname);
 const status=document.getElementById('status'),networks=document.getElementById('networks'),notice=document.getElementById('operation-status');let busy=false,wifiConnected=false,initialized=false;
