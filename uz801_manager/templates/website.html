@@ -1,18 +1,18 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Website</title></head><body><main>
 {% include 'portal_chrome.html' %}
-<div class="page-title"><h1>Website</h1><a href="/">Wi-Fi &amp; Web</a></div>
-<p>Web tĩnh HTML/CSS/JavaScript. Thay đổi có hiệu lực ngay sau khi lưu.</p>
+<div class="page-title"><h1>Quản lý website</h1><a href="/manage">← Quản lý</a></div>
+<p class="ux-page-intro">Chọn một file để xem hoặc chỉnh sửa. <strong>Chỉ bấm Lưu và xuất bản mới cập nhật website công khai.</strong></p>
 <p><a href="https://{{ hostname }}" target="_blank" rel="noopener noreferrer">Mở website công khai ↗</a></p>
 <p id="site-status" role="status" aria-live="polite">Đang đọc danh sách file…</p>
 <div class="site-workspace">
-<section><h2>File website</h2><button id="site-refresh" class="secondary">Làm mới</button><div id="site-files" class="site-files"></div><p id="site-usage" class="metric-note"></p></section>
-<section><h2 id="site-heading">Tạo hoặc sửa file</h2>
+<section><h2><span class="ux-step">1</span> Chọn file website</h2><button id="site-refresh" class="secondary">Làm mới</button><div id="site-files" class="site-files"></div><p id="site-usage" class="metric-note"></p></section>
+<section><h2 id="site-heading"><span class="ux-step">2</span> Tạo hoặc sửa file</h2>
 <label for="site-path">Đường dẫn, ví dụ index.html hoặc assets/style.css</label><input id="site-path" maxlength="240" placeholder="index.html" autocomplete="off">
 <label for="site-text">Nội dung UTF-8</label><textarea id="site-text" class="site-editor" spellcheck="false" rows="18" placeholder="<!doctype html>…"></textarea>
-<div class="row"><button id="site-save">Lưu và xuất bản</button><button id="site-new" class="secondary">File mới</button><button id="site-delete" class="secondary" disabled>Xóa file đã chọn</button></div>
+<div class="row ux-site-actions"><button id="site-save">Lưu và xuất bản</button><button id="site-new" class="secondary">Tạo file mới</button><button id="site-delete" class="secondary ux-danger" disabled>Xóa file đã chọn</button></div>
 <p class="metric-note">Thư mục được tạo theo đường dẫn. Tối đa 1 MiB/file, 500 file và 64 MiB/website. Chỉ hỗ trợ file tĩnh; không chạy PHP, Node.js hay WordPress.</p>
-<label for="site-upload">Tải file ảnh, font hoặc file tĩnh lên</label><input id="site-upload" type="file"><button id="site-upload-send" class="secondary">Tải lên đường dẫn bên trên</button>
-<p class="metric-note">Chọn file sẽ điền tên vào đường dẫn. Có thể sửa đường dẫn trước khi tải lên. File HTML được hiển thị bằng văn bản trong trình sửa, không chạy trong trang quản trị.</p>
+<details class="ux-advanced"><summary>Tải file lên website (tùy chọn)</summary><p class="ux-form-note">Chọn file ảnh, font hoặc tài nguyên tĩnh, xác nhận đường dẫn trước khi tải lên. File đang có có thể bị thay thế sau khi xác nhận.</p><label for="site-upload">Tải file ảnh, font hoặc file tĩnh lên</label><input id="site-upload" type="file"><button id="site-upload-send" class="secondary">Tải lên đường dẫn bên trên</button>
+<p class="metric-note">Chọn file sẽ điền tên vào đường dẫn. Có thể sửa đường dẫn trước khi tải lên. File HTML được hiển thị bằng văn bản trong trình sửa, không chạy trong trang quản trị.</p></details>
 </section></div>
 <script>
 const siteToken={{ token|tojson }},byId=id=>document.getElementById(id);
