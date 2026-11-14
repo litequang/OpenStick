@@ -340,6 +340,12 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         @app.get('/overview')
         def overview():
             return render_template('overview.html', token=token, page='overview', hostname=hostname)
+        @app.get('/manage')
+        def manage():
+            features = {'network': network_backend is not None, 'setup': setup_backend is not None,
+                        'hotspot': hotspot_backend is not None, 'website': site_backend is not None,
+                        'lan': lan_settings is not None and lan_auth is None}
+            return render_template('manage.html', token=token, page='manage', features=features)
         from .modem import register_modem_routes
         register_modem_routes(app, modem_backend, token)
     if usb_portal and lan_settings is not None and lan_auth is None:

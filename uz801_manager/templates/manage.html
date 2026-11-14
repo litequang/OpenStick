@@ -1,0 +1,21 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Quản lý</title></head><body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><h1>Quản lý</h1></div>
+<p class="manage-intro">Các chức năng được sắp theo công việc. Chọn mục cần thay đổi để mở màn cài đặt tương ứng.</p>
+<section class="manage-group" aria-labelledby="manage-connectivity"><h2 id="manage-connectivity">Kết nối &amp; Internet</h2><div class="manage-grid">
+<a class="manage-link" href="/"><strong>Wi-Fi nhận Internet</strong><span>Xem kết nối, quét và đổi mạng Wi-Fi cho website.</span></a>
+{% if features.network %}<a class="manage-link" href="/internet"><strong>Nguồn Internet &amp; Wi-Fi đã lưu</strong><span>Chọn chính sách ưu tiên, dự phòng và quản lý mạng đã lưu.</span></a>{% endif %}
+{% if features.setup %}<a class="manage-link" href="/setup"><strong>Wi-Fi cài đặt</strong><span>Thiết lập qua điện thoại khi USB không kết nối được Wi-Fi.</span></a>{% endif %}
+{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM</strong><span>Cấu hình APN và điểm phát; dữ liệu SIM cần xác nhận riêng.</span></a>{% endif %}
+</div></section>
+<section class="manage-group" aria-labelledby="manage-cellular"><h2 id="manage-cellular">SIM &amp; modem</h2><div class="manage-grid">
+<a class="manage-link" href="/modem/network"><strong>Chế độ mạng SIM</strong><span>Trạng thái đăng ký mạng, lựa chọn 3G/4G cho SMS và USSD.</span></a>
+<a class="manage-link" href="/modem/sms"><strong>Tin nhắn SMS</strong><span>Danh sách hội thoại, soạn và quản lý tin nhắn.</span></a>
+<a class="manage-link" href="/modem/ussd"><strong>USSD</strong><span>Gửi mã và xem kết quả từng phiên.</span></a>
+</div></section>
+<section class="manage-group" aria-labelledby="manage-services"><h2 id="manage-services">Website &amp; hệ thống</h2><div class="manage-grid">
+{% if features.website %}<a class="manage-link" href="/website"><strong>Nội dung website</strong><span>Quản lý các tệp HTML, CSS, JS và tài nguyên web.</span></a>{% endif %}
+<a class="manage-link" href="/overview"><strong>Thiết bị &amp; dịch vụ</strong><span>RAM, lưu trữ, nhiệt độ và trạng thái dịch vụ.</span></a>
+{% if features.lan %}<a class="manage-link" href="/#lan-status"><strong>Quản trị LAN</strong><span>Truy cập giao diện quản lý qua Wi-Fi nội bộ.</span></a>{% endif %}
+</div></section>
+</main></body></html>

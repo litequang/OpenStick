@@ -1,5 +1,17 @@
 # Handoff — 2026-11-14, home machine
 
+## Portal management navigation (source update)
+
+The portal now includes `/manage`, grouping existing controls into connectivity,
+SIM/modem, and website/system sections. The bottom dock links to this hub; its
+previous direct network item remains accessible at `/modem/network`. Feature
+links are conditional on registered backends. Existing API handlers, network
+policy, credentials, and Wi-Fi recovery behavior were not changed. The UI
+change is source-only until deployed and visually checked on the actual USB.
+Validation after this change: full suite 379 passed / 1 Windows symlink skip
+(including the navigation and route access assertions); focused navigation test
+1 passed, self-test assets/API passed. Hardware was not tested for this UI change.
+
 Branch `codex/uz801-v32-postmarketos`. No merge,
 release, flash or partition changes. Earlier company shutdown notes are
 historical. USB is currently powered and accessible.

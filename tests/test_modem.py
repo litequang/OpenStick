@@ -107,14 +107,19 @@ def test_last_ussd_reply_survives_status_refresh_without_retaining_code():
 
 def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
     app, client, _ = setup()
-    for route in ['/overview', '/', '/modem/sms', '/modem/ussd', '/modem/network']:
+    for route in ['/overview', '/manage', '/', '/modem/sms', '/modem/ussd', '/modem/network']:
         response = client.get(route, headers={'Host': '172.16.42.1'})
         assert response.status_code == 200 and 'id="portal-nav"' in response.text
         assert 'id="chip-sim"' in response.text and 'id="chip-modem"' in response.text
         assert 'id="chip-wifi"' in response.text and 'id="chip-signal"' not in response.text
         assert 'id="signal-status"' in response.text
         assert response.headers['Cache-Control'] == 'no-store'
+    management = client.get('/manage', headers={'Host': '172.16.42.1'}).text
+    assert 'aria-current="page"' in management
+    assert all(f'href="{path}"' in management for path in ['/', '/modem/network', '/modem/sms', '/modem/ussd'])
+    assert 'href="/internet"' not in management  # backend is absent in this fixture
     assert client.get('/overview', headers={'Host': 'evil.invalid'}).status_code == 403
+    assert client.get('/manage', headers={'Host': 'evil.invalid'}).status_code == 403
     node = shutil.which('node')
     if not node:pytest.skip('Node.js is needed for the synthetic UI fixture')
     page = tmp_path / 'overview.html'
