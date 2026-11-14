@@ -57,6 +57,7 @@ jobs:
           extra_packages = nginx,networkmanager,openssh,python3,curl
           extra_space = 256
           is_default_channel = False
+          build_pkgs_on_install = False
 
           [providers]
 
@@ -65,7 +66,7 @@ jobs:
           # init asks text questions even with --assume-yes. Empty answers
           # accept the configured defaults using the normal interactive path.
           python3 -c 'print("\n" * 100)' > "$RUNNER_TEMP/init-defaults.txt"
-          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y --details-to-stdout init < "$RUNNER_TEMP/init-defaults.txt"
+          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" --details-to-stdout init < "$RUNNER_TEMP/init-defaults.txt"
           git -C "$RUNNER_TEMP/pmaports" checkout --detach "$PMAPORTS_REV"
           python3 - "$RUNNER_TEMP/pmbootstrap.cfg" <<'PY'
           import configparser, sys
