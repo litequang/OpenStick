@@ -30,3 +30,82 @@ button[hidden]{display:none!important}.notice,#status{background:#151b25!importa
 @media(prefers-reduced-motion:reduce){.app-bottom-nav,.metric-fill{transition:none}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.app-bottom-nav,.portal-header{background:#1d2029}}
 @media(prefers-reduced-transparency:reduce){.app-bottom-nav,.portal-header{background:#1d2029;backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* Audit pass: readable, task-first controls across all Linux portal screens. */
+.portal-skip-link{position:fixed;z-index:110;top:6px;left:12px;transform:translateY(-160%);padding:10px 14px;background:#dbeafe;color:#0a2140!important;border-radius:10px;font-weight:700;text-decoration:none}
+.portal-skip-link:focus-visible{transform:translateY(0)}
+#portal-content{scroll-margin-top:100px}
+.portal-breadcrumb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0;color:#bac7d8;font-size:12px}
+.portal-breadcrumb a{font-weight:650;text-decoration:none}
+.app-bottom-nav-item[data-section-active=true]{color:#83b7ff!important;background:#60a5fa14}
+.app-bottom-nav-item>span:last-child{min-width:0;max-width:100%;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ux-page-lead{margin-top:22px}
+.ux-eyebrow{margin:12px 0 2px;color:#9cbbda;font-size:11px;letter-spacing:.09em;font-weight:750}
+.ux-muted-note{font-size:13px;color:#aab9cb;line-height:1.5}
+.ux-compact-link{padding:16px 20px!important}
+.ux-compact-link h2{margin:0 0 4px}
+.ux-compact-link p{margin:0 0 12px}
+.ux-link-cta{display:inline-flex;align-items:center;padding:10px 14px;min-height:44px;border:1px solid #527aa8;border-radius:10px;background:#233651;font-weight:700;text-decoration:none}
+.ux-advanced{margin:12px 0;border:1px solid #354253;border-radius:14px;background:#1b222d;padding:0 14px}
+.ux-advanced>summary{cursor:pointer;display:flex;align-items:center;min-height:48px;padding:11px 2px;font-size:14px;font-weight:650;color:#c8d9ee;list-style-position:inside}
+.ux-advanced[open]>summary{border-bottom:1px solid #334154;margin-bottom:12px}
+.ux-advanced>section{border:0!important;margin:8px 0!important;background:transparent!important;padding:8px!important}
+.ux-advanced>p{margin:8px 0 14px}
+.ux-callout{padding:13px 15px;border:1px solid #4a5f79;border-radius:11px;background:#202d3d;font-size:13px;line-height:1.55}
+.ux-callout strong{color:#e4efff}
+.ux-warning{border-color:#7b6437;background:#302a20;color:#f4d7a5}
+.ux-danger{background:#4b2934!important;color:#ffced6!important;border:1px solid #955665!important}
+.ux-danger:disabled{opacity:.45!important}
+.ux-danger-zone{border-color:#654953!important;background:#29212a!important}
+.ux-action-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ux-action-row button{margin:4px 0}
+.ux-form-note{font-size:12px;color:#afbed1;line-height:1.5;margin:6px 0 14px}
+.ux-group-title{font-size:13px;font-weight:700;color:#b1cee9;margin-top:18px}
+.ux-security-group{border-color:#4c5b72!important}
+.ux-security-group #lan-settings{max-width:620px}
+.ux-security-group #lan-settings input{width:100%;max-width:620px;padding:12px;border:1px solid #3b4454;border-radius:10px;font:inherit}
+.ux-security-group #lan-settings label{display:block;margin:12px 0 6px}
+.ux-security-group #lan-settings p{display:flex;flex-wrap:wrap;gap:9px}
+.ux-security-group #lan-settings button{margin:0}
+.ux-security-group #lan-disable{background:#4b2934!important;color:#ffced6!important;border:1px solid #955665}
+.ux-security-group .ux-advanced>section{padding:8px 0!important}
+.ux-form-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.ux-form-controls>*{min-width:0}
+.ux-form-controls button{margin-top:0}
+.ux-step{display:inline-grid;place-items:center;width:24px;height:24px;margin-right:6px;border-radius:50%;background:#294465;color:#dceeff;font-weight:750;font-size:12px}
+.ux-page-intro{margin:10px 0 14px;font-size:13px;color:#bbc8d9}
+.ux-subsection-heading{margin:18px 0 8px;font-size:15px}
+.site-workspace .ux-advanced{margin:16px 0}
+.site-workspace .ux-advanced>summary{color:#d3e3f8}
+.site-workspace .site-editor{min-height:220px;max-width:100%}
+.site-workspace input[type=file]{width:100%;max-width:100%}
+.ux-site-actions{gap:9px!important}
+.ux-site-actions button{margin:0}
+.ux-site-actions #site-delete{margin-left:auto}
+.sms-options{border:1px solid #354253;border-radius:12px;padding:0 12px;background:#1b222d}
+.sms-options summary{min-height:44px;font-weight:650}
+.ux-read-only{font-size:12px;color:#adbfd2}
+button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #9ecbff!important;outline-offset:3px}
+@media(max-width:620px){
+ main{padding-left:14px!important;padding-right:14px!important}
+ .portal-header{margin-left:-14px;margin-right:-14px;padding-left:14px;padding-right:14px}
+ section{padding:15px!important;border-radius:14px!important}
+ .page-title{flex-wrap:wrap;align-items:flex-start;gap:8px}
+ .page-title h1{margin:5px 0}
+ .manage-link{padding:13px;min-height:70px}
+ .manage-group{padding:15px!important}
+ .ux-compact-link{padding:15px!important}
+ .ux-action-row button{flex:1 1 auto}
+ .ux-site-actions #site-delete{margin-left:0}
+ .metric-grid{gap:9px}
+ .metric-card{padding:12px!important;min-height:120px}
+ .metric-value{font-size:23px}
+ .status-chip>summary{padding:5px 2px}
+ .ux-advanced{padding:0 11px}
+}
+@media(max-width:359px){
+ .status-chip>summary{min-width:31px;font-size:8px}
+ .app-bottom-nav{padding-inline:3px}
+ .app-bottom-nav-item{font-size:9px}
+ .portal-brand{font-size:15px}
+}
