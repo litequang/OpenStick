@@ -1,11 +1,26 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**Cập nhật LED/SIM:** USB đã cài source đến `3bd728a`. Đèn vỏ đỏ/xanh lá/xanh
+dương có mục `/settings/leds`, đã thử driver bật/nháy rồi khôi phục; boot replay
+đã bật nhưng chưa thử reboot riêng. APN hiện rõ tại `/hotspot#sim-apn`, có nút
+lưu riêng không bật data hay đổi mật khẩu Wi-Fi. APN tự nhận đã truy cập HTTPS
+204 qua SIM trong lượt thử thật. Lỗi probe cũ đọc sai DNS dạng `A | B` đã sửa;
+probe mới buộc cả DNS/HTTPS qua SIM cũng đạt 204. Sau bản sửa, chủ đã xác nhận
+điện thoại thấy Wi-Fi USB và vào Internet được; đọc lại USB cũng thấy AP/data
+active, Start thành công và probe SIM đạt. Nút giữ chỉ cho bấm khi AP/cellular
+đã sẵn sàng. Chưa thử autostart/reboot sau Keep; agent không bấm giữ thay chủ.
+Xem `docs/LED_AND_SIM_HOTSPOT_2026_11_15.md` và phần đầu handoff. Checkpoint sau
+deploy: không pending, data/AP tắt, 5 profile Wi-Fi lưu/0 active, setup/policy
+đang tắt do chủ chọn. Đọc sau đó: AP/data bật, trial còn 222 giây, enabled=false.
+Chủ đang thử nên phải đọc lại trạng thái mới, không restart web giữa trial. Chưa sửa
+lỗi router nhà cũ, chưa chứng nhận Tunnel public (403 ở lần kiểm tra trước).
+
 Đây là trạng thái phát triển trên USB thật, không chỉ là bản thiết kế giao
 diện. Đọc tài liệu này trước khi sửa UI hoặc triển khai lại. Nhánh đang dùng:
 `codex/uz801-v32-postmarketos`. Bản Windows v0.1.1 trong README là ứng dụng
 backup cũ; panel Linux trên USB là luồng riêng.
 
-**Cập nhật mới nhất:** USB đã cài `ea9fcc8`, gồm giao diện `0dda4fc`, địa chỉ
+**Bản trước cập nhật LED/SIM:** USB đã cài `ea9fcc8`, gồm giao diện `0dda4fc`, địa chỉ
 chung `http://openstick.local:8765` qua USB/Wi-Fi/hotspot, cùng icon nhà mạng
 và cột sóng. Xem `docs/USB_UI_DEPLOYMENT_2026_11_14.md` và phần đầu handoff.
 Trạng thái quan sát cuối là AP cài đặt; không có pending setup, vẫn còn 4

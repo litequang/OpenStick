@@ -1,6 +1,42 @@
 # Handoff — 2026-11-14, home machine
 
-## Latest deployment: common local URL, usability UI and signal icons
+## Latest update: LED controls, visible APN and corrected SIM probe
+
+Application source through `3bd728a` is installed on the actual USB, including
+LED controls (`ca346d7`) and APN/diagnostics (`84b5426`). See
+[the detailed LED/SIM report](LED_AND_SIM_HOTSPOT_2026_11_15.md) for exact
+backups, real driver/probe evidence, rollback and unverified items.
+
+Use `/settings/leds` for the three binary case LEDs; boot replay is enabled.
+A real timer/brightness probe was restored to the original LED state.
+`/hotspot#sim-apn` now exposes automatic/manual APN and a separate save action
+without changing Wi-Fi keys or enabling SIM data. SIM auto-configuration was
+already enabled, with the provider database installed.
+
+An actual trial connected cellular data but not AP. Bound HTTPS returned 204;
+the old Internet probe rejected DNS arrays formatted `A | B`. Correct parsing
+with BOTH HTTPS and DNS bound to the SIM interface returned 204. The parser
+is fixed; this establishes SIM Internet for that observation, not phone
+sharing. Last action errors now survive polling, and Keep is disabled until
+AP/cellular/trial readiness. Do not confirm phone connectivity for the owner.
+
+Before the final DNS update the pending trial expired, independent recovery
+stopped cellular, and no pending job remained. The update then restarted only
+the two web services and verified HTTP/status and protected-file equality.
+Five station profiles were saved, zero active; setup/policy remained disabled.
+The owner is retrying; inspect fresh state rather than assuming this persists.
+Full suite before DNS follow-up: 422 passed / one Windows skip; latest focused
+hotspot tests: 45 passed. Final full suite for `3bd728a`: **424 passed, one
+Windows symlink skip**, 89.23 seconds; self-test, JS syntax and diff check pass.
+
+The owner then explicitly confirmed the phone sees USB Wi-Fi and accesses
+Internet after the DNS fix. A fresh device read agreed: cellular/AP active,
+Start successful, SIM-bound probe true, 222 seconds left in a pending trial,
+enabled false. Phone sharing is accepted for this trial; Keep/autostart/reboot
+remain unverified. The agent did not press Keep. Do not restart web services
+while a trial is in flight; inspect pending state and network lock first.
+
+## Previous deployment: common local URL, usability UI and signal icons
 
 The actual USB now runs `ea9fcc8`, including the requested `0dda4fc` usability
 integration and `c3ca851` local naming. Use **http://openstick.local:8765** on
