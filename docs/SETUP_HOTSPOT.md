@@ -12,7 +12,9 @@ The installed driver does not advertise simultaneous station/AP operation.
 3. Save the generated SSID/password and local URL on the phone. Wi-Fi and
    manager passwords are separate; there is no public default password.
 
-Recovery is enabled on this particular unit. Its card remains private.
+Recovery can be enabled on this unit; inspect its current owner setting.
+At the latest SIM hotspot checkpoint setup recovery is disabled. Its card
+remains private.
 
 ## Use with only power
 
@@ -53,8 +55,13 @@ to the default runlevel; its worker manages DHCP. Dependencies: NetworkManager,
 nftables, dnsmasq, existing authenticated LAN portal.
 
 Setup uses manual `192.168.8.1/24`, WPA2/CCMP, no autoconnect. DHCP binds wlan0,
-advertises no router/DNS and runs no DNS resolver. A separate nftables table
-drops forwarding through wlan0. USB management stays available.
+advertises no router and supplies 192.168.8.1 as local DNS. Since `5660c77`,
+that DNS resolves `openstick.local` from wlan0's IPv4 address; it has no
+upstream resolver and does not read `/etc/hosts`. This lets clients without
+working mDNS use the same local URL. The new service arguments passed real
+dnsmasq syntax validation; phone testing of this DNS behavior in setup mode
+is still open. A separate nftables table drops forwarding through wlan0.
+USB management stays available.
 
 The tested wcn36xx firmware rejected the optional PMF AES-CMAC management key,
 preventing AP initialization. Generated AP profiles set `pmf=1` (disabled)

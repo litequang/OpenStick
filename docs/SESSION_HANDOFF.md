@@ -1,5 +1,35 @@
 # Handoff — 2026-11-14, home machine
 
+## Latest follow-up: Android hotspot hostname accepted
+
+The owner reported IP administration worked but Android returned
+`DNS_PROBE_FINISHED_NXDOMAIN` for `openstick.local`. Avahi was healthy and
+answered on wlan0 with the AP address only, but ordinary hotspot DNS returned
+NXDOMAIN. `5660c77` adds the exact name to NetworkManager shared dnsmasq via
+`/etc/NetworkManager/dnsmasq-shared.d/54_openstick_local.conf`, using wlan0's
+IPv4 address and a local-only zone. The setup DHCP service now also provides
+local-only DNS and advertises it to clients; it remains inactive and disabled
+under its existing worker policy.
+
+Real validation: temporary staged DNS A/AAAA/HTTPS-type responses, combined
+dnsmasq syntax, exact setup service arguments, live hotspot DNS A=192.168.8.1
+and empty successful AAAA/HTTPS-type responses, named HTTP through that DNS
+200, SIM-bound Internet still passing, PC USB name resolution and HTTP 200.
+The owner then reconnected Android and explicitly confirmed the named URL
+works. No new Python/JS change or full-suite rerun was needed for these two
+configuration files. The prior application full suite remains 424 passed /
+one Windows skip.
+
+Backup:
+`/var/lib/openstick/deploy-backups/home-20261114/before-hotspot-local-dns-1794676748.tar.gz`.
+Only the owned Wi-Fi AP was down/up once under the network lock/checkpoint;
+no NetworkManager restart, reboot, WWAN reconnection or credential change.
+Protected profile, site, SSH/Tunnel and configuration files compared unchanged.
+Latest live status: SIM/AP active, enabled true, no pending trial. The owner
+has saved the hotspot mode; reboot/autostart acceptance remains untested.
+Setup-mode phone DNS acceptance remains separate and untested; setup was not
+activated just to test it. See [local naming](LOCAL_MANAGEMENT_ADDRESS.md).
+
 ## Latest update: LED controls, visible APN and corrected SIM probe
 
 Application source through `3bd728a` is installed on the actual USB, including

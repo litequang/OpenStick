@@ -1,10 +1,26 @@
 # LED settings and SIM hotspot diagnostics on the actual USB
 
+## Follow-up: Android named administration accepted
+
+After phone Internet worked, Android could open AP administration by IP but
+reported `DNS_PROBE_FINISHED_NXDOMAIN` for the shared hostname. A real mDNS
+probe returned the correct WLAN address, but ordinary hotspot DNS returned
+NXDOMAIN. `5660c77` supplies `openstick.local` through the shared hotspot's
+DNS as well, using only wlan0's IPv4 address. Its exact-name local zone keeps
+AAAA and HTTPS-type queries local with empty successful answers. The owner's
+Android then opened the named URL after reconnecting Wi-Fi. PC USB named
+access remained HTTP 200. The same change prepares local-only DNS in the
+setup DHCP service; that mode was syntax-checked but not activated or tested
+with the phone. See the latest handoff and local management document for the
+exact backup and real checks. Latest observed SIM/AP status is enabled,
+active, and no pending trial; the owner has saved Keep. Reboot remains untested.
+
 ## Installed source and access
 
 Branch: `codex/uz801-v32-postmarketos`. The application now includes
 `ca346d7` (LED settings), `84b5426` (visible APN settings and persistent errors),
-and `3bd728a` (NetworkManager DNS array parsing and trial confirmation gating).
+and `3bd728a` (NetworkManager DNS array parsing and trial confirmation gating),
+plus the external service configuration in `5660c77` described above.
 The common management address remains `http://openstick.local:8765`.
 
 - LED controls: `/settings/leds`, linked from `/manage`.

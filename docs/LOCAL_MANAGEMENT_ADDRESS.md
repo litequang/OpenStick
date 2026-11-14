@@ -2,7 +2,8 @@
 
 Use **http://openstick.local:8765** on a PC connected by USB, a phone or PC
 on the same Wi-Fi as the stick, or a phone connected to its setup/SIM AP.
-This is a local mDNS name, not a public Tunnel hostname. Wi-Fi still requires
+This is a local name supplied by mDNS and, on the stick's hotspots, local DNS.
+It is not a public Tunnel hostname. Wi-Fi still requires
 the existing LAN login. The physical USB listener retains its USB-only trust
 boundary and its original http://172.16.42.1 URL.
 
@@ -32,10 +33,26 @@ Host used for that request, even when both names are allowed.
    on the physical link, and HTTP through that name. Check LAN login and
    rejected cross-origin requests. Keep a timestamped backup and rollback
    manifest for all files and any new service/firewall configuration.
+7. For Android clients using ordinary DNS, install
+   `scripts/dnsmasq-shared.d/54_openstick_local.conf` as
+   `/etc/NetworkManager/dnsmasq-shared.d/54_openstick_local.conf`. Syntax-check
+   the combined shared configuration with dnsmasq. NetworkManager reads this
+   when its shared hotspot starts; SIGHUP does not reload dnsmasq config.
+   When no transition/trial is pending, reactivate only the owned AP profile
+   to load it, keeping USB recovery and the cellular connection intact.
+   Do not restart NetworkManager. Keep a configuration backup and checkpoint.
+8. Install the matching `scripts/openrc/openstick-setup-dhcp` as well. Its
+   local-only DNS advertises itself via DHCP and resolves the same name from
+   `wlan0`'s IPv4 address, without an upstream resolver or a default gateway.
+   Leave the setup service under the setup worker's control; do not enable
+   it at boot or start it alongside the SIM AP's DHCP server.
 
-No reconnection, radio change, SIM data, SMS/USSD or device reboot is needed.
-The same Avahi interface allowlist covers station and hotspot mode; no
-simultaneous station/AP support is required.
+Avahi alone needs no reconnection or radio change. Adding the hotspot DNS
+fallback requires one AP reactivation and may require clients to reconnect
+to clear negative DNS caches. It does not require a SIM data activation,
+SMS/USSD, device reboot or a change to station credentials. The same Avahi
+interface allowlist covers station and hotspot mode; no simultaneous
+station/AP support is required.
 
 ## Using and troubleshooting the name
 
@@ -50,8 +67,21 @@ simultaneous station/AP support is required.
 - Another device already using `openstick.local` can cause Avahi to choose a
   suffixed name. Diagnose a collision rather than forcing two devices to
   claim the same name. This deployment checks the name after startup.
+- On Android, `DNS_PROBE_FINISHED_NXDOMAIN` may mean the browser used ordinary
+  DNS rather than mDNS. The hotspot DNS fallback must return its own WLAN
+  IPv4 for the exact name, never the USB-only address. Reconnect the phone
+  after installing it. Private DNS/VPN settings can bypass hotspot DNS.
+  On someone else's station Wi-Fi, the stick cannot configure that router's
+  DNS; that case still depends on working client mDNS or router configuration.
 
-Phone hotspot acceptance and real Wi-Fi switching are separate hardware
-checks; an HTTP test with a Host header is not a DNS or phone acceptance test.
+After the DNS fallback deployment from `5660c77`, the owner confirmed Android
+could open `http://openstick.local:8765/hotspot`. Actual hotspot DNS returned
+192.168.8.1, named HTTP through that resolver returned 200, and the PC retained
+USB resolution and named HTTP 200. Setup service arguments passed actual
+dnsmasq syntax validation; its new DNS behavior has not been phone-tested in
+setup mode. Real Wi-Fi switching remains a separate hardware check; an HTTP
+test with a Host header is not a DNS or phone acceptance test.
 
 Configuration semantics: [Avahi's official configuration reference](https://github.com/avahi/avahi/blob/master/man/avahi-daemon.conf.5.xml.in).
+DNS fallback: [NetworkManager shared DNS configuration](https://networkmanager.pages.freedesktop.org/NetworkManager/NetworkManager/nm-settings-nmcli.html),
+[dnsmasq interface-name, local and SIGHUP semantics](https://dnsmasq.org/docs/dnsmasq-man.html).

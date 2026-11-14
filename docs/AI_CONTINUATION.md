@@ -1,5 +1,14 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**Tên quản trị trên Android đã xác nhận:** cấu hình DNS `5660c77` đã cài.
+Android trước đó báo NXDOMAIN dù mDNS trên wlan0 trả đúng AP; đã thêm DNS
+thường cho `openstick.local` vào dnsmasq hotspot. Chủ nối lại Wi-Fi và xác nhận
+mở tên miền được. PC USB vẫn phân giải/mở cùng tên HTTP 200; probe SIM vẫn đạt.
+Hotspot hiện AP/data bật, enabled=true, không pending. Script DHCP setup cũng
+đã có DNS nội bộ, mới kiểm tra cú pháp/tham số thật, chưa bật setup để thử bằng
+điện thoại. Không restart NM/reboot/nối lại WWAN. Xem phần đầu handoff và
+`docs/LOCAL_MANAGEMENT_ADDRESS.md`; kiểm tra lại trạng thái trước thay đổi.
+
 **Cập nhật LED/SIM:** USB đã cài source đến `3bd728a`. Đèn vỏ đỏ/xanh lá/xanh
 dương có mục `/settings/leds`, đã thử driver bật/nháy rồi khôi phục; boot replay
 đã bật nhưng chưa thử reboot riêng. APN hiện rõ tại `/hotspot#sim-apn`, có nút
