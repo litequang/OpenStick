@@ -19,7 +19,7 @@ backup cũ; panel Linux trên USB là luồng riêng.
   tên, không đổi kết nối trước khi bấm Lưu.
 - Luồng mới chủ USB yêu cầu: lưu cấu hình → khởi động lại một lần → thử các
   Wi-Fi đã lưu → chỉ phát hotspot nếu không nối được mạng nào. **Luồng reboot
-  này chưa được triển khai trong snapshot hiện tại.**
+  này đã được triển khai và thử reboot thật thành công trên mạng mới.**
 - USB đã nối Wi-Fi có IP nội bộ thì vẫn quản trị được khi mạng mất Internet.
   Không chuyển sang hotspot chỉ vì kiểm tra Internet thất bại.
 - Chủ USB muốn tiếp tục tối ưu giao diện từ GitHub và giữ bàn giao đủ chi tiết.
@@ -75,14 +75,21 @@ data; build EXE vẫn phải có đủ asset. Không thay Flask portal bằng Si
   nhận điện thoại đăng nhập vào được trang cài đặt.** Không bật dữ liệu SIM.
 - Quét mới tìm 3 mạng, trở về AP sau khoảng 14 giây. Mạng không tồn tại trả về
   AP sau khoảng 33 giây. Chọn danh sách và nhập tay đều chờ bấm Lưu mới submit.
-- Bộ test gần nhất: **374 passed, 1 skipped** (quyền symlink Windows), khoảng
-  71 giây. Đây không phải chứng nhận tất cả chức năng phần cứng đã đạt.
+- Bộ test gần nhất: **379 passed, 1 skipped** (quyền symlink Windows), khoảng
+  75 giây. Đây không phải chứng nhận tất cả chức năng phần cứng đã đạt.
 - Current và saved radio mode đọc gần nhất đều `[12,8]`. Chủ USB tự chọn;
   không ghi đè bằng `[8,0]` từ tài liệu phiên cũ.
 
 ## Lỗi chặn cần ưu tiên
 
-**AP → Wi-Fi nhà chưa thành công. Không báo là đã fix hoàn chỉnh.**
+**Đã đối chiếu được với mạng khác: Wi-Fi mới thành công.** Chủ USB nhập
+thông tin qua trang setup; USB nhận IPv4 và probe Internet gắn wlan0 đạt.
+Sau đó thử worker lưu/reboot thật với keyfile của mạng mới: boot đổi, đúng
+profile, DHCP/Internet/LAN login HTTP 200 đều đạt sau khoảng 74 giây. Bài thử
+worker dùng lại PSK đã dẫn xuất trong file riêng, không lấy mật khẩu ra chat.
+
+Vì vậy không quy tất cả lỗi về việc ngắt hotspot trong lúc lưu. Lỗi bộ phát
+cũ vẫn còn, chưa xác định được chính xác tham số tương thích/cấu hình gây lỗi.
 
 Key tính từ mật khẩu lưu trên Windows đã so sánh khớp PSK trong keyfile cũ,
 không in mật khẩu/PSK ra log. Khi thử handoff, wpa_supplicant báo handshake/
@@ -95,7 +102,7 @@ Hai lỗi cần tách riêng:
 1. AP không khởi tạo do PMF mặc định: đã xác định key AES-CMAC `alg=4`, index 4
    bị kernel EINVAL. Đặt `wifi-sec.pmf=1` trong profile **AP** giải quyết phát
    hotspot; đã sửa cả hai bộ sinh profile AP. Giữ WPA2/CCMP.
-2. Nhận Wi-Fi sau AP: vẫn cần xử lý. Reload riêng wcn36xx không giải quyết.
+2. Nhận Wi-Fi từ bộ phát cũ: vẫn cần đối chiếu cấu hình. Reload riêng wcn36xx không giải quyết.
    Thử tháo wcn36xx/btqcomsmd, stop/start riêng WCNSS remoteproc rồi nạp lại
    cũng timeout. Một reboot bình thường sau đó vẫn thấy HAL errors. Không
    tiếp tục lặp các thử nghiệm này như thể chưa làm.
@@ -108,19 +115,32 @@ giữ backup và reload profile; không ghi đè khóa tốt bằng profile thi�
 Backup keyfile trước thử nghiệm nằm dưới thư mục private nêu bên dưới.
 
 `Network.active()` chỉ đọc UUID, có thể trả UUID cả khi NM đang configuring
-(state 50). Auto fallback phải phân biệt state 100/DHCP với UUID đang thử,
-nếu không vòng retry Wi-Fi sẽ ngăn AP tự cứu. Đây là điểm cần kiểm tra/sửa.
+(state 50). **Đã sửa trong setup worker:** phải state 100 kèm IPv4 mới tính
+là có LAN; UUID đang thử không còn chặn timer tự cứu. Không probe Internet
+để quyết định có giữ LAN hay không. Có regression test cho trạng thái này.
+
+Luồng reboot lưu `phase=await_boot` trước khi yêu cầu reboot, fsync file và
+thư mục, giữ AP đến shutdown. Cùng boot không gọi lại reboot; sau boot mới
+thử mạng mới rồi tối đa 5 mạng autoconnect đã lưu (mỗi mạng 20 giây). Nếu hết
+45 giây mà reboot chưa xảy ra, khôi phục profile/AP; không lặp reboot. Modem
+lock/USSD state chặn reboot khi có giao dịch. UI thông báo reboot rõ ràng,
+có link LAN mới trên USB và tự nạp lại token sau boot khi cần.
+
+Bài thử âm thật qua HTTP cũng đạt: gửi SSID không tồn tại, USB reboot một
+lần, thử mạng mới không được rồi tự nối Wi-Fi tốt đã lưu sau khoảng 100 giây.
+Kết quả `SAVED_WIFI_CONNECTED`, không còn pending intent, không lặp reboot.
+Unit test bao gồm sai khóa, khôi phục keyfile cũ, mất nguồn giữa intent,
+reboot thất bại, trì hoãn khi USSD/SMS bận và NM state 50.
 
 ## Tiếp tục thực hiện
 
 1. Đọc status hiện tại qua USB, pending setup intent, NM state/reason và log
    kernel có lọc; không in credentials/nội dung SMS/USSD.
 2. Khôi phục keyfile tốt nếu một thử nghiệm làm mất secret. Giữ USB/SSH chạy.
-3. Hoàn thành luồng reboot một lần do chủ USB chọn, có intent root-private,
-   nhận diện boot cũ/mới, giới hạn thời gian thử station và fallback AP. Không
-   tạo reboot loop; không reboot giữa SMS send/USSD đang hoạt động.
-4. Trước khi phát AP, thử mạng mới rồi các profile đã lưu có thể truy cập.
-   Nếu đã nối Wi-Fi có IP nội bộ thì giữ LAN admin dù Internet không có.
+3. Luồng reboot một lần đã cài; giữ các ràng buộc intent/boot/timeout/modem
+   lock khi tối ưu giao diện, không tạo reboot loop.
+4. Đã thử mạng mới trước, rồi các profile autoconnect khả dụng/ẩn. Giữ LAN
+   khi có IPv4 dù Internet không có. Không thay bằng probe Internet bắt buộc.
 5. Kiểm tra thật: AP/điện thoại → Lưu Wi-Fi đúng → boot/STA có IP → LAN login;
    sai pass/SSID → AP cũ; reboot giữa intent; nhiều lần lặp. Không bật SIM data.
 6. Cập nhật tài liệu với kết quả và trạng thái máy chính xác, deploy source
@@ -150,9 +170,9 @@ keyfile: `/var/lib/openstick/deploy-backups/home-20261114/`. Dữ liệu evidenc
 và script cá nhân dưới ignored `runtime/usb-ssh/` chỉ có trên máy hiện tại.
 AI trên máy khác cần chủ USB cấp cách truy cập riêng, không có khóa trong repo.
 
-Trạng thái thiết bị ngay trước khi push: setup AP đang hoạt động, tự cứu bật,
-không có setup intent đang chạy. Keyfile station đã được khôi phục; agent không
-bật SIM data. Không tuyên bố USB đang kết nối Internet qua Wi-Fi ở mốc này.
+Trạng thái sau bài reboot mới: USB đang nhận Wi-Fi mới có Internet, tự cứu
+vẫn bật, không bật SIM data. Keyfile Wi-Fi cũ giữ nguyên. Profile chẩn đoán
+tạm đã xóa. Xem handoff để biết kết quả bài thử âm cuối cùng trước push.
 
 RMTFS giữ RAM-shadow `-r`; không flash/erase/ghi NV, không đoán PIN/PUK.
 SIM data failover, Internet sharing từ SIM, nhiệt/uptime và boot chỉ cắm sạc

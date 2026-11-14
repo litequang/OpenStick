@@ -4,13 +4,29 @@ Branch `codex/uz801-v32-postmarketos`. No merge,
 release, flash or partition changes. Earlier company shutdown notes are
 historical. USB is currently powered and accessible.
 
-**Latest blocker:** correct-credential AP → station handoff failed. A normal
-reboot and isolated WLAN/WCNSS resets did not yet resolve HAL join/config-BSS
-errors. Do not claim provisioning is complete. The owner now requests a
-single reboot after Save, followed by saved-network attempts before AP.
-See [detailed continuation](AI_CONTINUATION.md) for evidence and exact work left.
-Before push, original station keyfile was restored, setup AP was active and
-enabled, and no setup transaction was pending. Station Internet was not active.
+**Latest finding:** the owner's second Wi-Fi connected successfully through
+the setup page, with DHCP and bound Internet verified. Failures against the
+older router must not be generalized to all AP → station transitions. The
+exact old-router interoperability/configuration issue remains unresolved.
+
+Save now authorizes exactly one normal reboot. A durable private intent
+resumes on the next boot, tries the requested network, restores an older
+same-SSID keyfile on failure, then tries saved visible/hidden networks before
+starting setup AP. Active SMS/USSD delays reboot. A configuring UUID (NM 50)
+is no longer mistaken for a connected LAN (NM 100 plus IPv4). Internet probes
+are not required for local management.
+
+Real reboot test passed in about 74 seconds: new boot, correct target profile,
+DHCP, Wi-Fi-bound Internet and LAN login HTTP 200. It reused the owner's
+already-working derived keyfile privately to test the durable worker; the
+owner had previously submitted its password through the actual setup UI.
+See [detailed continuation](AI_CONTINUATION.md) for evidence and limits.
+
+Negative live API test also passed: POST a nonexistent SSID, one reboot,
+requested profile failure, then successful fallback to saved working Wi-Fi
+in about 100 seconds (`SAVED_WIFI_CONNECTED`). No setup transaction remained
+pending and there was no reboot loop. Final device state is the working
+second Wi-Fi with setup recovery still enabled; no SIM data was enabled.
 
 ## Access and installed work
 
@@ -60,8 +76,8 @@ The connection card is also in ignored runtime storage.
 After 60 seconds without a connected station, local AP/DHCP/authenticated LAN
 administration start. It uses manual IPv4, no advertised router/DNS and an
 explicit forwarding drop; it never activates cellular data. Existing active
-SIM AP/data is preserved. Wi-Fi handoff is queued durably and processed after
-the HTTP response; failure restores AP and a prior same-SSID keyfile.
+SIM AP/data is preserved. Wi-Fi handoff is queued durably and reboots once
+after the HTTP response; failure tries older saved Wi-Fi before restoring AP.
 
 Real hardware fix: optional PMF tried an unsupported AES-CMAC key (`alg=4`,
 index 4, kernel EINVAL), causing AP timeout. `wifi-sec.pmf=1` disabled PMF
@@ -72,16 +88,19 @@ Actual AP, DHCP worker, forwarding filter and LAN login HTTP 200 passed.
 **Owner confirmed entering the setup page on a phone through the setup AP.**
 Fresh scan found three networks and returned AP in 14 seconds. A nonexistent
 network handoff returned AP in 33 seconds. The setup form supports scan-list
-selection and manual SSID; selection does not submit until Save. Automatic
-fallback/successful handoff and final power-only boot are checked separately.
-Driver cannot run simultaneous STA/AP.
+selection and manual SSID; selection does not submit until Save. A second
+working Wi-Fi and successful reboot handoff are now verified. A full cold
+power-only/no-known-network boot remains a separate acceptance check.
+The installed driver advertises no concurrent STA/AP combination.
 
 ## Validation and next steps
 
-Full suite: 374 passed, 1 Windows symlink-privilege skip. Run appropriate
+Full suite: 379 passed, 1 Windows symlink-privilege skip. Run appropriate
 checks after final refinements, deploy matching source and update results.
 Device backups: `/var/lib/openstick/deploy-backups/home-20261114/`.
 
-Finish setup fallback/handoff checks, restore the
-owner's station/radio choices, leave setup recovery enabled, report remaining
-limits. No SIM data activation merely to test local provisioning.
+Keep the owner's working second station/radio choices and setup recovery
+enabled. Investigate the older router separately if requested; no known
+parameter-level fix is established for it. Remaining acceptance includes a
+cold power-only/no-reachable-saved-network boot and sustained operation.
+No SIM data activation merely to test local provisioning.

@@ -30,7 +30,33 @@ def validate_setup(value):
 
 
 class SetupNetwork(Network):
-    def ready(self):return self.nm('-g', 'GENERAL.STATE', 'device', 'show', 'wlan0').startswith('100')
+    def ready(self):
+        rows = self.nm('-g', 'GENERAL.STATE,IP4.ADDRESS', 'device', 'show', 'wlan0').splitlines()
+        return bool(rows and rows[0].startswith('100') and any('/' in r for r in rows[1:]))
+
+    def station_url(self):
+        import ipaddress
+        rows = self.nm('-g', 'IP4.ADDRESS', 'device', 'show', 'wlan0').splitlines()
+        for row in rows:
+            try:return 'http://' + str(ipaddress.IPv4Interface(row).ip) + ':8765/setup'
+            except ValueError:pass
+        return None
+
+    def saved_wifi(self):
+        from .network_policy import PolicyNetwork
+        result = []
+        for value in PolicyNetwork(run=self.run).profiles():
+            fields = self.nm('-g', 'connection.autoconnect,connection.autoconnect-priority,802-11-wireless.hidden',
+                             'connection', 'show', 'uuid', value['uuid']).splitlines()
+            if not fields or fields[0] != 'yes':continue
+            try:priority = int(fields[1])
+            except (ValueError, IndexError):priority = 0
+            result.append({**value, 'priority': priority, 'hidden': len(fields) > 2 and fields[2] == 'yes'})
+        return sorted(result, key=lambda v: -v['priority'])
+
+    def try_station(self, identity):self.nm('-w', '20', 'connection', 'up', 'uuid', identity, timeout=25)
+
+    def reboot(self):self.command(['/sbin/reboot'], timeout=10)
 
     def scan(self, refresh):
         from .network_policy import split_fields
@@ -66,6 +92,8 @@ class SetupAP(Hotspot):
         super().__init__(*args, **kwargs)
         self.runtime = Path(runtime)
         self.lan_ready = lan_ready or (lambda: LanSettings(self.directory).private() is not None)
+        # Existing Hotspot readiness callback runs without reacquiring this lock.
+        self.reboot_lock = self.modem_lock_factory
 
     def state(self):
         try:value = json.loads((self.runtime / 'setup-state.json').read_text())
@@ -86,7 +114,8 @@ class SetupAP(Hotspot):
                   'busy': bool(self.read('setup-pending.json')), 'result': state.get('result'),
                   'error': state.get('error'), 'attempt': state.get('attempt'),
                   'fallback_seconds': 60, 'ipv4': AP_ADDRESS if active else None,
-                  'networks': state.get('networks', []), 'scan_at': state.get('scan_at')}
+                  'networks': state.get('networks', []), 'scan_at': state.get('scan_at'),
+                  'station_url': state.get('station_url'), 'reboot_pending': state.get('result') == 'REBOOTING'}
         if credentials:result['password'] = config.get('password')
         return result
 
@@ -148,7 +177,7 @@ class SetupAP(Hotspot):
                 psk = hashlib.pbkdf2_hmac('sha1', password.encode(), ssid.encode(), 4096, 32).hex()
                 text = (f'[connection]\nid={name[:-13]}\nuuid={identity}\ntype=wifi\ninterface-name=wlan0\n'
                         'autoconnect=true\nautoconnect-priority=20\n\n'
-                        f'[wifi]\nmode=infrastructure\nssid={escaped}\ncloned-mac-address=permanent\npowersave=2\n\n'
+                        f'[wifi]\nmode=infrastructure\nssid={escaped}\nhidden=true\ncloned-mac-address=permanent\npowersave=2\n\n'
                         f'[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\n\n'
                         '[ipv4]\nmethod=auto\nroute-metric=100\n\n[ipv6]\nmethod=auto\nroute-metric=100\n')
                 intent.update(name=name, identity=identity, profile=text, previous=previous)
@@ -171,7 +200,7 @@ class SetupAP(Hotspot):
         except Exception:
             self.network.local_services(False)
             raise
-        self.save_state(result='AP_READY', error=None, missing_since=None)
+        self.save_state(result='AP_READY', error=None, missing_since=None, station_url=None)
 
     def capture_networks(self, refresh):
         own = {self.read('setup-ap.json').get('ssid'), self.read('hotspot.json').get('ssid')}
@@ -209,60 +238,119 @@ class SetupAP(Hotspot):
             except Exception:pass
         self.save_state(result='STOPPED', error=None, missing_since=self.clock())
 
-    def handoff(self, intent):
+    def restore_profile(self, intent):
         path = self.profiles / intent['name']
-        self.atomic(path, intent['profile'])
-        self.network.load(path)
-        self.network.local_services(False)
-        if self.network.active('wlan0') == SETUP_UUID:self.network.down(SETUP_UUID)
+        if intent.get('previous') is not None:
+            self.atomic(path, intent['previous']);self.network.load(path)
+        else:
+            try:self.network.nm('connection', 'delete', 'uuid', intent['identity'])
+            except Exception:pass
+            path.unlink(missing_ok=True)
+
+    def prepare_handoff(self, intent):
+        # The user's Save authorizes one normal reboot, never a retry loop.
+        # Preserve AP until shutdown; do not exercise the broken live role swap.
         try:
-            self.network.up(intent['identity'])
-            if self.network.active('wlan0') != intent['identity']:raise RuntimeError('WIFI_CONNECT_FAILED')
+            with self.reboot_lock():
+                try:ready = self.readiness()
+                except RuntimeError as error:
+                    if str(error) not in ('MODEM_UNAVAILABLE', 'MODEM_AMBIGUOUS'):raise
+                    ready = {}
+                if ready.get('ussd_state') in (2, 3):raise RuntimeError('MODEM_BUSY')
+                path = self.profiles / intent['name']
+                self.atomic(path, intent['profile']);self.network.load(path)
+                intent.update(phase='await_boot', reboot_deadline=self.clock() + 45)
+                self.write('setup-pending.json', intent)
+                self.save_state(result='REBOOTING', error=None, station_url=None)
+                self.network.reboot()
+                return True
+        except Exception as error:
+            if isinstance(error, RuntimeError) and str(error) == 'MODEM_BUSY':
+                self.save_state(result='WAITING_MODEM', error='MODEM_BUSY')
+                return True
+            self.restore_profile(intent)
+            raise
+
+    def finish_station(self, identity, result):
+        config = self.read('setup-ap.json');config['previous_wifi'] = identity
+        self.write('setup-ap.json', config)
+        self.save_state(result=result, error=None, missing_since=None, station_url=self.network.station_url())
+
+    def try_saved(self):
+        # No Internet probes: a DHCP LAN is sufficient for administration.
+        if self.network.ready() and self.network.active('wlan0') not in (SETUP_UUID, AP_UUID):
+            return self.network.active('wlan0')
+        try:
+            self.capture_networks(True)
+            visible = {n['ssid'] for n in self.state().get('networks', [])}
+            candidates = self.network.saved_wifi()
         except Exception:
-            # Preserve a previously working password even for the same SSID.
-            if intent.get('previous') is not None:
-                self.atomic(path, intent['previous']);self.network.load(path)
-            else:
-                try:self.network.nm('connection', 'delete', 'uuid', intent['identity'])
-                except Exception:pass
-                path.unlink(missing_ok=True)
+            return None
+        for value in [v for v in candidates if v['hidden'] or v['ssid'] in visible][:5]:
+            try:
+                self.network.try_station(value['uuid'])
+                if self.network.ready() and self.network.active('wlan0') == value['uuid']:return value['uuid']
+            except Exception:pass
+        return None
+
+    def resume_handoff(self, intent):
+        # This branch never requests a reboot, including after another power loss.
+        self.save_state(result='TRYING_WIFI', error=None, attempt=intent['attempt'])
+        try:
+            self.network.try_station(intent['identity'])
+            if not self.network.ready() or self.network.active('wlan0') != intent['identity']:
+                raise RuntimeError('WIFI_CONNECT_FAILED')
+        except Exception:
+            self.restore_profile(intent)
+            previous = self.try_saved()
+            if previous:
+                self.finish_station(previous, 'SAVED_WIFI_CONNECTED')
+                return
             self.start()
             self.save_state(result='AP_READY', error='WIFI_CONNECT_FAILED')
             return
-        config = self.read('setup-ap.json');config['previous_wifi'] = intent['identity']
-        self.write('setup-ap.json', config)
-        self.save_state(result='WIFI_CONNECTED', error=None, missing_since=None)
+        self.finish_station(intent['identity'], 'WIFI_CONNECTED')
 
     def tick(self):
         with self.lock_factory():
             intent = self.read('setup-pending.json')
             if intent:
                 if intent.get('boot') == self.boot() and self.clock() < intent.get('after', 0):return
+                keep = False
                 try:
-                    if intent.get('boot') != self.boot():
+                    if intent.get('phase') == 'await_boot':
+                        if intent.get('boot') != self.boot():self.resume_handoff(intent)
+                        elif self.clock() < intent.get('reboot_deadline', 0):keep = True
+                        else:
+                            self.restore_profile(intent)
+                            self.start()
+                            self.save_state(result='AP_READY', error='REBOOT_FAILED')
+                    elif intent.get('boot') != self.boot():
                         # Recover a same-SSID profile overwritten before power loss.
-                        if intent.get('action') == 'connect' and intent.get('previous') is not None:
-                            path = self.profiles / intent['name']
-                            self.atomic(path, intent['previous']);self.network.load(path)
-                        self.start()
-                        self.save_state(error='SETUP_INTERRUPTED', result='AP_READY')
+                        if intent.get('action') == 'connect':self.restore_profile(intent)
+                        previous = self.try_saved()
+                        if previous:self.finish_station(previous, 'SAVED_WIFI_CONNECTED')
+                        else:
+                            self.start()
+                            self.save_state(error='SETUP_INTERRUPTED', result='AP_READY')
                     elif intent['action'] == 'start':self.start()
                     elif intent['action'] == 'stop':self.stop()
                     elif intent['action'] == 'scan':self.scan()
-                    elif intent['action'] == 'connect':self.handoff(intent)
+                    elif intent['action'] == 'connect':keep = self.prepare_handoff(intent)
                 except Exception:
                     self.save_state(error='SETUP_OPERATION_FAILED')
                     raise
-                finally:(self.directory / 'setup-pending.json').unlink(missing_ok=True)
+                finally:
+                    if not keep:(self.directory / 'setup-pending.json').unlink(missing_ok=True)
                 return
             active = self.network.active('wlan0')
-            if active == SETUP_UUID:
+            if active == SETUP_UUID and self.network.ready():
                 if not self.lan_ready():self.stop()
                 else:self.network.local_services(True)
                 return
             config, state = self.read('setup-ap.json'), self.state()
             if not config.get('enabled') or not self.lan_ready():return
-            if active:
+            if active and self.network.ready():
                 self.save_state(missing_since=None)
                 return
             try:self.assert_available()
@@ -271,7 +359,10 @@ class SetupAP(Hotspot):
                 return
             since = state.get('missing_since')
             if since is None:self.save_state(missing_since=self.clock())
-            elif self.clock() - since >= 60:self.start()
+            elif self.clock() - since >= 60:
+                previous = self.try_saved()
+                if previous:self.finish_station(previous, 'SAVED_WIFI_CONNECTED')
+                else:self.start()
 
 
 def main():

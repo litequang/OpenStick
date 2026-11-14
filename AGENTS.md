@@ -10,8 +10,10 @@ USB portal. They distinguish tested behavior from unfinished hardware work.
   saved radio choice. Do not mistake LTE registration for working SIM data.
 - Never commit runtime credentials, host keys, device identifiers, SMS/USSD
   contents or network passwords. `runtime/` is intentionally ignored.
-- Keep USB administration working during Wi-Fi changes. The hardware does
-  not support simultaneous Wi-Fi station and AP.
-- Main open issue: successful AP → station handoff is not yet verified.
-  Phone access to setup AP and failed-network rollback are verified.
+- Keep USB administration working during Wi-Fi changes. The installed driver
+  advertises no simultaneous Wi-Fi station and AP combination.
+- Save now queues one normal reboot and then tries the requested/saved Wi-Fi
+  before setup AP. A real reboot returned to the owner's working second Wi-Fi,
+  with DHCP, bound Internet and LAN login verified. The older router's failure
+  remains a separate compatibility/configuration investigation.
 - Do not represent synthetic tests as physical-device or visual acceptance.

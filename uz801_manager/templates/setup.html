@@ -8,8 +8,9 @@
 <p id="setup-scan-note" class="metric-note">Chọn mạng chỉ điền tên, chưa đổi kết nối. Có thể nhập tay tên mạng ẩn.</p>
 <label for="setup-ssid">Tên Wi-Fi 2,4 GHz (SSID)</label><input id="setup-ssid" required maxlength="32" autocomplete="off">
 <label for="setup-password">Mật khẩu Wi-Fi</label><input id="setup-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password">
-<button id="setup-submit">Lưu &amp; kết nối Wi-Fi</button></form>
-<p>Nhập đúng tên mạng, kể cả chữ hoa/thường. USB ngừng phát để thử Wi-Fi mới; điện thoại sẽ mất kết nối tạm thời. Nếu thành công, nối điện thoại vào cùng Wi-Fi và mở địa chỉ quản trị mới từ router. Nếu thất bại, sau khoảng 1–2 phút hãy nối lại Wi-Fi cài đặt để sửa. Hotspot cài đặt không phát và nhận Wi-Fi đồng thời.</p>
+<button id="setup-submit">Lưu &amp; khởi động lại để kết nối</button></form>
+<p>Nhập đúng tên mạng, kể cả chữ hoa/thường. USB lưu cấu hình rồi khởi động lại một lần; điện thoại sẽ mất kết nối tạm thời. Sau khi lên nguồn, USB thử mạng mới rồi các Wi-Fi đã lưu. Nếu kết nối được, nối điện thoại vào cùng Wi-Fi và mở địa chỉ quản trị mới từ router. Nếu không mạng nào kết nối được, USB phát lại hotspot cài đặt sau khoảng 1–3 phút để bạn sửa. Wi-Fi có mạng nội bộ vẫn dùng để quản trị dù không có Internet.</p>
+<p id="setup-station-link"></p>
 <p class="metric-note">Khi cắm vào PC, trang <a href="http://172.16.42.1/setup">172.16.42.1/setup</a> vẫn dùng được trong lúc đổi Wi-Fi. Không bắt buộc PC cho các lần đổi mạng sau.</p></section>
 <section><h2>Trạng thái</h2><p id="setup-state" role="status" style="white-space:pre-wrap">Đang kiểm tra…</p>
 <p id="setup-notice" aria-live="polite"></p>

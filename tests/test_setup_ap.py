@@ -17,10 +17,16 @@ class Network:
         self.cell = None
         self.fail = None
         self.events = []
+        self.connected = True
+        self.saved = []
     def active(self, interface):return self.wifi if interface == 'wlan0' else self.cell
     def devices(self):return ['modem0']
     def ap_capable(self):return True
-    def ready(self):return True
+    def ready(self):return bool(self.wifi) and self.connected
+    def station_url(self):return 'http://192.0.2.2:8765/setup'
+    def saved_wifi(self):return self.saved
+    def try_station(self, identity):self.up(identity)
+    def reboot(self):self.events.append(('reboot', None))
     def scan(self, refresh):
         self.events.append(('scan', refresh))
         if self.fail == 'scan':raise RuntimeError('private error')
@@ -31,6 +37,7 @@ class Network:
         self.events.append(('up', identity))
         if self.fail == identity:raise RuntimeError('private modem error')
         self.wifi = identity
+        self.connected = True
     def down(self, identity):
         self.events.append(('down', identity))
         if self.wifi == identity:self.wifi = None
@@ -45,6 +52,7 @@ def setup(tmp_path):
     network = Network()
     backend = SetupAP(directory=tmp_path / 'private', profiles=tmp_path / 'profiles',
                       runtime=tmp_path / 'run', network=network, lock_factory=nullcontext,
+                      modem_lock_factory=nullcontext, readiness=lambda: {'ussd_state': 1},
                       clock=lambda: clock[0], boot=lambda: 'boot-a', lan_ready=lambda: True)
     backend.call('enable', confirm=True)
     return backend, network, clock
@@ -110,18 +118,27 @@ def test_phone_handoff_survives_http_process_exit_and_succeeds(setup):
     intent = submit(backend, network, clock)
     replacement = SetupAP(directory=backend.directory, profiles=backend.profiles, runtime=backend.runtime,
                           network=network, lock_factory=nullcontext, clock=lambda: clock[0],
+                          modem_lock_factory=nullcontext, readiness=lambda: {'ussd_state': 1},
                           boot=lambda: 'boot-a', lan_ready=lambda: True)
     replacement.tick()
+    assert backend.read('setup-pending.json')['phase'] == 'await_boot'
+    assert network.wifi == SETUP_UUID  # AP stays up until normal shutdown.
+    assert network.events.count(('reboot', None)) == 1
+    replacement.tick()
+    assert network.events.count(('reboot', None)) == 1
+    network.wifi = None;replacement.boot = lambda: 'boot-b'
+    replacement.tick()
     assert network.wifi == intent['identity']
-    assert backend.status()['result'] == 'WIFI_CONNECTED'
+    assert replacement.status()['result'] == 'WIFI_CONNECTED'
     assert not backend.status()['busy']
-    assert ('services', False) in network.events
+    assert replacement.status()['station_url'] == 'http://192.0.2.2:8765/setup'
 
 
 def test_wrong_password_returns_to_same_ap_and_removes_failed_profile(setup):
     backend, network, clock = setup
     credentials = backend.status(credentials=True)
     intent = submit(backend, network, clock)
+    backend.tick();backend.boot = lambda: 'boot-b';network.wifi = None
     network.fail = intent['identity'];backend.tick()
     assert network.wifi == SETUP_UUID
     assert backend.status()['error'] == 'WIFI_CONNECT_FAILED'
@@ -134,7 +151,7 @@ def test_wrong_password_returns_to_same_ap_and_removes_failed_profile(setup):
 def test_preserves_working_profile_after_same_ssid_failure_or_power_loss(setup, power_loss):
     backend, network, clock = setup
     first = submit(backend, network, clock)
-    backend.tick()
+    backend.tick();backend.boot = lambda: 'boot-b';network.wifi = None;backend.tick()
     path = backend.profiles / first['name']
     good = path.read_text()
     network.wifi = SETUP_UUID
@@ -142,12 +159,61 @@ def test_preserves_working_profile_after_same_ssid_failure_or_power_loss(setup, 
     clock[0] += 3
     intent = backend.read('setup-pending.json')
     if power_loss:
-        backend.atomic(path, intent['profile']);backend.boot = lambda: 'boot-b'
-    else:network.fail = first['identity']
+        backend.atomic(path, intent['profile']);backend.boot = lambda: 'boot-c'
+    else:
+        backend.tick();backend.boot = lambda: 'boot-c';network.wifi = None
+        network.fail = first['identity']
     backend.tick()
     assert path.read_text() == good
     assert network.wifi == SETUP_UUID
     assert not backend.status()['busy']
+
+
+def test_connect_waits_for_active_ussd_then_reboots_once(setup):
+    backend, network, clock = setup
+    submit(backend, network, clock)
+    backend.readiness = lambda: {'ussd_state': 3}
+    backend.tick()
+    assert backend.status()['result'] == 'WAITING_MODEM'
+    assert backend.status()['busy'] and ('reboot', None) not in network.events
+    backend.readiness = lambda: {'ussd_state': 1};backend.tick()
+    assert network.events.count(('reboot', None)) == 1
+
+
+def test_failed_reboot_restores_profile_without_loop(setup):
+    backend, network, clock = setup
+    intent = submit(backend, network, clock);backend.tick()
+    clock[0] += 46;backend.tick()
+    assert backend.status()['error'] == 'REBOOT_FAILED'
+    assert not backend.status()['busy'] and network.wifi == SETUP_UUID
+    assert network.events.count(('reboot', None)) == 1
+    assert not (backend.profiles / intent['name']).exists()
+
+
+def test_busy_connecting_uuid_does_not_prevent_automatic_ap(setup):
+    backend, network, clock = setup
+    network.wifi = 'retrying-station';network.connected = False
+    backend.tick();clock[0] += 61;backend.tick()
+    assert network.wifi == SETUP_UUID
+
+
+def test_saved_network_is_tried_before_automatic_ap_without_internet_probe(setup):
+    backend, network, clock = setup
+    network.saved = [{'uuid': 'saved-id', 'ssid': 'fixture-network', 'hidden': False}]
+    backend.tick();clock[0] += 61;backend.tick()
+    assert network.wifi == 'saved-id' and ('up', SETUP_UUID) not in network.events
+    assert backend.status()['result'] == 'SAVED_WIFI_CONNECTED'
+
+
+def test_after_reboot_failure_can_use_another_saved_network(setup):
+    backend, network, clock = setup
+    intent = submit(backend, network, clock);backend.tick()
+    network.saved = [{'uuid': 'other-good', 'ssid': 'fixture-network', 'hidden': False}]
+    backend.boot = lambda: 'boot-b';network.wifi = None;network.fail = intent['identity']
+    backend.tick()
+    assert network.wifi == 'other-good'
+    assert backend.status()['result'] == 'SAVED_WIFI_CONNECTED'
+    assert network.events.count(('reboot', None)) == 1
 
 
 def test_lan_password_required_before_provisioning_or_running_ap(setup):
