@@ -114,6 +114,54 @@ def test_probe_cellular_before_replacing_wifi_and_keep_enables_boot_autoconnect(
     assert ('checkpoint_action', False) in network.calls
 
 
+def test_apn_only_save_preserves_wifi_and_never_activates_data(setup_hotspot):
+    backend, network, _ = setup_hotspot;configure(backend)
+    ap = backend.profiles / 'openstick-hotspot.nmconnection'
+    original = ap.read_bytes();network.calls.clear()
+    cell = backend.profiles / 'openstick-cellular.nmconnection'
+    with cell.open('a') as out:out.write('\n[proxy]\nmethod=0\n')
+    for apn in ('fixture.apn', ''):
+        state=backend.call('configure_apn',apn=apn,confirm=True)
+        assert state['apn']==apn and not state['enabled'] and not state['cellular_connected']
+        assert ap.read_bytes()==original
+        assert 'home-only=true' in cell.read_text() and '[proxy]' in cell.read_text()
+        assert ('apn='+apn+'\n' in cell.read_text()) if apn else ('apn=' not in cell.read_text())
+        assert ('auto-config=false' if apn else 'auto-config=true') in cell.read_text()
+    assert all(call==('load',str(cell)) for call in network.calls)
+
+
+@pytest.mark.parametrize('apn', ['bad\npassword=secret', 'x;bad', 'X', None, 'a'*101])
+def test_apn_only_rejects_invalid_values_before_transport(setup_hotspot,apn):
+    backend,network,_=setup_hotspot
+    with pytest.raises(ValueError):backend.call('configure_apn',apn=apn,confirm=True)
+    assert not network.calls and not backend.directory.exists()
+
+
+@pytest.mark.parametrize('blocked', ['trial','active','cellular','policy'])
+def test_apn_only_blocks_live_networks_without_writes(setup_hotspot,blocked):
+    backend,network,_=setup_hotspot;configure(backend)
+    if blocked=='trial':backend.write('hotspot-pending.json',{'attempt':'fixture'})
+    if blocked=='active':network.current['wlan0']=AP_UUID
+    if blocked=='cellular':network.current['wwan0qmi0']=CELL_UUID
+    if blocked=='policy':backend.write('network-policy.json',{'enabled':True})
+    original={p:p.read_bytes() for p in backend.profiles.glob('*')};network.calls.clear()
+    with pytest.raises(RuntimeError):backend.call('configure_apn',apn='fixture.apn',confirm=True)
+    assert not network.calls and all(p.read_bytes()==data for p,data in original.items())
+
+
+def test_apn_only_rolls_back_file_and_nm_on_load_failure(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    originals={p:p.read_bytes() for p in [*backend.profiles.glob('*'),backend.directory/'hotspot.json']}
+    loads=[]
+    def fail_once(path):
+        loads.append(path.read_text())
+        if len(loads)==1:raise RuntimeError('private provider error')
+    network.load=fail_once
+    with pytest.raises(RuntimeError,match='^HOTSPOT_OPERATION_FAILED$'):
+        backend.call('configure_apn',apn='fixture.apn',confirm=True)
+    assert len(loads)==2 and all(p.read_bytes()==data for p,data in originals.items())
+
+
 def test_sim_without_internet_keeps_home_wifi_and_stops_trial_data(setup_hotspot):
     backend, network, _ = setup_hotspot
     configure(backend)
@@ -128,8 +176,17 @@ def test_ap_failure_rolls_back_and_does_not_publish_raw_error(setup_hotspot):
     backend, network, _ = setup_hotspot
     configure(backend)
     network.fail_ap = True
-    with pytest.raises(RuntimeError, match='^HOTSPOT_START_FAILED$'):start(backend)
+    with pytest.raises(RuntimeError, match='^AP_START_FAILED$'):start(backend)
     assert network.current == {'wlan0': WIFI, 'wwan0qmi0': None}
+
+
+def test_cellular_activation_error_is_distinct_and_private(setup_hotspot):
+    backend, network, _ = setup_hotspot;configure(backend)
+    def fail(_):raise RuntimeError('private APN/identifier/provider error')
+    network.up = fail
+    with pytest.raises(RuntimeError, match='^CELLULAR_CONNECT_FAILED$'):start(backend)
+    assert network.current == {'wlan0': WIFI, 'wwan0qmi0': None}
+    assert not backend.read('hotspot-pending.json')
 
 
 @pytest.mark.parametrize('ready', [{'registered': False, 'sim_present': True},
@@ -255,3 +312,26 @@ def test_hotspot_ui_never_activates_without_explicit_consent_and_confirmation(se
     result = subprocess.run([node, str(Path(__file__).with_name('hotspot_ui_fixture.cjs')), str(page)],
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_status_refresh_does_not_erase_last_hotspot_action_failure(setup_hotspot):
+    backend, network, _ = setup_hotspot;configure(backend);network.fail_ap = True
+    app=create_hosting_app(backend=object(),usb_portal=True,hotspot_backend=backend,token='fixture')
+    client=app.test_client();base='http://172.16.42.1';headers={'X-OpenStick-Token':'fixture'}
+    payload={'action':'start','confirm':True,'cellular_consent':True,'switch_wifi':True}
+    assert client.post('/api/hotspot',base_url=base,headers=headers,json=payload).status_code==202
+    app.extensions['hotspot']['thread'].join(2)
+    first=client.get('/api/hotspot/state',base_url=base,headers=headers).json
+    assert first['error']=='AP_START_FAILED'
+    for _ in range(2):
+        assert client.post('/api/hotspot',base_url=base,headers=headers,json={'action':'status'}).status_code==202
+        app.extensions['hotspot']['thread'].join(2)
+        current=client.get('/api/hotspot/state',base_url=base,headers=headers).json
+        assert current['error'] is None and current['last_operation']==first['last_operation']
+        assert set(current['last_operation'])=={'action','error','at'}
+    # USB and authenticated LAN use separate app/backend instances.
+    replacement=Hotspot(backend.directory,backend.profiles,network=network,lock_factory=nullcontext)
+    other=create_hosting_app(backend=object(),usb_portal=True,hotspot_backend=replacement,token='fixture').test_client()
+    assert other.get('/api/hotspot/state',base_url=base,headers=headers).json['last_operation']==first['last_operation']
+    stored=(backend.directory/'hotspot-last-operation.json').read_text()
+    assert 'private' not in stored and 'ssid' not in stored and 'checkpoint' not in stored

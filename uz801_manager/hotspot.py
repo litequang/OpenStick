@@ -1,6 +1,8 @@
 """Opt-in SIM Internet to a single Wi-Fi AP; no concurrent STA/AP promise."""
 from contextlib import contextmanager, nullcontext
+import configparser
 import hashlib
+import io
 import ipaddress
 import json
 import os
@@ -9,6 +11,7 @@ import re
 import secrets
 import shutil
 import subprocess
+import tempfile
 import time
 import uuid
 
@@ -21,24 +24,32 @@ NM = 'org.freedesktop.NetworkManager'
 NM_ROOT = '/org/freedesktop/NetworkManager'
 DEVICE = NM + '.Device'
 PROPS = 'org.freedesktop.DBus.Properties'
+HOTSPOT_ERRORS = {'NETWORK_BUSY', 'MODEM_BUSY', 'HOTSPOT_ACTIVE', 'AP_UNSUPPORTED', 'CELLULAR_UNAVAILABLE',
+                  'CELLULAR_ALREADY_ACTIVE', 'HOTSPOT_NOT_CONFIGURED', 'SIM_NOT_READY', 'CHECKPOINT_UNAVAILABLE',
+                  'CELLULAR_NO_INTERNET', 'CELLULAR_CONNECT_FAILED', 'AP_START_FAILED', 'ROLLBACK_FAILED',
+                  'HOTSPOT_START_FAILED', 'HOTSPOT_CONFIRM_EXPIRED', 'POLICY_ACTIVE', 'SETUP_ACTIVE',
+                  'HOTSPOT_OPERATION_FAILED'}
 
 
 def validate_hotspot(value):
     if not isinstance(value, dict) or not isinstance(value.get('action'), str):raise ValueError('INPUT_INVALID')
     action = value['action']
     fields = {'status': set(), 'configure': {'ssid', 'password', 'channel', 'apn', 'confirm'},
+              'configure_apn': {'apn', 'confirm'},
               'start': {'confirm', 'cellular_consent', 'switch_wifi'},
               'keep': {'attempt', 'confirm'}, 'stop': {'confirm'}}
     if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
     if action != 'status' and value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
+    if action in ('configure', 'configure_apn'):
+        if (not isinstance(value['apn'], str) or len(value['apn']) > 100
+                or (value['apn'] and not re.fullmatch('[a-z0-9][a-z0-9.-]*', value['apn']))):
+            raise ValueError('INPUT_INVALID')
     if action == 'configure':
         if (not isinstance(value['ssid'], str) or not 1 <= len(value['ssid'].encode()) <= 32
                 or any(ord(c) < 32 for c in value['ssid'])
                 or not isinstance(value['password'], str) or not 8 <= len(value['password']) <= 63
                 or any(ord(c) < 32 or ord(c) > 126 for c in value['password'])
-                or type(value['channel']) is not int or value['channel'] not in (1, 6, 11)
-                or not isinstance(value['apn'], str) or len(value['apn']) > 100
-                or (value['apn'] and not re.fullmatch('[a-z0-9][a-z0-9.-]*', value['apn']))):
+                or type(value['channel']) is not int or value['channel'] not in (1, 6, 11)):
             raise ValueError('INPUT_INVALID')
     if action == 'start' and (value['cellular_consent'] is not True or value['switch_wifi'] is not True):
         raise ValueError('CONSENT_REQUIRED')
@@ -199,6 +210,29 @@ class Hotspot:
                 'seconds_remaining': max(0, int(pending.get('expires', 0) - self.clock())) if pending else 0,
                 'verification': 'UNVERIFIED' if not config.get('tested') else 'DEVICE_LINKS_VERIFIED_CLIENT_UNVERIFIED'}
 
+    def last_operation(self):
+        value = self.read('hotspot-last-operation.json')
+        if (isinstance(value, dict) and set(value) == {'action', 'error', 'at'}
+                and value['action'] in ('configure', 'configure_apn', 'start', 'keep', 'stop')
+                and (value['error'] is None or isinstance(value['error'], str) and value['error'] in HOTSPOT_ERRORS)
+                and type(value['at']) in (int, float)):
+            return value
+        return None
+
+    def record_operation(self, action, error):
+        if action not in ('configure', 'configure_apn', 'start', 'keep', 'stop') or (error is not None and error not in HOTSPOT_ERRORS):
+            raise ValueError('INPUT_INVALID')
+        value = {'action': action, 'error': error, 'at': time.time()}
+        self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(prefix='.hotspot-result-', dir=self.directory)
+        try:
+            with os.fdopen(fd, 'w') as output:
+                json.dump(value, output);output.flush();os.fsync(output.fileno())
+            os.replace(temporary, self.directory / 'hotspot-last-operation.json')
+        finally:
+            if os.path.exists(temporary):os.unlink(temporary)
+        return value
+
     def call(self, action, **values):
         validate_hotspot({'action': action, **values})
         with self.lock_factory():
@@ -207,11 +241,47 @@ class Hotspot:
             if self.network.active('wlan0') == SETUP_UUID or self.read('setup-pending.json'):
                 raise RuntimeError('SETUP_ACTIVE')
             if action == 'configure':return self.configure(values)
+            if action == 'configure_apn':return self.configure_apn(values['apn'])
             with self.modem_lock_factory():
                 if action == 'start':return self.start()
                 if action == 'keep':return self.keep(values['attempt'])
                 if action == 'stop':return self.stop()
         raise RuntimeError('INPUT_INVALID')
+
+    def configure_apn(self, apn):
+        config = self.read('hotspot.json')
+        if not config.get('ssid'):raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+        if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:
+            raise RuntimeError('HOTSPOT_ACTIVE')
+        devices = self.network.devices()
+        if len(devices) != 1:raise RuntimeError('CELLULAR_UNAVAILABLE')
+        if self.network.active(devices[0]):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
+        if config.get('enabled') or self.read('network-policy.json').get('enabled'):
+            raise RuntimeError('POLICY_ACTIVE')
+        path = self.profiles / 'openstick-cellular.nmconnection'
+        if path.is_symlink() or not path.is_file():raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+        original, stored = path.read_text(), (self.directory / 'hotspot.json').read_text()
+        profile = configparser.ConfigParser(interpolation=None)
+        profile.read_string(original)
+        if (profile.get('connection', 'uuid', fallback=None) != CELL_UUID
+                or profile.get('connection', 'type', fallback=None) != 'gsm' or not profile.has_section('gsm')):
+            raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+        profile.set('gsm', 'auto-config', 'false' if apn else 'true')
+        if apn:profile.set('gsm', 'apn', apn)
+        else:profile.remove_option('gsm', 'apn')
+        output = io.StringIO();profile.write(output, space_around_delimiters=False)
+        try:
+            self.atomic(path, output.getvalue())
+            self.network.load(path)
+            config.update(apn=apn, tested=False)
+            self.write('hotspot.json', config)
+        except Exception:
+            try:
+                self.atomic(path, original);self.network.load(path)
+                self.atomic(self.directory / 'hotspot.json', stored)
+            except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
+            raise RuntimeError('HOTSPOT_OPERATION_FAILED') from None
+        return self.status()
 
     def configure(self, values):
         if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:
@@ -260,12 +330,14 @@ class Hotspot:
         pending = {'checkpoint': checkpoint, 'attempt': secrets.token_hex(16), 'boot': self.boot(),
                    'expires': self.clock() + 285, 'previous_wifi': previous}
         self.write('hotspot-pending.json', pending)
+        phase = 'cellular'
         try:
             self.network.nm('radio', 'wwan', 'on')
             self.network.up(CELL_UUID)
             interface = self.network.cellular_interface(control)
             if not self.network.internet(interface, control):raise RuntimeError('CELLULAR_NO_INTERNET')
             # Replace STA only after the SIM has an actual bound Internet probe.
+            phase = 'ap'
             self.network.up(AP_UUID)
             if self.network.active('wlan0') != AP_UUID:raise RuntimeError('AP_START_FAILED')
             return self.status()
@@ -274,7 +346,7 @@ class Hotspot:
             except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
             else:(self.directory / 'hotspot-pending.json').unlink(missing_ok=True)
             if str(error) in ('CELLULAR_NO_INTERNET', 'AP_START_FAILED'):raise
-            raise RuntimeError('HOTSPOT_START_FAILED') from None
+            raise RuntimeError('CELLULAR_CONNECT_FAILED' if phase == 'cellular' else 'AP_START_FAILED') from None
 
     def keep(self, attempt):
         pending = self.read('hotspot-pending.json')
