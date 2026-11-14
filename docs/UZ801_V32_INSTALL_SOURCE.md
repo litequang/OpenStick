@@ -48,12 +48,41 @@ from checksums, image generation and fastboot command return codes.
 - Before writing: the actual unit was reachable through root Android ADB;
   its original primary GPT matched the local original and contained 27 entries.
 - Guide step `aboot`: the author's lk1st image was sent with standard fastboot;
-  flash and reboot-to-bootloader commands returned success. The USB interface
-  then disappeared. As explicitly noted in the guide, a cold replug while
-  holding the recovery/reset button is the next step.
-- **STOP: lk1st runtime verification is pending.** The new guide's TZ, HYP,
-  SBL1 and postmarketOS image have not been written yet. Linux boot, Wi-Fi,
-  Nginx and Cloudflare Tunnel remain **NOT_TESTED** on this installation.
+  flash and reboot-to-bootloader commands returned success. Android ADB
+  returned, allowing a binary-safe readback of the new aboot image: PASS.
+- After the documented cold replug with the recovery/reset button held,
+  lk1st fastboot responded to `oem help`: runtime verification PASS.
+- The guide's remaining sequence, TZ then HYP then SBL1 then the exported
+  combined image into `userdata`, completed with fastboot success responses.
+  All three normal fastboot sparse transfers were acknowledged. A normal
+  reboot was requested. GPT, RPM and modem/NV were not written.
+- Windows initially bound the Linux-style USB composite parent to the old
+  Android Recovery WinUSB driver. Switching that exact device to Microsoft's
+  USB Composite Device exposed a CDC NCM child. On this Windows 10 host the
+  child still requires manual selection of the inbox UsbNcm Host Device
+  driver; it currently has no network adapter/IP address.
+- **CHECKPOINT: Linux USB SSH is not yet verified.** Full userspace boot,
+  Wi-Fi, Nginx and Cloudflare Tunnel remain **NOT_TESTED** on this installation.
+
+## Windows USB driver selection
+
+Only change the driver of the connected dongle's matching device. The
+observed Linux USB VID/PID is `18d1:d001`; the CDC NCM function is interface 00.
+
+1. If the composite parent appears as Android ADB Recovery Interface under
+   LeMobile Android Device, select Update driver, Browse my computer, then
+   Let me pick. Select Microsoft's USB Composite Device. If necessary,
+   select Have Disk and the existing `C:\Windows\INF\usb.inf`.
+2. If CDC NCM appears under Other devices, use the same wizard, choose
+   Network adapters, Microsoft, UsbNcm Host Device. Alternatively use Have
+   Disk with the existing `C:\Windows\INF\usbncm.inf`.
+3. Verify the new network adapter and its USB subnet before attempting SSH.
+   Do not replace the CDC NCM function with an Android or RNDIS driver.
+
+Microsoft documents NCM host support on Windows 10 build 18362 and later,
+and the device name UsbNcm Host Device:
+https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/factoryos/connect-using-usb-ncm.
+This host is build 19045 and already contains the matching driver package.
 
 The USB/firmware operation logs, backup, identifiers and credentials remain
 local under ignored directories. They are not part of this repository.
