@@ -191,8 +191,10 @@ not expose modem administration or SMS content.
   sending those messages.
 - An earlier Windows Computer Use attempt could not determine the browser
   URL. The latest Edge capture failed twice with channel/capture timeouts.
-  Visual browser layout remains UNVERIFIED; a
-  synthetic DOM fixture and HTTP checks are not a real-browser visual PASS.
+  The owner later confirmed the dark dashboard, bottom navigation and header
+  popovers work on the real portal. This is owner-observed acceptance;
+  automated screenshot inspection and independent narrow-window visual
+  acceptance remain unverified.
 - Sending/receiving SMS, interactive USSD, actual 3G registration and mobile
   data remain UNVERIFIED. An account response was received as described above.
   No outgoing cellular test runs merely by opening a page. The local suite

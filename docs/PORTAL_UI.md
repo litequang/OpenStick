@@ -60,7 +60,9 @@ duplicate-send protection and navigation scroll behavior. Live USB checks:
 18 existing hosting checks all passed with exit 0. The public site, Wi-Fi
 default route, NTP and Tunnel remained healthy.
 
-The native Edge screenshot helper timed out twice (`FrameArrived` and window
-capture channel timeout). Visual browser layout is UNVERIFIED pending owner
-feedback; synthetic DOM and HTTP success are not visual acceptance. Cold power
+The owner subsequently confirmed seeing the dark dashboard, bottom navigation
+and working header detail icons on the real portal. This is owner-observed UI
+acceptance. The native Edge screenshot helper timed out twice (`FrameArrived`
+and window capture channel timeout), so automated screenshot acceptance and
+independent narrow-window visual inspection remain unverified. Cold power
 cycle of this final portal configuration has not been tested.

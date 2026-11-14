@@ -2,8 +2,10 @@
 
 Status on the tested FY_UZ801_V3.2 unit: installed. USB HTTP, Wi-Fi status
 and scan, public HTTPS through the fixed Cloudflare hostname, and NTP
-synchronization passed live checks. Visual browser testing is UNVERIFIED:
-The latest Edge screenshot attempt timed out twice. See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
+synchronization passed live checks. The owner confirmed that the dark
+dashboard, bottom navigation and header detail icons work. Automated visual
+inspection remains unverified because Edge screenshot capture timed out twice.
+See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
 restart verification and remaining limits.
 
 After installation, connect the dongle to a computer and open
