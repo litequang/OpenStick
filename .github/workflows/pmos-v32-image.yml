@@ -41,6 +41,7 @@ jobs:
           test "$(git -C "$RUNNER_TEMP/pmaports" rev-parse HEAD)" = "$PMAPORTS_REV"
       - name: Configure documented console and extlinux install
         run: |
+          mkdir -p "$RUNNER_TEMP/pmb-work"
           cat > "$RUNNER_TEMP/pmbootstrap.cfg" <<EOF
           [pmbootstrap]
           aports = $RUNNER_TEMP/pmaports
