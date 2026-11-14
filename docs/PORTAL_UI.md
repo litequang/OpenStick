@@ -23,12 +23,48 @@ It uses ordinary private local links and lightweight JavaScript, without React.
 | Mạng SIM | `/modem/network` | Actual advertised 3G/4G choices; explain SIM-data/APN readiness |
 | Wi-Fi cài đặt | `/setup` | Enter SSID/password, save and connect autonomously, recover AP on failure; no SIM needed |
 
-A collapsible **Quản lý & cài đặt** menu beneath the status header links directly to Nguồn Internet, Phát Wi-Fi, Wi-Fi cài đặt and Website on every portal screen. The dock uses the shorter “Wi-Fi” label on narrow screens and truncates long labels rather than overflowing into adjacent destinations. Keyboard users have a skip-navigation link and visible focus styles. This is source-only UI work pending visual inspection on the USB and phone.
+The navigation has been reorganized by task. The five-item dock now holds **SMS**, **USSD**, **Tổng quan** (center), **Kết nối**, **Quản lý**. SMS/USSD remain one tap away; Kết nối and Quản lý open real hubs rather than a dropdown of miscellaneous shortcuts. Detail pages show a small breadcrumb to their hub. The active parent is visually highlighted, without using false aria-current="page" on a parent route. Keyboard users retain skip navigation and visible focus, and the grouped hub cards form a single column on narrow phones. This is source-only UX work pending visual inspection on the USB and phone.
 
 Header icons open native keyboard-accessible details for modem, combined
 SIM/signal, network and Wi-Fi station/hotspot. An already registered modem is labeled operational rather than
 showing an unexplained disabled activation button. Only a disabled modem offers
 activation on Mạng SIM. Details contain no IMSI, ICCID, IMEI or own-number fields.
+
+## Function inventory and navigation
+
+| Group / screen | URL | Responsibilities |
+|---|---|---|
+| Tổng quan | `/overview` | Read-only telemetry, connection states, service health |
+| Liên lạc / SMS | `/modem/sms` | Conversations, private archive, tariff and draft/send controls |
+| Liên lạc / USSD | `/modem/ussd` | USSD initiate, reply, cancel; manual radio mode fallback |
+| Kết nối | `/connections` | Navigation hub only; no network mutation on open |
+| Wi-Fi nhận Internet | `/` | Scan/select/connect to upstream Wi-Fi, status, bounded speed sample |
+| Wi-Fi đã lưu, Nguồn Internet | `/internet#saved-wifi`, `/internet` | Saved profiles, Wi-Fi/SIM priority/failover, cellular data off |
+| Mạng SIM | `/modem/network` | Select modem radio modes, SIM registration and readiness |
+| Wi-Fi cài đặt | `/setup` | Local setup AP (no SIM data), Wi-Fi provisioning and connection card |
+| Phát Wi-Fi từ SIM | `/hotspot` | APN and tethering; explicit cellular data consent, confirmation/rollback |
+| Quản lý | `/manage` | Site/system/admin access hub, LAN administrator password when on USB |
+| Website | `/website` | Static site editor/upload/delete/public link |
+
+The Windows backup/EDL/compatibility GUI is **separate from this Linux portal**.
+The `/manage` LAN password controls were moved from the crowded Wi-Fi page,
+but `/api/lan` retains its existing permission and confirmation rules. A
+Wi-Fi-authenticated LAN session may view the management hub but must use the
+USB port to change LAN access. The old page URLs remain available and no
+modem, network, site or setup action is triggered by visiting either hub.
+Capabilities omitted from an installation are omitted from its hub links.
+
+## Navigation changes — verification
+
+- Structural tests: route availability, old URL preservation, allowed links,
+  group highlighting, keyboard focus and presence of the existing LAN form.
+- GitHub CI provides Python/Node/Windows package checks, **not** a visual
+  acceptance on actual USB, phone, tablet or desktop viewport.
+- On-device check before deployment: open both hubs via USB, inspect narrow
+  phone layout and 5 dock items, then revisit SMS, USSD, Wi-Fi, saved profiles,
+  Internet policy, setup AP, SIM AP, Website, and LAN password forms.
+- Do **not** trigger a network change merely to test navigation. Preserve
+  saved Wi-Fi secrets, AP state, radio mode, LAN password, and Tunnel.
 
 ## Interpretation of metrics
 
