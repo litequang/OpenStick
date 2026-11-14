@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Kết nối</title></head>
+<body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><div><p class="portal-eyebrow">TRUNG TÂM KẾT NỐI</p><h1>Kết nối &amp; Internet</h1></div></div>
+<p class="muted">Chọn chức năng theo việc cần làm. Mở một mục không tự đổi Wi-Fi, bật dữ liệu SIM hoặc phát hotspot.</p>
+<section class="portal-feature-group" aria-labelledby="wifi-group-title">
+  <h2 id="wifi-group-title">Wi-Fi nhận Internet</h2>
+  <p class="metric-note">USB kết nối router để vận hành website và các dịch vụ.</p>
+  <div class="portal-feature-grid">
+    <a class="portal-feature-link" href="/"><strong>Wi-Fi đang sử dụng</strong><span>Trạng thái, quét mạng, kết nối hoặc đổi Wi-Fi, đo mẫu tải Internet</span></a>
+    {% if has_policy %}
+    <a class="portal-feature-link" href="/internet#saved-wifi"><strong>Wi-Fi đã lưu</strong><span>Xem, thử kết nối hoặc xóa mạng không sử dụng</span></a>
+    {% endif %}
+  </div>
+</section>
+{% if has_policy or has_modem %}
+<section class="portal-feature-group" aria-labelledby="internet-group-title">
+  <h2 id="internet-group-title">Nguồn Internet &amp; SIM</h2>
+  <p class="metric-note">Chọn nguồn Internet độc lập với việc SIM đăng ký mạng để dùng SMS/USSD.</p>
+  <div class="portal-feature-grid">
+    {% if has_policy %}
+    <a class="portal-feature-link" href="/internet"><strong>Chính sách Internet</strong><span>Ưu tiên Wi-Fi/SIM, dự phòng và tắt dữ liệu SIM</span></a>
+    {% endif %}
+    {% if has_modem %}
+    <a class="portal-feature-link" href="/modem/network"><strong>Mạng SIM (3G/4G)</strong><span>Trạng thái modem và lựa chọn công nghệ vô tuyến; không tự bật dữ liệu</span></a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if has_setup or has_hotspot %}
+<section class="portal-feature-group" aria-labelledby="access-point-group-title">
+  <h2 id="access-point-group-title">Điểm phát Wi-Fi</h2>
+  <p class="metric-note">Hai chế độ khác nhau, không hoạt động đồng thời trên Wi-Fi của thiết bị.</p>
+  <div class="portal-feature-grid">
+    {% if has_setup %}
+    <a class="portal-feature-link" href="/setup"><strong>Wi-Fi cài đặt (không SIM)</strong><span>Phát mạng nội bộ để điện thoại cấu hình lại khi mất Wi-Fi</span></a>
+    {% endif %}
+    {% if has_hotspot %}
+    <a class="portal-feature-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM</strong><span>Chia sẻ dữ liệu di động, cần đồng ý phát sinh cước và xác nhận chuyển chế độ</span></a>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+<p class="overview-foot">Quản trị qua USB vẫn có tại 172.16.42.1. Thay đổi kết nối hoặc hotspot cần xác nhận trên từng màn; không tự kích hoạt chỉ bằng cách mở trang.</p>
+</main></body></html>
