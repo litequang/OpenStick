@@ -62,8 +62,19 @@ jobs:
 
           [mirrors]
           EOF
-          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y --details-to-stdout init
+          # init asks text questions even with --assume-yes. Empty answers
+          # accept the configured defaults using the normal interactive path.
+          python3 -c 'print("\n" * 100)' > "$RUNNER_TEMP/init-defaults.txt"
+          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y --details-to-stdout init < "$RUNNER_TEMP/init-defaults.txt"
           git -C "$RUNNER_TEMP/pmaports" checkout --detach "$PMAPORTS_REV"
+          python3 - "$RUNNER_TEMP/pmbootstrap.cfg" <<'PY'
+          import configparser, sys
+          cfg = configparser.ConfigParser()
+          cfg.read(sys.argv[1])
+          expected = {'device': 'qcom-msm8916', 'kernel': 'extlinux', 'ui': 'console', 'service_manager': 'openrc'}
+          for key, value in expected.items():
+              assert cfg['pmbootstrap'][key] == value, (key, 'unexpected init result')
+          PY
           python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y status
       - name: Generate standard combined image
         run: |
