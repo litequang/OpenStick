@@ -1,13 +1,16 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Quản lý</title></head><body><main>
 {% include 'portal_chrome.html' %}
-<div class="page-title"><h1>Quản lý</h1></div>
-<p class="manage-intro">Các chức năng được sắp theo công việc. Chọn mục cần thay đổi để mở màn cài đặt tương ứng.</p>
-<section class="manage-group" aria-labelledby="manage-connectivity"><h2 id="manage-connectivity">Kết nối &amp; Internet</h2><div class="manage-grid">
-<a class="manage-link" href="/"><strong>Wi-Fi nhận Internet</strong><span>Xem kết nối, quét và đổi mạng Wi-Fi cho website.</span></a>
-{% if features.network %}<a class="manage-link" href="#saved-wifi"><strong>Wi-Fi đã lưu</strong><span>Xem các mạng USB đã nhớ và mạng đang kết nối.</span></a>
-<a class="manage-link" href="/internet"><strong>Nguồn Internet</strong><span>Chính sách Wi-Fi/SIM, ưu tiên và dự phòng.</span></a>{% endif %}
-{% if features.setup %}<a class="manage-link" href="/setup"><strong>Wi-Fi cài đặt</strong><span>Thiết lập qua điện thoại khi USB không kết nối được Wi-Fi.</span></a>{% endif %}
-{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM</strong><span>Cấu hình APN và điểm phát; dữ liệu SIM cần xác nhận riêng.</span></a>{% endif %}
+<div class="page-title"><div><p class="ux-eyebrow">THIẾT LẬP THIẾT BỊ</p><h1>Quản lý</h1></div></div>
+<p class="manage-intro">Chọn nhóm theo việc cần làm. Mở màn cài đặt không tự thay đổi Wi-Fi, SIM hay website.</p>
+<section class="manage-group" aria-labelledby="manage-connectivity">
+<h2 id="manage-connectivity">Kết nối &amp; Internet</h2>
+<p class="metric-note">Wi-Fi nhận mạng và điểm phát Wi-Fi là hai chế độ khác nhau.</p>
+<div class="manage-grid">
+<a class="manage-link" href="/"><strong>Kết nối Wi-Fi</strong><span>Kiểm tra, quét và đổi mạng Wi-Fi đang cấp Internet cho USB.</span></a>
+{% if features.network %}<a class="manage-link" href="#saved-wifi"><strong>Wi-Fi đã lưu</strong><span>Xem nhanh mạng đã nhớ và trạng thái kết nối hiện tại.</span></a>
+<a class="manage-link" href="/internet"><strong>Chính sách nguồn Internet</strong><span>Ưu tiên Wi-Fi/SIM, mạng dự phòng và quản lý kết nối đã lưu.</span></a>{% endif %}
+{% if features.setup %}<a class="manage-link" href="/setup"><strong>Wi-Fi cài đặt · không cần SIM</strong><span>Kết nối lại USB từ điện thoại khi mất mạng Wi-Fi.</span></a>{% endif %}
+{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM · có thể tính cước</strong><span>Cấu hình APN và chia sẻ Internet di động sau khi xác nhận.</span></a>{% endif %}
 </div></section>
 {% if features.network %}
 <section class="manage-group" id="saved-wifi" aria-labelledby="saved-wifi-title">
@@ -17,16 +20,32 @@
   <p class="manage-wifi-actions"><a href="/internet#saved-wifi">Kết nối hoặc quên mạng đã lưu →</a></p>
 </section>
 {% endif %}
-<section class="manage-group" aria-labelledby="manage-cellular"><h2 id="manage-cellular">SIM &amp; modem</h2><div class="manage-grid">
-<a class="manage-link" href="/modem/network"><strong>Chế độ mạng SIM</strong><span>Trạng thái đăng ký mạng, lựa chọn 3G/4G cho SMS và USSD.</span></a>
-<a class="manage-link" href="/modem/sms"><strong>Tin nhắn SMS</strong><span>Danh sách hội thoại, soạn và quản lý tin nhắn.</span></a>
-<a class="manage-link" href="/modem/ussd"><strong>USSD</strong><span>Gửi mã và xem kết quả từng phiên.</span></a>
+<section class="manage-group" aria-labelledby="manage-cellular">
+<h2 id="manage-cellular">SIM &amp; liên lạc</h2>
+<div class="manage-grid">
+<a class="manage-link" href="/modem/network"><strong>Chế độ mạng SIM</strong><span>Trạng thái và lựa chọn 3G/4G cho SMS, USSD; không tự bật dữ liệu SIM.</span></a>
+<a class="manage-link" href="/modem/sms"><strong>Tin nhắn SMS</strong><span>Hội thoại, soạn tin và tùy chọn đồng bộ.</span></a>
+<a class="manage-link" href="/modem/ussd"><strong>USSD</strong><span>Tra tài khoản, gửi mã và xử lý phiên USSD.</span></a>
 </div></section>
-<section class="manage-group" aria-labelledby="manage-services"><h2 id="manage-services">Website &amp; hệ thống</h2><div class="manage-grid">
-{% if features.website %}<a class="manage-link" href="/website"><strong>Nội dung website</strong><span>Quản lý các tệp HTML, CSS, JS và tài nguyên web.</span></a>{% endif %}
-<a class="manage-link" href="/overview"><strong>Thiết bị &amp; dịch vụ</strong><span>RAM, lưu trữ, nhiệt độ và trạng thái dịch vụ.</span></a>
-{% if features.lan %}<a class="manage-link" href="/#lan-status"><strong>Quản trị LAN</strong><span>Truy cập giao diện quản lý qua Wi-Fi nội bộ.</span></a>{% endif %}
+<section class="manage-group" aria-labelledby="manage-services">
+<h2 id="manage-services">Website &amp; hệ thống</h2>
+<div class="manage-grid">
+{% if features.website %}<a class="manage-link" href="/website"><strong>Quản lý website</strong><span>Danh sách file, chỉnh sửa, tải lên và xuất bản website tĩnh.</span></a>{% endif %}
+<a class="manage-link" href="/overview"><strong>Sức khỏe thiết bị</strong><span>RAM, nhiệt độ, eMMC, swap, trạng thái kết nối và dịch vụ.</span></a>
 </div></section>
+{% if can_manage_lan %}
+<section class="manage-group ux-security-group" id="lan-access">
+<h2>Truy cập quản trị qua Wi-Fi</h2>
+<p class="metric-note">Chỉ cấu hình bằng kết nối USB. Đây là mật khẩu quản trị, khác mật khẩu Wi-Fi của router và mật khẩu hotspot.</p>
+<details class="ux-advanced" id="lan-manage"><summary>Thiết lập hoặc đổi mật khẩu quản trị LAN</summary>
+<script>const token={{ token|tojson }};</script>
+{% include 'lan_settings.html' %}
+</details></section>
+{% elif lan_session %}
+<section class="manage-group ux-security-group" id="lan-access"><h2>Truy cập quản trị qua Wi-Fi</h2>
+<p>Bạn đang đăng nhập qua Wi-Fi nội bộ. Để đổi mật khẩu hoặc tắt truy cập này, kết nối USB với PC rồi mở màn Quản lý.</p></section>
+{% endif %}
+<p class="overview-foot">Mọi chức năng có thể thay đổi kết nối, phát sinh cước hoặc xóa dữ liệu vẫn yêu cầu xác nhận tại màn thao tác.</p>
 </main>
 {% if features.network %}<script>const savedWifiToken={{ token|tojson }};</script><script src="/static/manage.js"></script>{% endif %}
 </body></html>

@@ -157,7 +157,12 @@ def test_separate_pages_contain_only_their_own_forms(section, present, absent):
     assert response.status_code == 200
     assert f'id="{present}"' in response.text
     assert all(f'id="{field}"' not in response.text for field in absent)
-    assert 'id="network-status"' in response.text and 'aria-current="page"' in response.text
+    assert 'id="network-status"' in response.text
+    if section == 'network':
+        assert 'data-section-active="true"' in response.text
+        assert 'href="/manage"' in response.text
+    else:
+        assert 'aria-current="page"' in response.text
     assert client.get('/modem/invalid', headers={'Host': '172.16.42.1'}).status_code == 404
 
 

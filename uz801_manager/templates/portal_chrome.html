@@ -11,6 +11,7 @@
 {% else %}<rect x="3" y="8" width="18" height="12" rx="3"/><path d="M7 8V4m10 4V4M7 15h.01M12 15h5"/>{% endif %}</svg>
 {%- endmacro %}
 <link rel="stylesheet" href="/static/portal.css">
+<a class="portal-skip-link" href="#portal-content">Bỏ qua điều hướng</a>
 <header class="portal-header" data-status-token="{{ token }}">
   <a class="portal-brand" href="/overview">OpenStick <small>UZ801 V3.2</small></a>
   <div class="status-strip" aria-label="Trạng thái thiết bị">
@@ -23,9 +24,13 @@
   </div>
 </header>
 {% if lan_session %}<div class="access-banner"><span>Đã đăng nhập qua Wi-Fi</span><form action="/logout" method="post"><input type="hidden" name="csrf" value="{{ logout_csrf }}"><button class="secondary" style="min-height:32px;padding:4px 10px;font-size:12px">Đăng xuất</button></form></div>{% endif %}
+{% if page in ['network', 'internet', 'setup', 'hotspot', 'website'] %}
+<div class="portal-breadcrumb"><a href="/manage">← Quản lý</a><span aria-hidden="true">/</span><span>{{ {'network':'Mạng SIM', 'internet':'Nguồn Internet', 'setup':'Wi-Fi cài đặt', 'hotspot':'Phát Wi-Fi từ SIM', 'website':'Website'}[page] }}</span></div>
+{% endif %}
+<div id="portal-content" tabindex="-1"></div>
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính">
 {% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi','/','wifi'),('manage','Quản lý','/manage','manage')] %}
-  <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% endif %}"{% if (key == 'manage' and request.path in ['/manage','/modem/network','/internet','/hotspot','/setup','/website']) or (key == 'wifi' and request.path == '/') or (key not in ['manage','wifi'] and page == key) %} aria-current="page"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>
+  <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% endif %}"{% if (key == 'manage' and page == 'manage') or (key == 'wifi' and page == 'wifi') or (key not in ['manage','wifi'] and page == key) %} aria-current="page"{% elif key == 'manage' and page in ['network','internet','hotspot','setup','website'] %} data-section-active="true"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>
 {% endfor %}
 </nav>
 <script src="/static/portal_nav.js"></script>

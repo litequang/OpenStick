@@ -201,11 +201,11 @@ class LinuxWifi:
 
 
 HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenStick — Wi-Fi & Web</title><style>
+<title>OpenStick — Kết nối Wi-Fi</title><style>
 *{box-sizing:border-box}body{margin:0;font:16px system-ui;background:#f2f6fa;color:#173047}main{max-width:740px;margin:5vh auto;padding:24px}section{background:white;padding:24px;border-radius:18px;box-shadow:0 8px 40px #17304710;margin:20px 0}h1{font-size:30px;margin-bottom:8px}p{line-height:1.6}.sub{color:#52677b}label{display:block;margin:18px 0 8px}input,select,button{font:inherit;padding:12px;border-radius:9px;border:1px solid #c9d5df}input,select{width:100%}button{cursor:pointer;background:#006d77;color:white;border:0;margin-top:16px}button.secondary{background:#e6eff4;color:#173047}button:disabled{opacity:.5;cursor:wait}#status{padding:14px;background:#eaf3f6;border-radius:9px;white-space:pre-wrap}.row{display:flex;gap:12px;flex-wrap:wrap}small{color:#52677b}a{color:#006d77}</style>
-<main><h1>Wi-Fi & Web</h1><p class="sub">Chọn Wi-Fi cấp Internet cho website và Cloudflare Tunnel. Cấu hình SIM nằm ở màn Mạng SIM.</p>
+<main><div class="ux-page-lead"><h1>Wi-Fi nhận Internet</h1><p class="sub">Kiểm tra và kết nối USB vào Wi-Fi nhà hoặc văn phòng để vận hành website. Các cài đặt mạng nâng cao nằm trong <a href="/manage">Quản lý</a>.</p></div>
 <section><h2>Wi-Fi đang sử dụng</h2><div id="status" role="status">Đang kiểm tra kết nối USB…</div><button id="check" class="secondary">Cập nhật trạng thái</button><p><small>Tự cập nhật mỗi 15 giây khi mở trang. Tốc độ liên kết TX/RX do driver báo, không phải tốc độ tải Internet.</small></p></section>
-<section><h2>Tốc độ tải Internet qua Wi-Fi</h2><div id="speed-result" role="status">Chưa đo. Phép đo tải 2 MiB từ Cloudflare qua Wi-Fi, không thử tải lên.</div><button id="speed" disabled>Đo tốc độ tải Internet</button><p><small>Kết quả là mẫu tải ngắn tới một máy chủ; không phải cam kết băng thông. Chỉ đo khi bạn bấm nút.</small></p></section>
+<details class="ux-advanced"><summary>Đo tốc độ Wi-Fi (tùy chọn)</summary><section><h2>Tốc độ tải Internet qua Wi-Fi</h2><div id="speed-result" role="status">Chưa đo. Phép đo tải 2 MiB từ Cloudflare qua Wi-Fi, không thử tải lên.</div><button id="speed" disabled>Đo tốc độ tải Internet</button><p><small>Kết quả là mẫu tải ngắn tới một máy chủ; không phải cam kết băng thông. Chỉ đo khi bạn bấm nút.</small></p></section></details>
 <section><details id="wifi-settings" open><summary id="wifi-summary" style="cursor:pointer;font-weight:600">Chọn Wi-Fi để kết nối</summary><button id="scan" class="secondary">Tìm mạng Wi-Fi</button>
 <label for="networks">Mạng tìm thấy</label><select id="networks"><option value="">Chọn mạng hoặc nhập tên bên dưới</option></select>
 <form id="wifi"><label for="ssid">Tên Wi-Fi (SSID)</label><input id="ssid" name="ssid" maxlength="32" autocomplete="off" required>
@@ -269,16 +269,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
         if usb_portal and modem_backend is not None:
             page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi', token=token), 1)
-        if usb_portal and lan_settings is not None and lan_auth is None:
-            page = page.replace('</main>', render_template('lan_settings.html') + '</main>', 1)
-        if usb_portal and site_backend is not None:
-            page = page.replace('</main>', '<section><h2>Quản lý website</h2><p>Tạo và sửa HTML/CSS/JS, tải hình ảnh và tài nguyên cho web tĩnh.</p><a href="/website">Mở trình quản lý Website →</a></section></main>', 1)
-        if usb_portal and hotspot_backend is not None:
-            page = page.replace('</main>', '<section><h2>Phát Wi-Fi từ SIM 4G</h2><p>Dùng SIM làm nguồn Internet cho website và điểm phát Wi-Fi của USB.</p><a href="/hotspot">Cài đặt SIM → Wi-Fi →</a></section></main>', 1)
-        if usb_portal and network_backend is not None:
-            page = page.replace('</main>', '<section><h2>Nguồn Internet &amp; Wi-Fi đã lưu</h2><p>Chọn ưu tiên Wi-Fi/SIM, dự phòng và chuyển giữa các mạng đã lưu.</p><a href="/internet">Quản lý nguồn Internet →</a></section></main>', 1)
-        if usb_portal and setup_backend is not None:
-            page = page.replace('</main>', '<section><h2>Wi-Fi cài đặt tự động</h2><p>Không nối được Wi-Fi đã lưu: USB tự phát hotspot để điện thoại vào cài, không cần SIM.</p><a href="/setup">Cài đặt &amp; lưu thẻ kết nối →</a></section></main>', 1)
+        if usb_portal and modem_backend is not None:
+            page = page.replace('</main>', '<section class="ux-compact-link"><h2>Thiết lập nâng cao</h2><p class="muted">Nguồn Internet, SIM, Wi-Fi cài đặt, điểm phát và website được phân nhóm riêng.</p><a class="ux-link-cta" href="/manage">Mở trung tâm Quản lý →</a></section></main>', 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -345,7 +337,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             features = {'network': network_backend is not None, 'setup': setup_backend is not None,
                         'hotspot': hotspot_backend is not None, 'website': site_backend is not None,
                         'lan': lan_settings is not None and lan_auth is None}
-            return render_template('manage.html', token=token, page='manage', features=features)
+            return render_template('manage.html', token=token, page='manage', features=features,
+                                   can_manage_lan=lan_settings is not None and lan_auth is None)
         from .modem import register_modem_routes
         register_modem_routes(app, modem_backend, token)
     if usb_portal and lan_settings is not None and lan_auth is None:
