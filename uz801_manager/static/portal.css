@@ -28,3 +28,28 @@ button[hidden]{display:none!important}.notice,#status{background:#151b25!importa
 @media(prefers-reduced-motion:reduce){.app-bottom-nav,.metric-fill{transition:none}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.app-bottom-nav,.portal-header{background:#1d2029}}
 @media(prefers-reduced-transparency:reduce){.app-bottom-nav,.portal-header{background:#1d2029;backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* Shared device-management shortcuts stay available without replacing the five-item dock. */
+.portal-skip-link{position:fixed;z-index:100;left:16px;top:8px;transform:translateY(-160%);background:#dbeafe;color:#0b2545!important;border:2px solid #60a5fa;border-radius:9px;padding:9px 14px;font-weight:700;text-decoration:none}
+.portal-skip-link:focus-visible{transform:translateY(0)}
+.portal-management{margin:12px 0 4px}
+.portal-management-details{border:1px solid #303b4a;border-radius:12px;background:#1b212b}
+.portal-management-details>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:9px 15px;cursor:pointer;list-style:none;color:#dbeafe;font-size:13px;font-weight:650}
+.portal-management-details>summary::-webkit-details-marker{display:none}
+.portal-management-details>summary:after{content:"⌄";color:#9cb6d4;font-size:17px;line-height:1;transition:transform 160ms ease}
+.portal-management-details[open]>summary:after{transform:rotate(180deg)}
+.portal-management-title{display:flex;align-items:center;gap:9px;min-width:0;margin-right:auto}
+.portal-management-title svg{width:18px;height:18px;flex:none;color:#85baff}
+.portal-management-count{color:#a2adbd;font-size:11px;font-weight:500;white-space:nowrap}
+.portal-management-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 12px 12px}
+.portal-management-link{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:70px;padding:11px 12px;border-radius:10px;text-decoration:none;background:#252d3a;border:1px solid #303d50;overflow-wrap:anywhere}
+.portal-management-link:hover,.portal-management-link:focus-visible{background:#2b3a50;border-color:#568ac8}
+.portal-management-link[aria-current="page"]{border-color:#6bacfb;background:#233c5a}
+.portal-management-link strong{font-size:13px;font-weight:650;color:#dbeafe}
+.portal-management-link small{font-size:11px;line-height:1.4;color:#a2adbd!important}
+#portal-content{scroll-margin-top:92px}
+.app-bottom-nav-item>span:last-child{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-inline:2px}
+.portal-management-details>summary:focus-visible,.portal-management-link:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #92c7ff;outline-offset:2px}
+@media(max-width:620px){.portal-management-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:359px){.portal-management-links{grid-template-columns:1fr}.portal-management-count{display:none}}
+@media(prefers-reduced-motion:reduce){.portal-management-details>summary:after{transition:none}}
