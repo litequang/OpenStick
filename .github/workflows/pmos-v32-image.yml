@@ -32,6 +32,9 @@ jobs:
           git -C "$RUNNER_TEMP/pmbootstrap" fetch --depth 1 origin "$PMBOOTSTRAP_REV"
           git -C "$RUNNER_TEMP/pmbootstrap" checkout --detach "$PMBOOTSTRAP_REV"
           git clone --depth 1 --branch v26.06 https://gitlab.postmarketos.org/postmarketOS/pmaports.git "$RUNNER_TEMP/pmaports"
+          # pmbootstrap reads channels.cfg from origin/main even for a stable
+          # channel. Fetch that metadata ref without changing the pinned tree.
+          git -C "$RUNNER_TEMP/pmaports" fetch --depth 1 origin main:refs/remotes/origin/main
           git -C "$RUNNER_TEMP/pmaports" fetch --depth 1 origin "$PMAPORTS_REV"
           git -C "$RUNNER_TEMP/pmaports" checkout --detach "$PMAPORTS_REV"
           test "$(git -C "$RUNNER_TEMP/pmbootstrap" rev-parse HEAD)" = "$PMBOOTSTRAP_REV"
