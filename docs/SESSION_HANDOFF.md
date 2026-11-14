@@ -1,5 +1,30 @@
 # Handoff — 2026-11-14, home machine
 
+## Latest update: state-first LED mixes and stable telemetry
+
+`272777e` is installed on the actual USB. The LED page now follows the owner's
+requested model: select a network state, then choose off/on/blink independently
+for red, green and blue, with per-color timing. Save enables complete recipes
+and retains edits across state selection. A supervised LED worker reads role
+metadata and updates only changed outputs. Existing fixed settings and their
+baseline remain compatible; no recipe was enabled by deployment itself.
+
+Header/overview retain the last good readings during polling, missing samples
+and request failures; stale values are identified. Actual disconnect/no-SIM
+and valid zeros still update. The unsupported eMMC health card is hidden:
+actual driver health fields are zero/unreported, while write counters work.
+
+Full suite: **436 passed / one Windows symlink skip**, 92.43 s. Real driver
+probe on the current disconnected role verified simultaneous red steady,
+green 200/800 ms and blue 700/300 ms timers, both brightness phases, no writes
+on unchanged polling, and saved recipe replay. Owner configuration and all
+LEDs were restored afterward. Other role transitions use injected metadata
+tests; new UI visual acceptance/reboot are untested. No SIM data or Wi-Fi
+activation was performed for these tests. Latest observed WLAN/cellular are
+disconnected; five station profiles remain. Do not reuse the older SIM AP
+checkpoint as current state. Detailed file list, backups, rollback and limits:
+[LED state rules and dashboard report](LED_STATE_RULES_AND_DASHBOARD_2026_11_15.md).
+
 ## Latest follow-up: Android hotspot hostname accepted
 
 The owner reported IP administration worked but Android returned

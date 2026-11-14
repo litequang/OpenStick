@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**Bản mới nhất `272777e`:** đã cài LED theo trạng thái: chọn trạng thái rồi
+phối ba màu tắt/sáng/nháy với thời gian riêng. Worker LED được supervise, đọc
+metadata mỗi khoảng 3 giây, không đổi mạng hay probe SIM. Cấu hình cũ/baseline
+được giữ; deployment không tự bật quy tắc mới. Đã thử driver thật đồng thời đỏ
+sáng, xanh lá 200/800 ms, xanh dương 700/300 ms; lấy mẫu đủ hai pha, replay đạt,
+sau đó khôi phục đèn/cấu hình chủ. Role thật lúc thử là offline; các role khác
+được test bằng metadata giả, chưa nhận là thử chuyển mạng thật. Header/Tổng
+quan giữ số liệu cũ trong lúc refresh/lỗi, có đánh dấu cũ; trạng thái ngắt mạng,
+mất SIM và số 0 thật vẫn cập nhật. Ô sức khỏe eMMC không có dữ liệu được ẩn;
+lượng ghi vẫn giữ. 436 tests pass / 1 skip. Xem phần đầu handoff và
+`docs/LED_STATE_RULES_AND_DASHBOARD_2026_11_15.md`. Mới đọc USB: Wi-Fi/data đều
+ngắt, không pending; không tự bật SIM theo các checkpoint cũ bên dưới.
+
 **Tên quản trị trên Android đã xác nhận:** cấu hình DNS `5660c77` đã cài.
 Android trước đó báo NXDOMAIN dù mDNS trên wlan0 trả đúng AP; đã thêm DNS
 thường cho `openstick.local` vào dnsmasq hotspot. Chủ nối lại Wi-Fi và xác nhận
