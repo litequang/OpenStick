@@ -1,20 +1,22 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Phát Wi-Fi từ SIM</title></head><body><main>
 {% include 'portal_chrome.html' %}
-<div class="page-title"><h1>Phát Wi-Fi</h1><a href="/">Wi-Fi &amp; Web</a></div>
-<section><h2>Wi-Fi cài đặt — không cần SIM</h2><p>Khi không nối được Wi-Fi đã lưu, USB tự phát hotspot để điện thoại vào cài. Không cần SIM hoặc gói dữ liệu; chỉ cắm nguồn là dùng được sau khi đã bật tính năng và lưu thông tin kết nối.</p><a href="/setup">Wi-Fi cài đặt tự động &amp; thẻ kết nối →</a></section>
-<h2>Chia sẻ Internet từ SIM (tùy chọn)</h2>
+<div class="page-title"><h1>Phát Wi-Fi từ SIM</h1><a href="/manage">← Quản lý</a></div>
+<section class="ux-compact-link"><h2>Chỉ cần cấu hình Wi-Fi, không cần Internet SIM?</h2><p>Khi không nối được Wi-Fi đã lưu, USB tự phát hotspot để điện thoại vào cài. Không cần SIM hoặc gói dữ liệu; chỉ cắm nguồn là dùng được sau khi đã bật tính năng và lưu thông tin kết nối.</p><a href="/setup">Wi-Fi cài đặt tự động &amp; thẻ kết nối →</a></section>
+<h2>Chia sẻ dữ liệu SIM qua Wi-Fi</h2>
 <p>SIM cấp Internet cho web, Tunnel và điện thoại kết nối Wi-Fi của USB. Chế độ này thay Wi-Fi đang nhận mạng; không nhận và phát lại Wi-Fi cùng lúc.</p>
 <section><h2>Trạng thái</h2><p id="hotspot-status" role="status" style="white-space:pre-wrap">Đang kiểm tra…</p><button id="hotspot-refresh" class="secondary">Kiểm tra lại</button><p class="metric-note">Driver có AP không đồng nghĩa đã thử thành công hotspot. Cần kiểm tra điện thoại nhận IP, truy cập Internet và website sau lần bật đầu.</p></section>
-<section><h2>Cấu hình điểm phát</h2><form id="hotspot-settings">
+<section><h2><span class="ux-step">1</span> Cấu hình điểm phát</h2><p class="ux-form-note">Lưu cấu hình không tự bật dữ liệu di động.</p><form id="hotspot-settings">
 <label for="hotspot-ssid">Tên Wi-Fi USB sẽ phát</label><input id="hotspot-ssid" maxlength="32" required placeholder="OpenStick-4G" autocomplete="off">
 <label for="hotspot-password">Mật khẩu Wi-Fi (8–63 ký tự ASCII)</label><input id="hotspot-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password">
+<details class="ux-advanced"><summary>APN và kênh phát (nâng cao)</summary>
 <label for="hotspot-channel">Kênh 2,4 GHz</label><select id="hotspot-channel"><option>1</option><option selected>6</option><option>11</option></select>
 <label for="hotspot-apn">APN của SIM</label><input id="hotspot-apn" maxlength="100" placeholder="Để trống: tự nhận theo cơ sở dữ liệu nhà mạng" autocomplete="off">
 <p class="metric-note">Tự nhận APN dùng cơ sở dữ liệu nhà mạng trên USB. Nếu thất bại, nhập APN Internet do nhà mạng cung cấp. Không nhập mã PIN SIM vào đây. Không bật roaming.</p>
+</details>
 <button id="hotspot-save">Chỉ lưu cấu hình</button></form></section>
-<section><h2>Bật / tắt</h2><p>Lần bật thử: kết nối Internet SIM trước, sau đó đổi sang AP. Nếu không xác nhận giữ trong khoảng 5 phút, thiết bị tự quay lại kết nối trước đó.</p>
+<section><h2><span class="ux-step">2</span> Bật thử và xác nhận</h2><p class="ux-callout ux-warning">Bật thử sẽ chuyển Wi-Fi sang chế độ phát và dùng dữ liệu SIM, có thể phát sinh cước. Sau khi nối điện thoại với Wi-Fi USB, bạn phải xác nhận giữ chế độ trong 5 phút; nếu không, thiết bị cố gắng quay lại mạng trước đó.</p>
 <label class="checkline"><input id="hotspot-consent" type="checkbox"> Tôi đồng ý dùng dữ liệu SIM (có thể phát sinh cước), thay kết nối Wi-Fi hiện tại và sẽ kết nối lại để xác nhận.</label>
-<p><button id="hotspot-start" disabled>Bật thử SIM → Wi-Fi</button> <button id="hotspot-stop" class="secondary" disabled>Tắt hotspot &amp; dữ liệu SIM</button></p>
+<p><button id="hotspot-start" disabled>Bật thử SIM → Wi-Fi</button> <button id="hotspot-stop" class="secondary ux-danger" disabled>Tắt hotspot &amp; dữ liệu SIM</button></p>
 <div id="hotspot-transition" hidden><p>Kết nối điện thoại vào tên Wi-Fi USB vừa đặt, rồi mở <a href="http://192.168.8.1:8765/hotspot">http://192.168.8.1:8765/hotspot</a>. Đăng nhập bằng mật khẩu quản trị đã đặt; đây là mật khẩu riêng với Wi-Fi.</p><p>USB cắm máy tính vẫn quản trị được tại <a href="http://172.16.42.1/hotspot">172.16.42.1/hotspot</a>.</p></div>
 <div id="hotspot-pending" hidden><p id="hotspot-countdown"></p><button id="hotspot-keep">Tôi đã kết nối được — giữ chế độ này</button></div>
 <p id="hotspot-notice" role="status" aria-live="polite"></p>
