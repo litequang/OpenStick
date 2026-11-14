@@ -269,15 +269,18 @@ def test_missing_live_checkpoint_cannot_enable_autoconnect(setup_hotspot):
     assert network.auto == {}
 
 
-def test_internet_probe_binds_both_https_and_dns_to_actual_modem_interface():
+@pytest.mark.parametrize('raw,expected', [('192.0.2.53\n','192.0.2.53'),
+    ('192.0.2.53\n192.0.2.54\n','192.0.2.53,192.0.2.54'),
+    ('192.0.2.53 | 192.0.2.54','192.0.2.53,192.0.2.54')])
+def test_internet_probe_binds_both_https_and_dns_to_actual_modem_interface(raw,expected):
     calls = []
     def run(args, **kwargs):
         calls.append(args)
         assert kwargs['shell'] is False
-        if args[0] == 'nmcli':return subprocess.CompletedProcess(args, 0, '192.0.2.53\n')
+        if args[0] == 'nmcli':return subprocess.CompletedProcess(args, 0, raw)
         assert args[args.index('--interface') + 1] == 'wwan4'
         assert args[args.index('--dns-interface') + 1] == 'wwan4'
-        assert args[args.index('--dns-servers') + 1] == '192.0.2.53'
+        assert args[args.index('--dns-servers') + 1] == expected
         assert '--max-filesize' in args and '--max-time' in args and '--proxy' in args
         assert args[-1] == 'https://cp.cloudflare.com/generate_204'
         return subprocess.CompletedProcess(args, 0, '204')

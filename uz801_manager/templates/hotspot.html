@@ -38,7 +38,16 @@ messages.AP_START_FAILED='Chưa khởi động được điểm phát Wi-Fi. Đ�
 messages.HOTSPOT_NOT_CONFIGURED='Lưu tên và mật khẩu điểm phát trước khi bật thử.';
 messages.CELLULAR_UNAVAILABLE='Chưa tìm thấy giao diện dữ liệu SIM phù hợp trên USB.';
 messages.CHECKPOINT_UNAVAILABLE='Chưa tạo được điểm khôi phục mạng. Kiểm tra lại qua USB.';
-function drawHotspot(s){hotspotState=s;h('hotspot-status').textContent=`AP từ driver: ${s.ap_supported?'có':'chưa có'}\nWi-Fi USB: ${s.hotspot_active?'đang phát '+s.ssid:'chưa phát'}\nDữ liệu SIM: ${s.cellular_connected?'đã kết nối':'chưa kết nối'}\nTự bật sau cấp nguồn: ${s.enabled?'đã lưu':'chưa bật'}\nKiểm chứng: ${s.verification==='UNVERIFIED'?'chưa kiểm thử đầu cuối':'đã kiểm tra liên kết trên USB; cần xác nhận điện thoại'}`;if(!loaded&&s.configured){h('hotspot-ssid').value=s.ssid;h('hotspot-apn').value=s.apn;h('hotspot-channel').value=s.channel}loaded=true;h('hotspot-start').disabled=hotspotBusy||!s.configured||!s.ap_supported||s.hotspot_active||s.pending||!h('hotspot-consent').checked;h('hotspot-stop').disabled=hotspotBusy||!s.configured;h('hotspot-pending').hidden=!s.pending;h('hotspot-transition').hidden=!(s.pending||s.hotspot_active);h('hotspot-countdown').textContent=`Còn khoảng ${s.seconds_remaining} giây để xác nhận. Nếu không, sẽ quay về kết nối cũ.`;}
+function drawHotspot(s){
+ hotspotState=s;
+ h('hotspot-status').textContent=`AP từ driver: ${s.ap_supported?'có':'chưa có'}\nWi-Fi USB: ${s.hotspot_active?'đang phát '+s.ssid:'chưa phát'}\nDữ liệu SIM: ${s.cellular_connected?'đã kết nối':'chưa kết nối'}\nTự bật sau cấp nguồn: ${s.enabled?'đã lưu':'chưa bật'}\nKiểm chứng: ${s.verification==='UNVERIFIED'?'chưa kiểm thử đầu cuối':'đã kiểm tra liên kết trên USB; cần xác nhận điện thoại'}`;
+ if(!loaded&&s.configured){h('hotspot-ssid').value=s.ssid;h('hotspot-apn').value=s.apn;h('hotspot-channel').value=s.channel}loaded=true;
+ h('hotspot-start').disabled=hotspotBusy||!s.configured||!s.ap_supported||s.hotspot_active||s.pending||!h('hotspot-consent').checked;
+ h('hotspot-stop').disabled=hotspotBusy||!s.configured;
+ h('hotspot-pending').hidden=!s.pending;h('hotspot-transition').hidden=!s.hotspot_active;
+ h('hotspot-keep').disabled=hotspotBusy||!s.pending||!s.hotspot_active||!s.cellular_connected||s.seconds_remaining<=0;
+ h('hotspot-countdown').textContent=s.hotspot_active?`Còn khoảng ${s.seconds_remaining} giây để xác nhận. Nếu không, sẽ quay về kết nối cũ.`:`Wi-Fi chưa phát, chưa thể xác nhận giữ chế độ. Thiết bị sẽ cố gắng khôi phục mạng trước sau khoảng ${s.seconds_remaining} giây.`;
+}
 function drawApn(s,initial=false){
  h('hotspot-apn-current').textContent='APN đã lưu: '+(s.apn?'thủ công — '+s.apn:'tự nhận theo nhà mạng (chưa xác minh kết nối Internet)');
  if(initial)h('hotspot-apn-mode').value=s.apn?'manual':'auto';

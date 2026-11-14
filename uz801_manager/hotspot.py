@@ -103,8 +103,9 @@ class Network:
     def internet(self, interface, control):
         if not interface or not re.fullmatch('[A-Za-z0-9_.-]{1,32}', interface):return False
         try:
-            values = self.nm('-g', 'IP4.DNS', 'device', 'show', control).splitlines()
-            dns = [str(ipaddress.IPv4Address(v)) for v in values[:4]]
+            # NM may render this array as either separate lines or "A | B".
+            values = re.split(r'\s*\|\s*|\r?\n', self.nm('-g', 'IP4.DNS', 'device', 'show', control))
+            dns = [str(ipaddress.IPv4Address(v.strip())) for v in values[:4] if v.strip()]
             if not dns:return False
             for url in ('https://cp.cloudflare.com/generate_204', 'https://www.gstatic.com/generate_204'):
                 result = self.run(['curl', '--silent', '--show-error', '--fail', '--proxy', '', '--noproxy', '*',
