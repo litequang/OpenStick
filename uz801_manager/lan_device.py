@@ -11,6 +11,7 @@ from .hosting_device import LocalWifi
 from .lan_access import LanSettings
 from .modem_device import ModemManager
 from .static_site import StaticSite
+from .hotspot import Hotspot
 
 
 def wifi_ipv4():
@@ -44,7 +45,7 @@ def main():
         return address + ':8765' if address else None
     app = create_hosting_app(backend=LocalWifi(), modem_backend=ModemManager(), usb_portal=True,
                              hostname=hostname, lan_auth=settings,
-                             authority=authority, site_backend=StaticSite())
+                             authority=authority, site_backend=StaticSite(), hotspot_backend=Hotspot())
     with lan_socket() as sock:
         serve(app, sockets=[sock], threads=2, channel_timeout=30, max_request_body_size=1500000, ident='OpenStick')
 

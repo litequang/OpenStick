@@ -17,8 +17,10 @@ from waitress import serve
 
 REMOTE = r'''
 import hashlib,json,os,re,shutil,subprocess,sys,uuid
+from contextlib import ExitStack
 if os.path.isdir('/opt/openstick'):sys.path.insert(0,'/opt/openstick')
 value=json.load(sys.stdin)
+guard=ExitStack()
 def run(args,timeout=15):
     p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
     if p.returncode:raise RuntimeError('NETWORK_OPERATION_FAILED')
@@ -43,6 +45,8 @@ def wifi_status():
             'signal_dbm':None,'tx_mbps':None,'rx_mbps':None,
             'ipv4':[v for k,v in rows.items() if k.startswith('IP4.ADDRESS')],
             'gateway':rows.get('IP4.GATEWAY','')}
+    result['hotspot_active']=result['connected'] and result['connection']=='openstick-hotspot'
+    if result['hotspot_active']:result['connected']=False
     if result['connected']:
         try:cached=run(['nmcli','-t','-e','yes','-f','IN-USE,SSID,SIGNAL','device','wifi','list','ifname','wlan0','--rescan','no'])
         except (RuntimeError,OSError,subprocess.SubprocessError):cached=''
@@ -85,6 +89,12 @@ def download_speed():
             'duration_s':round(float(output[3]),2),'bytes':size,'interface':'wlan0'}
 try:
     action=value['action']
+    if action in ('scan','connect','speed') and os.path.isdir('/opt/openstick'):
+        from uz801_manager.hotspot import Hotspot,Network,AP_UUID,network_lock
+        guard.enter_context(network_lock())
+        hotspot=Hotspot()
+        if (hotspot.read('hotspot.json').get('enabled') or hotspot.read('hotspot-pending.json')
+                or Network().active('wlan0')==AP_UUID):raise RuntimeError('HOTSPOT_ACTIVE')
     if action=='scan':
         output=run(['nmcli','-t','-e','yes','-f','SSID,SIGNAL,SECURITY','device','wifi','list','ifname','wlan0','--rescan','yes'])
         networks={}
@@ -129,6 +139,7 @@ try:
     print(json.dumps(result))
 except Exception:
     print(json.dumps({'error':'NETWORK_OPERATION_FAILED'}));sys.exit(1)
+finally:guard.close()
 '''
 
 
@@ -169,14 +180,14 @@ HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewp
 <script>
 const token=__OPENSTICK_BOOTSTRAP_TOKEN__||new URLSearchParams(location.hash.slice(1)).get('token')||sessionStorage.getItem('openstick-hosting-token')||'';if(token)sessionStorage.setItem('openstick-hosting-token',token);history.replaceState(null,'',location.pathname);
 const status=document.getElementById('status'),networks=document.getElementById('networks'),notice=document.getElementById('operation-status');let busy=false,wifiConnected=false,initialized=false;
-function renderStatus(s){if(typeof renderHeader==='function')renderHeader(s.modem_status);wifiConnected=s.connected===true;const details=document.getElementById('wifi-settings');if(!initialized||!wifiConnected)details.open=!wifiConnected;initialized=true;document.getElementById('wifi-summary').textContent=wifiConnected?'Đổi Wi-Fi':'Chọn Wi-Fi để kết nối';const quality=s.signal_percent==null?'chưa có số liệu':`${s.signal_percent}%`;const dbm=s.signal_dbm==null?'':` (${s.signal_dbm} dBm)`;const rate=value=>value==null?'chưa có số liệu':`${value} Mbps`;status.textContent=`Wi-Fi: ${wifiConnected?'đã kết nối':'chưa kết nối'}\nTên mạng: ${s.ssid||'chưa xác định'}\nMức sóng: ${quality}${dbm}\nLiên kết TX: ${rate(s.tx_mbps)} • RX: ${rate(s.rx_mbps)}\nIPv4: ${(s.ipv4||[]).join(', ')||'chưa có'}\nGateway: ${s.gateway||'chưa có'}\nIP quản trị USB: 172.16.42.1 (riêng với IP Wi-Fi)`;document.getElementById('speed').disabled=busy||!wifiConnected}
+function renderStatus(s){if(typeof renderHeader==='function')renderHeader(s.modem_status);wifiConnected=s.connected===true;const details=document.getElementById('wifi-settings');details.hidden=s.hotspot_active===true;if(s.hotspot_active){details.open=false;status.textContent='Wi-Fi đang phát từ USB. Quản lý tại mục Phát Wi-Fi từ SIM 4G bên dưới. Internet cho web dùng phiên dữ liệu SIM; không phải Wi-Fi nhà.';document.getElementById('speed').disabled=true;return}if(!initialized||!wifiConnected)details.open=!wifiConnected;initialized=true;document.getElementById('wifi-summary').textContent=wifiConnected?'Đổi Wi-Fi':'Chọn Wi-Fi để kết nối';const quality=s.signal_percent==null?'chưa có số liệu':`${s.signal_percent}%`;const dbm=s.signal_dbm==null?'':` (${s.signal_dbm} dBm)`;const rate=value=>value==null?'chưa có số liệu':`${value} Mbps`;status.textContent=`Wi-Fi: ${wifiConnected?'đã kết nối':'chưa kết nối'}\nTên mạng: ${s.ssid||'chưa xác định'}\nMức sóng: ${quality}${dbm}\nLiên kết TX: ${rate(s.tx_mbps)} • RX: ${rate(s.rx_mbps)}\nIPv4: ${(s.ipv4||[]).join(', ')||'chưa có'}\nGateway: ${s.gateway||'chưa có'}\nIP quản trị USB: 172.16.42.1 (riêng với IP Wi-Fi)`;document.getElementById('speed').disabled=busy||!wifiConnected}
 async function call(action,extra={}){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);notice.textContent=action==='speed'?'Đang tải mẫu 2 MiB qua Wi-Fi…':'Đang kiểm tra…';try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':token},body:JSON.stringify({action,...extra})});if(!r.ok)throw Error();await poll();if(action==='connect')setTimeout(()=>call('status'),0)}catch(e){notice.textContent='Thao tác chưa thành công. Kiểm tra kết nối USB/Wi-Fi rồi thử lại.'}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('speed').disabled=!wifiConnected}}
 async function poll(){const end=Date.now()+60000;while(Date.now()<end){const r=await fetch('/api/state',{headers:{'X-OpenStick-Token':token}});if(!r.ok)throw Error();const s=await r.json();if(s.busy){await new Promise(r=>setTimeout(r,700));continue}if(s.error){notice.textContent='Thao tác Wi-Fi chưa thành công. Kết quả tốc độ có thể không có nếu máy chủ đo không phản hồi.';return}if(s.result.networks){networks.replaceChildren(new Option('Chọn mạng hoặc nhập tên bên dưới',''));for(const n of s.result.networks)networks.add(new Option(`${n.ssid} — ${n.signal}% — ${n.security||'mở'}`,n.ssid));document.getElementById('wifi-settings').open=true;notice.textContent=`Đã tìm thấy ${s.result.networks.length} mạng.`}else if(s.result.download_mbps!=null){document.getElementById('speed-result').textContent=`Tốc độ tải: ${s.result.download_mbps} Mbps • Mẫu 2 MiB • ${s.result.duration_s} giây\nĐo lúc ${new Date().toLocaleTimeString()}`;notice.textContent='Đã đo qua Wi-Fi.'}else if(s.result.state){renderStatus(s.result);notice.textContent='Đã cập nhật trạng thái.'}else if(s.result.connected){document.getElementById('password').value='';document.getElementById('wifi-settings').open=false;notice.textContent='Đã kết nối Wi-Fi.'}return}throw Error('TIMEOUT')}
 networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=networks.value};document.getElementById('scan').onclick=()=>call('scan');document.getElementById('check').onclick=()=>call('status');document.getElementById('speed').onclick=()=>call('speed');document.getElementById('wifi').onsubmit=e=>{e.preventDefault();call('connect',{ssid:document.getElementById('ssid').value,password:document.getElementById('password').value})};setInterval(()=>{if(!busy&&!document.hidden)call('status')},15000);call('status');
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -224,6 +235,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             page = page.replace('</main>', render_template('lan_settings.html') + '</main>', 1)
         if usb_portal and site_backend is not None:
             page = page.replace('</main>', '<section><h2>Quản lý website</h2><p>Tạo và sửa HTML/CSS/JS, tải hình ảnh và tài nguyên cho web tĩnh.</p><a href="/website">Mở trình quản lý Website →</a></section></main>', 1)
+        if usb_portal and hotspot_backend is not None:
+            page = page.replace('</main>', '<section><h2>Phát Wi-Fi từ SIM 4G</h2><p>Dùng SIM làm nguồn Internet cho website và điểm phát Wi-Fi của USB.</p><a href="/hotspot">Cài đặt SIM → Wi-Fi →</a></section></main>', 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -291,6 +304,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     if lan_auth is not None:
         from .lan_access import install_lan_auth
         install_lan_auth(app, lan_auth)
+    if usb_portal and hotspot_backend is not None:
+        from .hotspot_web import register_hotspot_routes
+        register_hotspot_routes(app, hotspot_backend, token)
     return app
 
 

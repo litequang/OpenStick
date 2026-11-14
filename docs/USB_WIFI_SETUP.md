@@ -36,6 +36,9 @@ upstream. Enter credentials for a new network through USB, or through an
 already enabled LAN session while it is still reachable. Changing Wi-Fi can
 disconnect that LAN session. This configuration does not create a Wi-Fi hotspot.
 
+For a separately selected SIM-powered AP, see [SIM → Wi-Fi hotspot](SIM_WIFI_HOTSPOT.md).
+It is opt-in and replaces the Wi-Fi client role; it is not enabled by default.
+
 The portal listens on `172.16.42.1:80` and binds its socket to Linux interface
 `usb0` using `SO_BINDTODEVICE`; failure to bind stops the service. Its API
 requires a random same-origin token, strict Host/Origin checks and rejects

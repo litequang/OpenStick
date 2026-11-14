@@ -9,6 +9,7 @@ from waitress import serve
 from .hosting import REMOTE, create_hosting_app
 from .modem_device import ModemManager
 from .static_site import StaticSite
+from .hotspot import Hotspot
 
 
 class LocalWifi:
@@ -51,7 +52,7 @@ def main():
         hostname = json.load(source)['hostname']
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
                              modem_backend=ModemManager(), lan_settings=LanSettings(address=wifi_ipv4),
-                             lan_changed=lan_changed, site_backend=StaticSite())
+                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot())
     with usb_socket() as sock:
         serve(app, sockets=[sock], threads=2, channel_timeout=30,
               max_request_body_size=1500000, ident='OpenStick')

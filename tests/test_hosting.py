@@ -155,6 +155,16 @@ def test_wifi_missing_metrics_are_unknown_and_disconnected_never_scans():
     assert value['connected'] and value['signal_percent'] is None
 
 
+def test_ap_is_not_reported_as_connected_wifi_upstream_or_scanned():
+    calls = []
+    def run(args, timeout=15):
+        calls.append(args)
+        return 'GENERAL.STATE:100 (connected)\nGENERAL.CONNECTION:openstick-hotspot\nIP4.ADDRESS[1]:192.168.8.1/24\n'
+    value = remote_functions(run=run)['wifi_status']()
+    assert value['hotspot_active'] and not value['connected']
+    assert len(calls) == 1 and value['signal_percent'] is None
+
+
 @pytest.mark.parametrize('response,success', [('200 2097152 1250000 1.68', True),
                                             ('200 500 1250000 1.68', False),
                                             ('403 2097152 1250000 1.68', False)])

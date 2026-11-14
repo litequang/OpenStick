@@ -73,6 +73,10 @@ connection was switched, and no cellular data session was started in this
 check. A standalone hotspot trial would replace the current STA role and
 needs a working, explicitly selected cellular upstream first.
 
+An opt-in [SIM → Wi-Fi implementation](SIM_WIFI_HOTSPOT.md) is now installed.
+Its prerequisite checks passed, but the end-to-end cellular/AP trial is still
+unverified. Installation did not activate either data or the hotspot.
+
 ## Validation of this update
 
 Windows: 267 tests passed, one OS symlink-creation test skipped because the
