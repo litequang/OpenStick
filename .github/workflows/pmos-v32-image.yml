@@ -74,7 +74,9 @@ jobs:
           cfg.read(sys.argv[1])
           expected = {'device': 'qcom-msm8916', 'kernel': 'extlinux', 'ui': 'console', 'service_manager': 'openrc'}
           for key, value in expected.items():
-              assert cfg['pmbootstrap'][key] == value, (key, 'unexpected init result')
+              # pmbootstrap omits values equal to its built-in defaults.
+              actual = cfg['pmbootstrap'].get(key, {'ui': 'console'}.get(key))
+              assert actual == value, (key, 'unexpected init result')
           PY
           python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y status
       - name: Generate standard combined image
