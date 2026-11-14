@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Quản lý</title></head>
+<body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><div><p class="portal-eyebrow">QUẢN TRỊ THIẾT BỊ</p><h1>Quản lý &amp; hệ thống</h1></div></div>
+<p class="muted">Tác vụ website và quyền truy cập được tách khỏi cấu hình mạng. Không có chức năng flash hay shell công khai.</p>
+{% if has_site %}
+<section class="portal-feature-group" aria-labelledby="site-group-title">
+  <h2 id="site-group-title">Website</h2>
+  <div class="portal-feature-grid">
+    <a class="portal-feature-link" href="/website"><strong>Quản lý file website</strong><span>Chỉnh sửa HTML/CSS/JS, tải tài nguyên, xuất bản hoặc xóa file</span></a>
+    <a class="portal-feature-link" href="https://{{ hostname }}" target="_blank" rel="noopener noreferrer"><strong>Mở website công khai</strong><span>Xem nội dung đang xuất bản, không mở giao diện quản trị ra Internet</span></a>
+  </div>
+</section>
+{% endif %}
+<section class="portal-feature-group" aria-labelledby="system-group-title">
+  <h2 id="system-group-title">Thiết bị &amp; giám sát</h2>
+  <div class="portal-feature-grid">
+    {% if has_modem %}
+    <a class="portal-feature-link" href="/overview"><strong>Sức khỏe thiết bị</strong><span>RAM, eMMC, nhiệt độ, swap, kết nối và dịch vụ đang chạy</span></a>
+    {% endif %}
+    <a class="portal-feature-link" href="/connections"><strong>Kết nối &amp; Internet</strong><span>Wi-Fi, nguồn Internet, SIM và các chế độ điểm phát</span></a>
+  </div>
+</section>
+{% if can_manage_lan %}
+<div id="lan-access">
+<script>const token={{ token|tojson }};</script>
+{% include 'lan_settings.html' %}
+</div>
+{% elif lan_session %}
+<section id="lan-access"><h2>Quản trị qua Wi-Fi</h2><p>Bạn đang đăng nhập từ Wi-Fi nội bộ. Muốn thay đổi hoặc tắt mật khẩu quản trị, kết nối qua USB và mở mục này.</p></section>
+{% endif %}
+<p class="overview-foot">Thao tác có rủi ro vẫn cần xác nhận tại đúng màn hình. Quản trị LAN chỉ có trên mạng nội bộ đã bảo vệ, không thuộc website công khai.</p>
+</main></body></html>
