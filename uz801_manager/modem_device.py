@@ -12,6 +12,7 @@ from .modem import validate_action
 SERVICE = 'org.freedesktop.ModemManager1'
 ROOT = '/org/freedesktop/ModemManager1'
 MODEM = SERVICE + '.Modem'
+THREEGPP = MODEM + '.Modem3gpp'
 SMS = SERVICE + '.Sms'
 MESSAGING = MODEM + '.Messaging'
 USSD = MODEM + '.Modem3gpp.Ussd'
@@ -51,9 +52,11 @@ class OperationJournal:
         finally:
             os.close(fd)
 
-    def finish(self, receipt, outcome):
+    def finish(self, receipt, outcome, failure=None):
         target, record = receipt
         record = {**record, 'state': outcome}
+        if failure:
+            record['failure'] = failure  # Fixed category, never raw DBus error text.
         temporary = target.with_suffix('.tmp')
         with temporary.open('w', encoding='utf-8') as output:
             os.chmod(temporary, 0o600)
@@ -167,9 +170,29 @@ class ModemManager:
             modes = [[int(a), int(p)] for a, p in get(MODEM, 'SupportedModes')]
             modes = [m for m in modes if m[0] and not m[1] & ~m[0]][:64]
             current_mode = [int(n) for n in get(MODEM, 'CurrentModes')]
+            def optional(interface, name):
+                try:
+                    return get(interface, name)
+                except Exception:
+                    return None  # Unsupported telemetry is unknown, never zero bars.
+
+            quality = optional(MODEM, 'SignalQuality')
+            signal = None
+            recent = False
+            if quality is not None and len(quality) == 2:
+                percent = int(quality[0])
+                if 0 <= percent <= 100:
+                    signal, recent = percent, bool(quality[1])
+            technology = optional(MODEM, 'AccessTechnologies')
+            operator = optional(THREEGPP, 'OperatorName') if THREEGPP in interfaces else None
+            registration = optional(THREEGPP, 'RegistrationState') if THREEGPP in interfaces else None
             status = {'state': STATES.get(state, 'unknown'), 'sim_present': present,
                       'sim_missing': failed_reason == 2, 'sim_locked': present and not unlocked,
                       'secondary_lock': {3: 'pin2', 5: 'puk2'}.get(unlock),
+                      'operator_name': str(operator)[:80] if operator is not None else None,
+                      'registration_state': int(registration) if registration is not None else None,
+                      'access_technologies': int(technology) if technology is not None else None,
+                      'signal_percent': signal, 'signal_recent': recent,
                       'registered': registered, 'sms_available': messaging,
                       'can_send': messaging and registered, 'ussd_available': ussd,
                       'can_ussd': ussd and registered, 'ussd_state': session,
@@ -239,10 +262,12 @@ class ModemManager:
                     invoke(sms, SMS, 'Send', timeout=60)
                     result = {'submitted': True, 'delivery_verified': False}
                 elif action == 'ussd_start':
-                    reply = invoke(path, USSD, 'Initiate', 's', (values['code'],), timeout=60)
+                    # QMI USSD waits up to 100 seconds in ModemManager. The
+                    # caller must not abandon the result at 60 seconds.
+                    reply = invoke(path, USSD, 'Initiate', 's', (values['code'],), timeout=115)
                     result = {'reply': str(reply)[:8192]}
                 elif action == 'ussd_reply':
-                    reply = invoke(path, USSD, 'Respond', 's', (values['text'],), timeout=60)
+                    reply = invoke(path, USSD, 'Respond', 's', (values['text'],), timeout=115)
                     result = {'reply': str(reply)[:8192]}
                 elif action == 'ussd_cancel':
                     invoke(path, USSD, 'Cancel', timeout=30)
@@ -251,9 +276,25 @@ class ModemManager:
                     raise ValueError('INPUT_INVALID')
                 self.journal.finish(receipt, 'COMPLETED')
                 return {**result, 'operation': values['operation']}
-            except Exception:
-                self.journal.finish(receipt, 'UNKNOWN')
-                raise RuntimeError('RESULT_UNKNOWN') from None
+            except Exception as exc:
+                name = ''
+                if callable(getattr(exc, 'get_dbus_name', None)):
+                    name = exc.get_dbus_name()
+                categories = {
+                    SERVICE + '.Error.Core.Unsupported': 'UNSUPPORTED',
+                    SERVICE + '.Error.Core.Failed': 'MODEM_FAILED',
+                    SERVICE + '.Error.MobileEquipment.NotSupported': 'UNSUPPORTED',
+                    SERVICE + '.Error.MobileEquipment.NoNetwork': 'NO_NETWORK',
+                    SERVICE + '.Error.MobileEquipment.NetworkTimeout': 'TIMEOUT',
+                    'org.freedesktop.DBus.Error.NoReply': 'TIMEOUT',
+                    'org.freedesktop.DBus.Error.Timeout': 'TIMEOUT',
+                }
+                failure = 'TIMEOUT' if isinstance(exc, TimeoutError) else categories.get(name, 'OPERATION_FAILED')
+                self.journal.finish(receipt, 'UNKNOWN', failure)
+                error = ({'UNSUPPORTED': 'USSD_UNSUPPORTED', 'NO_NETWORK': 'USSD_NO_NETWORK',
+                          'TIMEOUT': 'USSD_TIMEOUT'}.get(failure, 'USSD_FAILED')
+                         if action.startswith('ussd_') else 'RESULT_UNKNOWN')
+                raise RuntimeError(error) from None
         finally:
             bus.close()
 

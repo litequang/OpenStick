@@ -17,7 +17,7 @@ transactions still require an explicitly chosen destination or USSD code.
 | ModemManager | Initially `failed/sim-missing`; after insertion, one modem `registered` |
 | QMI control query | PASS through qmi-proxy; WMS 1.10 and Voice 2.1 advertised |
 | SMS send and receive | Messaging interface present; end-to-end send/receive UNVERIFIED |
-| USSD | USSD interface present and idle; operator transaction UNVERIFIED |
+| USSD | MobiFone account response received via NetworkNotification; method result still unreliable |
 | Mobile data | No bearer/APN configured; NetworkManager WWAN remains unmanaged |
 
 Installed from the configured official repositories: ModemManager
@@ -86,10 +86,12 @@ by this manager. Regression tests cover both secondary and primary locks.
 
 ## Installed USB manager
 
-Open `http://172.16.42.1/modem`, or select **SMS / USSD và trạng thái 4G**
-from the Wi-Fi page. The installed interface includes modem/SIM status, an
-inbox, SMS composition, USSD initiation/reply/cancellation and a radio-mode
-selector. Outgoing actions require explicit confirmation. Missing or
+Open `http://172.16.42.1/overview`. The bottom dock separates **SMS**
+(`/modem/sms`), **USSD** (`/modem/ussd`), **Wi-Fi & Web** (`/`) and
+**Mạng SIM** (`/modem/network`). `/modem` redirects to SMS for old bookmarks.
+Header icons show modem, SIM, network and signal; click each for details.
+The enable button appears only on Mạng SIM when the modem is actually disabled.
+Outgoing actions require explicit confirmation. Missing or
 primary-locked SIMs disable network actions and mode changes in both the UI
 and backend. With the inserted SIM registered, SMS/USSD controls are now
 available. Stored SMS reads do not delete messages from the modem.
@@ -103,14 +105,44 @@ The device advertised the following `SupportedModes` pairs on the real bus:
 | 12 / 8 | 3G/4G, prefer 4G |
 | 12 / 4 | 3G/4G, prefer 3G |
 
-`CurrentModes` was `8 / 0`; this was read, not applied by this installation.
-No radio preference has yet been saved or changed. A mode change must exactly
+`CurrentModes` initially was `8 / 0`. The owner subsequently saved 4G-only,
+then explicitly authorized one temporary `12 / 8` comparison and restoration.
+Both mode changes succeeded, and current and saved modes were verified back
+at `8 / 0`. The modem reported LTE during the mixed-mode comparison; this was
+not a 3G registration test. A mode change must exactly
 match an advertised pair and uses the documented
 [SetCurrentModes method](https://www.freedesktop.org/software/ModemManager/api/latest/gdbus-org.freedesktop.ModemManager1.Modem.html#gdbus-method-org-freedesktop-ModemManager1-Modem.SetCurrentModes).
 The selected pair is saved in root-private `/var/lib/openstick/radio.json`
 and re-applied on a later boot only if still supported. 4G-only excludes 3G;
-it does not choose a specific LTE frequency band. Actual selection, persistence
-with a working SIM, coverage behavior and SMS/USSD in LTE-only remain UNVERIFIED.
+it does not choose a specific LTE frequency band. Reboot persistence with a
+working SIM, 3G coverage and interactive USSD menus remain UNVERIFIED.
+
+## Authorized MobiFone USSD test
+
+The owner requested a live test and separately approved a temporary mixed-mode
+comparison followed by restoration to 4G-only. The agent issued one `*101#`
+account query in each mode. No service subscription code or SMS was sent.
+The method calls returned errors/unknown outcomes; later a nonempty 96-character
+MobiFone account notification appeared, whereas earlier reads were empty.
+Its contents and subscriber identifiers remain local. Current and saved modes
+are back at 4G-only, registered, with the USSD session idle.
+
+This verifies receipt of an operator account response on this unit. It does
+not prove the mode switch fixed the problem: access technology remained LTE
+during the mixed-mode test, and asynchronous notification timing is a separate
+issue. Initiate/Respond now allow 115 seconds instead of abandoning a QMI
+operation at 60 seconds; the
+[upstream QMI implementation](https://github.com/linux-mobile-broadband/ModemManager/blob/main/src/mm-broadband-modem-qmi.c)
+uses a 100-second operation timeout. Extending the timeout alone does not fix
+an immediate method error.
+
+The UI displays pending/idle/user-response state, retains the last method
+result in RAM across status refreshes, and shows NetworkNotification separately
+as the modem's last notification, with no invented receipt timestamp or promise
+that it belongs to the latest request. Error categories are fixed/redacted;
+the persistent journal records no code, reply, number or balance. Unknown
+outcomes never trigger automatic retransmission. Interactive replies and
+reliable Cancel method completion remain UNVERIFIED.
 
 The `openstick-modem` OpenRC service checks readiness every 30 seconds. It may
 enable the radio when a valid unlocked SIM is ready, and restore the saved
@@ -154,16 +186,18 @@ not expose modem administration or SMS content.
   and the PIN2 report correctly handled. Messaging and USSD interfaces were
   present, with USSD idle. Checks cover advertised modes, security guards,
   rejection of raw/data commands, absence
-  of identity fields, running services, read-only RMTFS and empty attempt
-  journal. Typed DBus dictionary/tuple encoding was checked offline without
+  of identity fields, running services, read-only RMTFS and no additional
+  transmissions during the read-only audit. Typed DBus dictionary/tuple encoding was checked offline without
   sending those messages.
-- A Windows Computer Use attempt stopped because it could not confidently
-  determine the browser URL. Visual browser layout remains UNVERIFIED; a
+- An earlier Windows Computer Use attempt could not determine the browser
+  URL. The latest Edge capture failed twice with channel/capture timeouts.
+  Visual browser layout remains UNVERIFIED; a
   synthetic DOM fixture and HTTP checks are not a real-browser visual PASS.
-- Sending/receiving SMS, operator USSD, switching radio technologies and mobile
-  data remain UNVERIFIED pending actual operator tests. No outgoing network
-  test is run merely by opening the page. The local suite passed 212 tests
-  (exit 0); 20 live modem checks and 18 hosting checks passed (each exit 0).
+- Sending/receiving SMS, interactive USSD, actual 3G registration and mobile
+  data remain UNVERIFIED. An account response was received as described above.
+  No outgoing cellular test runs merely by opening a page. The local suite
+  passed 238 tests (exit 0); 25 live modem checks, 14 dashboard/Wi-Fi metric
+  checks and 18 hosting checks passed (each exit 0).
 
 Raw hardware observations stay under ignored private directories. This report
 contains no IMEI, IMSI, ICCID, phone number, SMS content or calibration data.

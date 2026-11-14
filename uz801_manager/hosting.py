@@ -11,12 +11,13 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from waitress import serve
 
 
 REMOTE = r'''
-import hashlib,json,os,re,subprocess,sys,uuid
+import hashlib,json,os,re,shutil,subprocess,sys,uuid
+if os.path.isdir('/opt/openstick'):sys.path.insert(0,'/opt/openstick')
 value=json.load(sys.stdin)
 def run(args,timeout=15):
     p=subprocess.run(args,capture_output=True,text=True,timeout=timeout)
@@ -30,6 +31,58 @@ def fields(line):
         elif c==':':out.append(part);part=''
         else:part+=c
     return out+[part]
+def wifi_status():
+    output=run(['nmcli','-t','-e','yes','-f','GENERAL.STATE,GENERAL.CONNECTION,IP4.ADDRESS,IP4.GATEWAY','device','show','wlan0'])
+    rows={}
+    for line in output.splitlines():
+        row=fields(line)
+        if len(row)==2:rows[row[0]]=row[1]
+    state=rows.get('GENERAL.STATE','unknown')
+    result={'state':state,'connection':rows.get('GENERAL.CONNECTION',''),
+            'connected':state.startswith('100'),'ssid':None,'signal_percent':None,
+            'signal_dbm':None,'tx_mbps':None,'rx_mbps':None,
+            'ipv4':[v for k,v in rows.items() if k.startswith('IP4.ADDRESS')],
+            'gateway':rows.get('IP4.GATEWAY','')}
+    if result['connected']:
+        try:cached=run(['nmcli','-t','-e','yes','-f','IN-USE,SSID,SIGNAL','device','wifi','list','ifname','wlan0','--rescan','no'])
+        except (RuntimeError,OSError,subprocess.SubprocessError):cached=''
+        for line in cached.splitlines():
+            row=fields(line)
+            if len(row)==3 and row[0]=='*':
+                result['ssid']=row[1][:32]
+                if row[2].isdigit() and 0<=int(row[2])<=100:result['signal_percent']=int(row[2])
+                break
+        if shutil.which('iw'):
+            try:p=subprocess.run(['iw','dev','wlan0','link'],capture_output=True,text=True,timeout=10)
+            except (OSError,subprocess.SubprocessError):p=None
+            if p is not None and p.returncode==0:
+                for key in ('tx','rx'):
+                    match=re.search(r'^\s*'+key+r' bitrate:\s*([0-9.]+) MBit/s',p.stdout,re.M)
+                    if match:result[key+'_mbps']=float(match[1])
+                match=re.search(r'^\s*signal:\s*(-?[0-9]+) dBm',p.stdout,re.M)
+                if match:result['signal_dbm']=int(match[1])
+                match=re.search(r'^\s*SSID: (.*)$',p.stdout,re.M)
+                if match:result['ssid']=match[1][:32]
+    result['modem_status']=None
+    try:
+        from uz801_manager.portal_metrics import modem_snapshot
+        result['modem_status']=modem_snapshot()
+    except ImportError:pass
+    return result
+def download_speed():
+    if not wifi_status()['connected']:raise RuntimeError('WIFI_NOT_CONNECTED')
+    # Fixed HTTPS endpoint, a bounded download, and explicit Wi-Fi binding.
+    # No user-supplied URL, upload, automatic run or default-route fallback.
+    size=2097152
+    output=run(['curl','--silent','--show-error','--fail','--proto','=https',
+        '--interface','wlan0','--connect-timeout','8','--max-time','20',
+        '--max-filesize',str(size),'--output','/dev/null','--write-out',
+        '%{http_code} %{size_download} %{speed_download} %{time_total}',
+        'https://speed.cloudflare.com/__down?bytes='+str(size)],25).split()
+    if len(output)!=4 or output[0]!='200' or int(float(output[1]))!=size:
+        raise RuntimeError('SPEED_TEST_FAILED')
+    return {'download_mbps':round(float(output[2])*8/1000000,2),
+            'duration_s':round(float(output[3]),2),'bytes':size,'interface':'wlan0'}
 try:
     action=value['action']
     if action=='scan':
@@ -41,8 +94,15 @@ try:
                 networks[row[0]]={'ssid':row[0][:32],'signal':int(row[1]),'security':row[2][:80]}
         result={'networks':sorted(networks.values(),key=lambda n:-n['signal'])[:100]}
     elif action=='status':
-        state=run(['nmcli','-g','GENERAL.STATE,GENERAL.CONNECTION','device','show','wlan0']).strip().splitlines()
-        result={'state':state[0][:80] if state else 'unknown','connection':state[1][:80] if len(state)>1 else ''}
+        result=wifi_status()
+    elif action=='speed':
+        result=download_speed()
+    elif action=='overview':
+        from uz801_manager.portal_metrics import system_snapshot,service_snapshot
+        result={'system':system_snapshot(),'wifi':wifi_status(),'services':service_snapshot()}
+    elif action=='tariff':
+        from uz801_manager.portal_metrics import save_tariff
+        result=save_tariff(value['unit_vnd'])
     elif action=='connect':
         ssid,password=value['ssid'],value['password']
         assert isinstance(ssid,str) and 1<=len(ssid.encode())<=32
@@ -95,21 +155,24 @@ class LinuxWifi:
 
 
 HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenStick — Kết nối Wi-Fi</title><style>
+<title>OpenStick — Wi-Fi & Web</title><style>
 *{box-sizing:border-box}body{margin:0;font:16px system-ui;background:#f2f6fa;color:#173047}main{max-width:740px;margin:5vh auto;padding:24px}section{background:white;padding:24px;border-radius:18px;box-shadow:0 8px 40px #17304710;margin:20px 0}h1{font-size:30px;margin-bottom:8px}p{line-height:1.6}.sub{color:#52677b}label{display:block;margin:18px 0 8px}input,select,button{font:inherit;padding:12px;border-radius:9px;border:1px solid #c9d5df}input,select{width:100%}button{cursor:pointer;background:#006d77;color:white;border:0;margin-top:16px}button.secondary{background:#e6eff4;color:#173047}button:disabled{opacity:.5;cursor:wait}#status{padding:14px;background:#eaf3f6;border-radius:9px;white-space:pre-wrap}.row{display:flex;gap:12px;flex-wrap:wrap}small{color:#52677b}a{color:#006d77}</style>
-<main><h1>Kết nối Wi-Fi cho OpenStick</h1><p class="sub">Quản trị cục bộ qua USB • Linux • Wi-Fi Client</p>
-<section><div id="status" role="status">Đang kiểm tra kết nối USB…</div><div class="row"><button id="scan" class="secondary">Tìm mạng Wi-Fi</button><button id="check" class="secondary">Kiểm tra trạng thái</button></div>
+<main><h1>Wi-Fi & Web</h1><p class="sub">Chọn Wi-Fi cấp Internet cho website và Cloudflare Tunnel. Cấu hình SIM nằm ở màn Mạng SIM.</p>
+<section><h2>Wi-Fi đang sử dụng</h2><div id="status" role="status">Đang kiểm tra kết nối USB…</div><button id="check" class="secondary">Cập nhật trạng thái</button><p><small>Tự cập nhật mỗi 15 giây khi mở trang. Tốc độ liên kết TX/RX do driver báo, không phải tốc độ tải Internet.</small></p></section>
+<section><h2>Tốc độ tải Internet qua Wi-Fi</h2><div id="speed-result" role="status">Chưa đo. Phép đo tải 2 MiB từ Cloudflare qua Wi-Fi, không thử tải lên.</div><button id="speed" disabled>Đo tốc độ tải Internet</button><p><small>Kết quả là mẫu tải ngắn tới một máy chủ; không phải cam kết băng thông. Chỉ đo khi bạn bấm nút.</small></p></section>
+<section><details id="wifi-settings" open><summary id="wifi-summary" style="cursor:pointer;font-weight:600">Chọn Wi-Fi để kết nối</summary><button id="scan" class="secondary">Tìm mạng Wi-Fi</button>
 <label for="networks">Mạng tìm thấy</label><select id="networks"><option value="">Chọn mạng hoặc nhập tên bên dưới</option></select>
 <form id="wifi"><label for="ssid">Tên Wi-Fi (SSID)</label><input id="ssid" name="ssid" maxlength="32" autocomplete="off" required>
 <label for="password">Mật khẩu Wi-Fi</label><input id="password" name="password" type="password" minlength="8" maxlength="63" autocomplete="new-password" required><button id="connect" type="submit">Kết nối Wi-Fi</button></form>
-<p><small>Mật khẩu không hiển thị trong báo cáo. Thiết bị lưu khóa Wi-Fi để tự kết nối sau khi bật nguồn. Nếu đổi mạng không thành công, vẫn có thể cấu hình lại qua USB.</small></p></section>
+<p><small>Mật khẩu không hiển thị trong báo cáo. Thiết bị lưu khóa Wi-Fi để tự kết nối sau khi bật nguồn. Nếu đổi mạng không thành công, vẫn có thể cấu hình lại qua USB.</small></p></details><p id="operation-status" role="status"></p></section>
 <section><strong>Website công khai</strong><p><a href="https://__OPENSTICK_HOSTNAME__" target="_blank" rel="noopener">__OPENSTICK_HOSTNAME__</a></p><small>Trang quản trị Wi-Fi chỉ truy cập qua USB. Sau khi lưu Wi-Fi, có thể cắm nguồn USB để thiết bị tự kết nối và chạy website.</small></section></main>
 <script>
 const token=__OPENSTICK_BOOTSTRAP_TOKEN__||new URLSearchParams(location.hash.slice(1)).get('token')||sessionStorage.getItem('openstick-hosting-token')||'';if(token)sessionStorage.setItem('openstick-hosting-token',token);history.replaceState(null,'',location.pathname);
-const status=document.getElementById('status'),networks=document.getElementById('networks');let busy=false;
-async function call(action,extra={}){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);status.textContent='Đang thực hiện…';try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':token},body:JSON.stringify({action,...extra})});if(!r.ok)throw Error();await poll()}catch(e){status.textContent='Không thực hiện được. Hãy kiểm tra USB và tải lại trang quản trị.'}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false)}}
-async function poll(){for(;;){const r=await fetch('/api/state',{headers:{'X-OpenStick-Token':token}});if(!r.ok)throw Error();const s=await r.json();if(s.busy){await new Promise(r=>setTimeout(r,700));continue}if(s.error){status.textContent='Thao tác Wi-Fi chưa thành công. Kiểm tra tên mạng, mật khẩu rồi thử lại qua USB.';return}if(s.result.networks){networks.replaceChildren(new Option('Chọn mạng hoặc nhập tên bên dưới',''));for(const n of s.result.networks)networks.add(new Option(`${n.ssid} — ${n.signal}% — ${n.security||'mở'}`,n.ssid));status.textContent=`Đã tìm thấy ${s.result.networks.length} mạng. Hỗ trợ kết nối WPA/WPA2 Personal.`}else if(s.result.connected){document.getElementById('password').value='';status.textContent='Đã kết nối Wi-Fi. Bạn có thể kiểm tra website công khai.'}else{status.textContent=`USB đã kết nối. Wi-Fi: ${s.result.state||'chưa xác định'}\nProfile: ${s.result.connection||'chưa có'}`}return}}
-networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=networks.value};document.getElementById('scan').onclick=()=>call('scan');document.getElementById('check').onclick=()=>call('status');document.getElementById('wifi').onsubmit=e=>{e.preventDefault();call('connect',{ssid:document.getElementById('ssid').value,password:document.getElementById('password').value})};call('status');
+const status=document.getElementById('status'),networks=document.getElementById('networks'),notice=document.getElementById('operation-status');let busy=false,wifiConnected=false,initialized=false;
+function renderStatus(s){if(typeof renderHeader==='function')renderHeader(s.modem_status);wifiConnected=s.connected===true;const details=document.getElementById('wifi-settings');if(!initialized||!wifiConnected)details.open=!wifiConnected;initialized=true;document.getElementById('wifi-summary').textContent=wifiConnected?'Đổi Wi-Fi':'Chọn Wi-Fi để kết nối';const quality=s.signal_percent==null?'chưa có số liệu':`${s.signal_percent}%`;const dbm=s.signal_dbm==null?'':` (${s.signal_dbm} dBm)`;const rate=value=>value==null?'chưa có số liệu':`${value} Mbps`;status.textContent=`Wi-Fi: ${wifiConnected?'đã kết nối':'chưa kết nối'}\nTên mạng: ${s.ssid||'chưa xác định'}\nMức sóng: ${quality}${dbm}\nLiên kết TX: ${rate(s.tx_mbps)} • RX: ${rate(s.rx_mbps)}\nIPv4: ${(s.ipv4||[]).join(', ')||'chưa có'}\nGateway: ${s.gateway||'chưa có'}\nIP quản trị USB: 172.16.42.1 (riêng với IP Wi-Fi)`;document.getElementById('speed').disabled=busy||!wifiConnected}
+async function call(action,extra={}){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);notice.textContent=action==='speed'?'Đang tải mẫu 2 MiB qua Wi-Fi…':'Đang kiểm tra…';try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':token},body:JSON.stringify({action,...extra})});if(!r.ok)throw Error();await poll();if(action==='connect')setTimeout(()=>call('status'),0)}catch(e){notice.textContent='Thao tác chưa thành công. Kiểm tra kết nối USB/Wi-Fi rồi thử lại.'}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);document.getElementById('speed').disabled=!wifiConnected}}
+async function poll(){const end=Date.now()+60000;while(Date.now()<end){const r=await fetch('/api/state',{headers:{'X-OpenStick-Token':token}});if(!r.ok)throw Error();const s=await r.json();if(s.busy){await new Promise(r=>setTimeout(r,700));continue}if(s.error){notice.textContent='Thao tác Wi-Fi chưa thành công. Kết quả tốc độ có thể không có nếu máy chủ đo không phản hồi.';return}if(s.result.networks){networks.replaceChildren(new Option('Chọn mạng hoặc nhập tên bên dưới',''));for(const n of s.result.networks)networks.add(new Option(`${n.ssid} — ${n.signal}% — ${n.security||'mở'}`,n.ssid));document.getElementById('wifi-settings').open=true;notice.textContent=`Đã tìm thấy ${s.result.networks.length} mạng.`}else if(s.result.download_mbps!=null){document.getElementById('speed-result').textContent=`Tốc độ tải: ${s.result.download_mbps} Mbps • Mẫu 2 MiB • ${s.result.duration_s} giây\nĐo lúc ${new Date().toLocaleTimeString()}`;notice.textContent='Đã đo qua Wi-Fi.'}else if(s.result.state){renderStatus(s.result);notice.textContent='Đã cập nhật trạng thái.'}else if(s.result.connected){document.getElementById('password').value='';document.getElementById('wifi-settings').open=false;notice.textContent='Đã kết nối Wi-Fi.'}return}throw Error('TIMEOUT')}
+networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=networks.value};document.getElementById('scan').onclick=()=>call('scan');document.getElementById('check').onclick=()=>call('status');document.getElementById('speed').onclick=()=>call('speed');document.getElementById('wifi').onsubmit=e=>{e.preventDefault();call('connect',{ssid:document.getElementById('ssid').value,password:document.getElementById('password').value})};setInterval(()=>{if(!busy&&!document.hidden)call('status')},15000);call('status');
 </script></html>'''
 
 
@@ -142,14 +205,14 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"
+        response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
     @app.get('/')
     def index():
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
         if usb_portal and modem_backend is not None:
-            page = page.replace('<main>', '<main><nav><a href="/modem">SMS / USSD và trạng thái 4G</a></nav>', 1)
+            page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi'), 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -162,11 +225,13 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     @app.post('/api/wifi')
     def wifi():
         body = request.get_json(silent=True)
-        if not isinstance(body, dict) or body.get('action') not in ('status', 'scan', 'connect'):
+        if not isinstance(body, dict) or body.get('action') not in ('status', 'scan', 'connect', 'speed', 'overview', 'tariff'):
             return jsonify(error='INPUT_INVALID'), 400
         action = body['action']
-        expected = {'action', 'ssid', 'password'} if action == 'connect' else {'action'}
+        expected = {'action', 'ssid', 'password'} if action == 'connect' else {'action', 'unit_vnd'} if action == 'tariff' else {'action'}
         if set(body) != expected:
+            return jsonify(error='INPUT_INVALID'), 400
+        if action == 'tariff' and (type(body['unit_vnd']) is not int or not 0 <= body['unit_vnd'] <= 100000):
             return jsonify(error='INPUT_INVALID'), 400
         if action == 'connect':
             ssid, password = body['ssid'], body['password']
@@ -197,6 +262,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         return jsonify(accepted=True), 202
 
     if usb_portal and modem_backend is not None:
+        @app.get('/overview')
+        def overview():
+            return render_template('overview.html', token=token, page='overview', hostname=hostname)
         from .modem import register_modem_routes
         register_modem_routes(app, modem_backend, token)
     return app

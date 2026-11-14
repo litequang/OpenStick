@@ -6,20 +6,23 @@ import pytest
 
 from uz801_manager.modem import validate_action
 from uz801_manager.modem_device import (
-    INTRO, MESSAGING, MODEM, PROPS, ROOT, SMS, USSD, ModemManager, OperationJournal, RadioPreference,
+    INTRO, MESSAGING, MODEM, THREEGPP, PROPS, ROOT, SMS, USSD, ModemManager, OperationJournal, RadioPreference,
 )
 
 
 class Bus:
     def __init__(self, *, sim=True, state=8, session=1, send_timeout=False):
         self.calls = []
+        self.timeouts = []
         self.closed = False
         self.send_timeout = send_timeout
         self.nodes = ['0']
         self.props = {
             MODEM: {'State': state if sim else -1, 'StateFailedReason': 0 if sim else 2,
                     'Sim': ROOT + '/SIM/0' if sim else '/', 'UnlockRequired': 1 if sim else 0,
-                    'SupportedModes': [(8, 0), (4, 0), (14, 8), (14, 0)], 'CurrentModes': (14, 8)},
+                    'SupportedModes': [(8, 0), (4, 0), (14, 8), (14, 0)], 'CurrentModes': (14, 8),
+                    'SignalQuality': (64, True), 'AccessTechnologies': 16384},
+            THREEGPP: {'RegistrationState': 1, 'OperatorName': 'Fixture operator'},
             MESSAGING: {'Messages': [ROOT + '/SMS/4']},
             USSD: {'State': session, 'NetworkRequest': '', 'NetworkNotification': ''},
             SMS: {'State': 3, 'Number': '+84900111222', 'Text': '<script>fixture OTP</script>',
@@ -28,6 +31,7 @@ class Bus:
 
     def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
         self.calls.append((path, interface, method, signature, args))
+        self.timeouts.append((method, kwargs.get('timeout')))
         if method == 'Introspect':
             if path == ROOT + '/Modem':
                 return '<node>' + ''.join(f'<node name="{n}"/>' for n in self.nodes) + '</node>'
@@ -76,7 +80,8 @@ def test_missing_sim_is_read_only_and_exposes_no_identifiers(make_modem, tmp_pat
     assert result['mobile_data'] == 'UNVERIFIED_NOT_CONFIGURED'
     assert all(c[2] in ('Introspect', 'Get') for c in bus.calls)
     assert {c[4][1] for c in bus.calls if c[2] == 'Get'} == {
-        'State', 'StateFailedReason', 'Sim', 'UnlockRequired', 'SupportedModes', 'CurrentModes'}
+        'State', 'StateFailedReason', 'Sim', 'UnlockRequired', 'SupportedModes', 'CurrentModes',
+        'SignalQuality', 'AccessTechnologies', 'RegistrationState', 'OperatorName'}
     with pytest.raises(RuntimeError, match='SIM_REQUIRED'):
         modem.call(**request(number='+84900111222', text='test'))
     assert not list(tmp_path.iterdir())
@@ -127,6 +132,25 @@ def test_ussd_methods_have_separate_session_gates(make_modem, action, session, m
     result = make_modem(bus).call(**request(action, **values))
     assert any(c[2] == method for c in bus.calls)
     assert result.get('reply') or result.get('cancelled')
+    if method in ('Initiate', 'Respond'):
+        assert (method, 115) in bus.timeouts
+
+
+def test_signal_and_registration_are_read_only_and_missing_data_is_unknown(make_modem):
+    bus = Bus()
+    status = make_modem(bus).call('status')
+    assert status['signal_percent'] == 64 and status['signal_recent']
+    assert status['access_technologies'] == 16384
+    assert status['operator_name'] == 'Fixture operator' and status['registration_state'] == 1
+    bus.props[MODEM]['SignalQuality'] = (0, False)
+    assert not make_modem(bus).call('status')['signal_recent']
+    del bus.props[MODEM]['SignalQuality']
+    del bus.props[MODEM]['AccessTechnologies']
+    bus.props.pop(THREEGPP)
+    status = make_modem(bus).call('status')
+    assert status['signal_percent'] is None and status['access_technologies'] is None
+    assert status['operator_name'] is None and status['registration_state'] is None
+    assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
 
 
 def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
@@ -135,6 +159,27 @@ def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
         make_modem(bus).call(**request('ussd_start', code='*101#'))
     assert not list(tmp_path.iterdir())
     assert not any(c[2] == 'Initiate' for c in bus.calls)
+
+
+@pytest.mark.parametrize('name,code,failure', [
+    ('org.freedesktop.DBus.Error.NoReply', 'USSD_TIMEOUT', 'TIMEOUT'),
+    (MODEM.rsplit('.Modem', 1)[0] + '.Error.Core.Unsupported', 'USSD_UNSUPPORTED', 'UNSUPPORTED'),
+    (MODEM.rsplit('.Modem', 1)[0] + '.Error.Core.Failed', 'USSD_FAILED', 'MODEM_FAILED'),
+])
+def test_ussd_failure_categories_never_expose_error_text_or_resend(make_modem, tmp_path, name, code, failure):
+    class Failure(Exception):
+        def get_dbus_name(self):return name
+    class ErrorBus(Bus):
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'Initiate':raise Failure('private balance +84900111222')
+            return super().call_blocking(service, path, interface, method, signature, args, **kwargs)
+    bus = ErrorBus()
+    values = request('ussd_start', code='*101#')
+    with pytest.raises(RuntimeError, match='^' + code + '$'):make_modem(bus).call(**values)
+    stored = json.loads(next(tmp_path.glob('*.json')).read_text())
+    assert stored['state'] == 'UNKNOWN' and stored['failure'] == failure
+    assert 'balance' not in json.dumps(stored) and '*101#' not in json.dumps(stored)
+    with pytest.raises(RuntimeError, match='ALREADY_ATTEMPTED'):make_modem(bus).call(**values)
 
 
 def test_locked_and_unregistered_modems_cannot_send(make_modem):

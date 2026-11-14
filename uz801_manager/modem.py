@@ -1,9 +1,10 @@
 """USB portal modem jobs. No raw AT/QMI, firmware or mobile-data operations."""
 import re
 import threading
+import time
 import uuid
 
-from flask import jsonify, render_template, request
+from flask import abort, jsonify, redirect, render_template, request
 
 
 def validate_action(body):
@@ -52,11 +53,19 @@ def validate_action(body):
 def register_modem_routes(app, backend, token):
     lock = threading.Lock()
     state = {'busy': False, 'result': {}, 'error': None}
+    last_ussd = {}
     app.extensions['modem'] = {'state': state}
 
     @app.get('/modem')
     def modem_page():
-        return render_template('modem.html', token=token)
+        return redirect('/modem/sms')
+
+    @app.get('/modem/<page>')
+    def modem_section(page):
+        titles = {'sms': 'Gửi / nhận SMS', 'ussd': 'USSD', 'network': 'Mạng SIM'}
+        if page not in titles:
+            abort(404)
+        return render_template('modem.html', token=token, page=page, title=titles[page])
 
     @app.get('/api/modem/state')
     def modem_state():
@@ -74,20 +83,31 @@ def register_modem_routes(app, backend, token):
             if state['busy']:
                 return jsonify(error='BUSY'), 409
             state.update(busy=True, result={}, error=None)
+            if action.startswith('ussd_'):
+                last_ussd.clear()
+                last_ussd.update(action=action, busy=True, result={}, error=None,
+                                 started_at=time.time())
 
         def work():
             try:
                 result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:
+                    if action == 'status' and last_ussd:
+                        result = {**result, 'last_ussd': dict(last_ussd)}
+                    if action.startswith('ussd_'):
+                        last_ussd.update(busy=False, result=result, finished_at=time.time())
                     state['result'] = result
             except Exception as exc:
                 # Never return DBus errors, SMS contents, destinations or codes.
                 allowed = {'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
                            'MODEM_UNAVAILABLE', 'MODEM_AMBIGUOUS', 'ALREADY_ATTEMPTED',
-                           'RESULT_UNKNOWN', 'USSD_SESSION_STATE', 'MODEM_BUSY'}
+                           'RESULT_UNKNOWN', 'USSD_SESSION_STATE', 'MODEM_BUSY',
+                           'USSD_TIMEOUT', 'USSD_UNSUPPORTED', 'USSD_NO_NETWORK', 'USSD_FAILED'}
                 code = str(exc)
                 with lock:
                     state.update(result={}, error=code if code in allowed else 'MODEM_OPERATION_FAILED')
+                    if action.startswith('ussd_'):
+                        last_ussd.update(busy=False, error=state['error'], finished_at=time.time())
             finally:
                 body.clear()
                 with lock:

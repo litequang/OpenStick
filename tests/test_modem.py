@@ -34,9 +34,10 @@ def headers(**extra):
 
 def test_modem_page_bootstraps_usb_token_and_preserves_guards():
     app, client, backend = setup()
-    response = client.get('/modem', headers={'Host': '172.16.42.1'})
+    assert client.get('/modem', headers={'Host': '172.16.42.1'}).location == '/modem/sms'
+    response = client.get('/modem/sms', headers={'Host': '172.16.42.1'})
     page = response.get_data(as_text=True)
-    assert response.status_code == 200 and 'SMS / USSD' in page
+    assert response.status_code == 200 and 'Gửi / nhận SMS' in page
     assert 'test-token' in page
     assert response.headers['Cache-Control'] == 'no-store'
     assert response.headers['X-Frame-Options'] == 'DENY'
@@ -83,13 +84,63 @@ def test_confirm_and_exact_schema_required_before_a_job():
     assert not backend.calls
 
 
-def test_real_ui_script_handles_private_http_and_lost_send_reply(tmp_path):
+def test_last_ussd_reply_survives_status_refresh_without_retaining_code():
+    class UssdBackend(Backend):
+        def call(self, action, **values):
+            return {'reply': '<script>private fixture</script>'} if action == 'ussd_start' else {'registered': True}
+    app = create_hosting_app(backend=object(), modem_backend=UssdBackend(), usb_portal=True, token='test-token')
+    client = app.test_client()
+    payload = {'action': 'ussd_start', 'code': '*101#', 'confirm': True, 'operation': str(uuid.uuid4())}
+    assert client.post('/api/modem', json=payload, headers=headers()).status_code == 202
+    app.extensions['modem']['thread'].join(2)
+    for _ in range(2):
+        assert client.post('/api/modem', json={'action': 'status'}, headers=headers()).status_code == 202
+        app.extensions['modem']['thread'].join(2)
+        response = client.get('/api/modem/state', headers=headers())
+        assert response.json['result']['last_ussd']['result']['reply'] == '<script>private fixture</script>'
+        assert '*101#' not in response.text and '"code"' not in response.text
+
+
+def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
+    app, client, _ = setup()
+    for route in ['/overview', '/', '/modem/sms', '/modem/ussd', '/modem/network']:
+        response = client.get(route, headers={'Host': '172.16.42.1'})
+        assert response.status_code == 200 and 'id="portal-nav"' in response.text
+        assert 'id="chip-sim"' in response.text and 'id="chip-modem"' in response.text
+        assert response.headers['Cache-Control'] == 'no-store'
+    assert client.get('/overview', headers={'Host': 'evil.invalid'}).status_code == 403
+    node = shutil.which('node')
+    if not node:pytest.skip('Node.js is needed for the synthetic UI fixture')
+    page = tmp_path / 'overview.html'
+    page.write_text(client.get('/overview', headers={'Host': '172.16.42.1'}).text, encoding='utf-8')
+    result = subprocess.run([node, str(Path(__file__).with_name('overview_ui_fixture.cjs')), str(page)],
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize('section,present,absent', [
+    ('sms', 'sms-fields', ('ussd-fields', 'mode-fields')),
+    ('ussd', 'ussd-fields', ('sms-fields', 'mode-fields')),
+    ('network', 'mode-fields', ('sms-fields', 'ussd-fields')),
+])
+def test_separate_pages_contain_only_their_own_forms(section, present, absent):
+    _, client, _ = setup()
+    response = client.get('/modem/' + section, headers={'Host': '172.16.42.1'})
+    assert response.status_code == 200
+    assert f'id="{present}"' in response.text
+    assert all(f'id="{field}"' not in response.text for field in absent)
+    assert 'id="network-status"' in response.text and 'aria-current="page"' in response.text
+    assert client.get('/modem/invalid', headers={'Host': '172.16.42.1'}).status_code == 404
+
+
+@pytest.mark.parametrize('section', ['sms', 'ussd', 'network'])
+def test_real_ui_script_handles_private_http_and_lost_send_reply(tmp_path, section):
     node = shutil.which('node')
     if not node:
         pytest.skip('Node.js is needed for the synthetic UI fixture')
     app, client, _ = setup()
     page = tmp_path / 'modem.html'
-    page.write_text(client.get('/modem', headers={'Host': '172.16.42.1'}).get_data(as_text=True), encoding='utf-8')
-    result = subprocess.run([node, str(Path(__file__).with_name('modem_ui_fixture.cjs')), str(page)],
+    page.write_text(client.get('/modem/' + section, headers={'Host': '172.16.42.1'}).get_data(as_text=True), encoding='utf-8')
+    result = subprocess.run([node, str(Path(__file__).with_name('modem_ui_fixture.cjs')), str(page), section],
                             capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stdout + result.stderr

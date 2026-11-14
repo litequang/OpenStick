@@ -3,15 +3,26 @@
 Status on the tested FY_UZ801_V3.2 unit: installed. USB HTTP, Wi-Fi status
 and scan, public HTTPS through the fixed Cloudflare hostname, and NTP
 synchronization passed live checks. Visual browser testing is UNVERIFIED:
-Windows Computer Use stopped because it could not confidently determine the
-browser URL. See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
+The latest Edge screenshot attempt timed out twice. See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
 restart verification and remaining limits.
 
 After installation, connect the dongle to a computer and open
-`http://172.16.42.1` in a browser. Select **Tìm mạng Wi-Fi**, choose a WPA/WPA2
+`http://172.16.42.1` in a browser. The current SSID, IP, signal and negotiated
+TX/RX link rates appear first. When connected, network selection is collapsed
+under **Đổi Wi-Fi**; when disconnected, it opens automatically. Select
+**Tìm mạng Wi-Fi**, choose a WPA/WPA2
 Personal network, enter its password and select **Kết nối**. Profiles are
 saved per SSID with autoconnect enabled. Passwords are never returned by the
 API or stored in job history.
+
+Status refresh uses cached access-point information without requesting an
+active rescan. **Đo tốc độ tải Internet** explicitly downloads a fixed 2 MiB
+HTTPS sample from Cloudflare, bound to `wlan0`, with byte and time limits.
+It does not run automatically, upload a sample or fall back to SIM data.
+Negotiated TX/RX rates are not Internet throughput. One explicit live sample
+passed at about 13.1 Mbps; throughput is variable, not a capacity guarantee.
+
+The dark [dashboard and navigation](PORTAL_UI.md) are at `/overview`.
 
 For subsequent use on a saved network, a suitable USB power supply is enough;
 a computer provides power and management access but is not the Internet
@@ -59,9 +70,10 @@ launcher after device installation.
 The read-only Android backup Manager retains its existing safety gates.
 The Linux Wi-Fi modules contain no flash, erase, restore or firmware APIs.
 
-The installed USB portal also links to `/modem` for SMS/USSD and 3G/4G mode
+The installed USB portal separates SMS, USSD and 3G/4G mode
 selection. The inserted SIM is registered and the modem exposes Messaging
 and USSD interfaces. A secondary PIN2 report is displayed without treating
-it as a primary SIM lock. End-to-end SMS/USSD transactions remain unverified;
+it as a primary SIM lock. A MobiFone USSD account notification was received;
+end-to-end SMS and interactive USSD remain unverified;
 see [SMS/USSD readiness and usage](UZ801_SMS_USSD.md). This does not enable
 Internet data over the SIM or expose SMS through the public website.
