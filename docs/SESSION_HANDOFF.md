@@ -1,5 +1,35 @@
 # Handoff — 2026-11-14, home machine
 
+## Saved Wi-Fi management overview (deployed on the actual USB)
+
+The `/manage` hub now shows a dedicated **Wi-Fi đã lưu** section with a count,
+SSID names, an indicator for the connected network and a Refresh button. Its
+link opens `/internet#saved-wifi`, where saved profiles can be connected or
+forgotten with the existing confirmation workflow. `/internet` now loads its
+saved profiles automatically when opened. The new authenticated GET
+`/api/wifi/saved` returns only `ssid` and `active`, never profile UUIDs or
+secrets. Listing remains available while setup AP is active; network-changing
+actions continue to observe the existing station-role guard.
+
+Deployment on 2026-11-14 replaced seven portal files: `network_policy.py`,
+`network_web.py`, `templates/manage.html`, `templates/internet.html`,
+`static/manage.js`, `static/internet.js`, and `static/portal.css` beneath
+`/opt/openstick/uz801_manager`. The installer first verified exact installed
+file versions and created a device-side backup at
+`/var/lib/openstick/deploy-backups/home-20261114/before-saved-wifi-1794670812.tar.gz`.
+Both `openstick-wifi` and `openstick-lan` restarted successfully, without a
+device reboot or any Wi-Fi profile changes.
+
+Real USB checks: `/manage`, `/internet`, `/overview`, `/`, and three changed
+static assets returned HTTP 200; an authenticated real GET of the new API
+returned **4 saved profiles, 1 active** (names deliberately omitted from
+handoff). Both portal services were running; the local website on port 8080
+returned 200; LAN `/login` returned 200; unauthenticated LAN `/manage` redirected
+to login (302). On the Windows development machine the full suite passed
+**380 tests**, with **one Windows symlink skip**; focused policy/auth tests
+passed 47/47; JS syntax and `git diff --check` passed. A browser-based visual
+check on the owner's phone has not yet been performed.
+
 ## Portal management navigation (deployed on USB)
 
 The portal now includes `/manage`, grouping existing controls into connectivity,

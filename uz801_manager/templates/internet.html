@@ -14,7 +14,7 @@
 <button>Áp dụng</button></fieldset></form><p class="muted">Chu kỳ kiểm tra 15 giây, cần 3 lần lỗi/phục hồi và nghỉ ít nhất 120 giây giữa các lần chuyển. Kiểm tra Internet tạo một ít lưu lượng trên từng đường đang kết nối. SIM cần APN đã lưu ở trang Phát Wi-Fi từ SIM. Chính sách này dùng vai trò Wi-Fi nhận Internet; hãy tắt tự quản lý trước khi thử hotspot.</p>
 <p class="muted">Tắt tự quản lý giữ nguyên kết nối hiện tại, không tự ngắt dữ liệu SIM. Chọn và áp dụng Chỉ Wi-Fi để ngắt kết nối SIM do OpenStick quản lý.</p>
 <p id="policy-notice" class="notice" role="status">Cần kiểm thử chuyển mạng trên thiết bị thật.</p></section>
-<section><h2>Wi-Fi đã lưu</h2><button id="profiles-refresh" class="secondary">Xem danh sách</button><p class="muted">Sử dụng mật khẩu đã lưu. Kết nối thủ công thử Internet và hoàn tác nếu thất bại. Chỉ xóa mạng đang không kết nối.</p><div id="saved-profiles" aria-live="polite"></div></section>
+<section id="saved-wifi"><h2>Wi-Fi đã lưu</h2><button id="profiles-refresh" class="secondary">Làm mới danh sách</button><p class="muted">Sử dụng mật khẩu đã lưu. Kết nối thủ công thử Internet và hoàn tác nếu thất bại. Chỉ xóa mạng đang không kết nối.</p><div id="saved-profiles" aria-live="polite">Đang tải danh sách…</div></section>
 </main><script>
 const policyToken={{ token|tojson }};
 </script><script src="/static/internet.js"></script></body></html>

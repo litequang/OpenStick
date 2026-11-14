@@ -15,6 +15,13 @@ def register_network_routes(app, backend, token):
     def internet_page():
         return render_template('internet.html', token=token, page='wifi')
 
+    @app.get('/api/wifi/saved')
+    def saved_wifi():
+        try:
+            return jsonify(backend.saved_wifi())
+        except Exception:
+            return jsonify(error='SAVED_WIFI_UNAVAILABLE'), 503
+
     @app.get('/api/internet/state')
     def internet_state():
         with lock:return jsonify(state)

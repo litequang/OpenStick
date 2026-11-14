@@ -173,7 +173,31 @@ def test_private_policy_routes_require_token_and_filter_errors(policy):
     network.current['wlan0']=AP_UUID
     assert client.post('/api/internet',base_url=base,headers=headers,json={'action':'profiles'}).status_code==202
     app.extensions['network_policy']['thread'].join(2)
-    assert client.get('/api/internet/state',base_url=base,headers=headers).json['error']=='HOTSPOT_ACTIVE'
+    status=client.get('/api/internet/state',base_url=base,headers=headers).json
+    assert status['error'] is None and len(status['result']['profiles'])==2
+    assert all(not profile['active'] for profile in status['result']['profiles'])
+
+
+def test_saved_wifi_management_page_is_read_only_and_private(policy):
+    backend,network,_=policy
+    app=create_hosting_app(backend=object(),modem_backend=object(),network_backend=backend,
+                           usb_portal=True,token='fixture')
+    client=app.test_client();base='http://172.16.42.1';headers={'X-OpenStick-Token':'fixture'}
+    page=client.get('/manage',base_url=base)
+    assert page.status_code==200
+    assert b'saved-wifi-list' in page.data and b'/static/manage.js' in page.data
+    assert b'/internet#saved-wifi' in page.data
+    assert client.get('/api/wifi/saved',base_url=base).status_code==403
+    assert client.get('/api/wifi/saved',base_url=base,headers={**headers,'Origin':'https://evil.invalid'}).status_code==403
+    assert client.get('/api/wifi/saved',base_url='http://evil.invalid',headers=headers).status_code==403
+
+    for active, expected in [(WIFI,[True,False]),(AP_UUID,[False,False])]:
+        network.current['wlan0']=active
+        result=client.get('/api/wifi/saved',base_url=base,headers=headers)
+        assert result.status_code==200
+        assert result.json=={'profiles':[{'ssid':'fixture','active':expected[0]},
+                                         {'ssid':'other','active':expected[1]}]}
+        assert network.calls==[]
 
 
 def test_failed_saved_wifi_does_not_block_sim_fallback(policy):

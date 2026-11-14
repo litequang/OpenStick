@@ -4,10 +4,19 @@
 <p class="manage-intro">Các chức năng được sắp theo công việc. Chọn mục cần thay đổi để mở màn cài đặt tương ứng.</p>
 <section class="manage-group" aria-labelledby="manage-connectivity"><h2 id="manage-connectivity">Kết nối &amp; Internet</h2><div class="manage-grid">
 <a class="manage-link" href="/"><strong>Wi-Fi nhận Internet</strong><span>Xem kết nối, quét và đổi mạng Wi-Fi cho website.</span></a>
-{% if features.network %}<a class="manage-link" href="/internet"><strong>Nguồn Internet &amp; Wi-Fi đã lưu</strong><span>Chọn chính sách ưu tiên, dự phòng và quản lý mạng đã lưu.</span></a>{% endif %}
+{% if features.network %}<a class="manage-link" href="#saved-wifi"><strong>Wi-Fi đã lưu</strong><span>Xem các mạng USB đã nhớ và mạng đang kết nối.</span></a>
+<a class="manage-link" href="/internet"><strong>Nguồn Internet</strong><span>Chính sách Wi-Fi/SIM, ưu tiên và dự phòng.</span></a>{% endif %}
 {% if features.setup %}<a class="manage-link" href="/setup"><strong>Wi-Fi cài đặt</strong><span>Thiết lập qua điện thoại khi USB không kết nối được Wi-Fi.</span></a>{% endif %}
 {% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM</strong><span>Cấu hình APN và điểm phát; dữ liệu SIM cần xác nhận riêng.</span></a>{% endif %}
 </div></section>
+{% if features.network %}
+<section class="manage-group" id="saved-wifi" aria-labelledby="saved-wifi-title">
+  <div class="manage-section-heading"><h2 id="saved-wifi-title">Wi-Fi đã lưu <span id="saved-wifi-count" class="pill" hidden></span></h2><button id="saved-wifi-refresh" class="secondary" type="button">Làm mới</button></div>
+  <p class="manage-intro">Các mạng USB đã ghi nhớ để thử kết nối lại. Danh sách chỉ hiển thị tên mạng; không hiển thị mật khẩu.</p>
+  <div id="saved-wifi-list" class="manage-wifi-list" role="status" aria-live="polite">Đang tải danh sách…</div>
+  <p class="manage-wifi-actions"><a href="/internet#saved-wifi">Kết nối hoặc quên mạng đã lưu →</a></p>
+</section>
+{% endif %}
 <section class="manage-group" aria-labelledby="manage-cellular"><h2 id="manage-cellular">SIM &amp; modem</h2><div class="manage-grid">
 <a class="manage-link" href="/modem/network"><strong>Chế độ mạng SIM</strong><span>Trạng thái đăng ký mạng, lựa chọn 3G/4G cho SMS và USSD.</span></a>
 <a class="manage-link" href="/modem/sms"><strong>Tin nhắn SMS</strong><span>Danh sách hội thoại, soạn và quản lý tin nhắn.</span></a>
@@ -18,4 +27,6 @@
 <a class="manage-link" href="/overview"><strong>Thiết bị &amp; dịch vụ</strong><span>RAM, lưu trữ, nhiệt độ và trạng thái dịch vụ.</span></a>
 {% if features.lan %}<a class="manage-link" href="/#lan-status"><strong>Quản trị LAN</strong><span>Truy cập giao diện quản lý qua Wi-Fi nội bộ.</span></a>{% endif %}
 </div></section>
-</main></body></html>
+</main>
+{% if features.network %}<script>const savedWifiToken={{ token|tojson }};</script><script src="/static/manage.js"></script>{% endif %}
+</body></html>

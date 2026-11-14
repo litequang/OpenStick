@@ -125,10 +125,23 @@ class NetworkPolicy:
                 'cooldown_seconds': 120, 'health_samples': 3,
                 'age_seconds': max(0, int(self.clock() - state['checked_at'])) if 'checked_at' in state else None}
 
+    def saved_wifi(self):
+        """Read saved station names on USB/LAN, even while setup AP is active.
+
+        This never requests secrets, changes profiles or probes the Internet.
+        """
+        with self.lock_factory():
+            active = self.network.active('wlan0')
+            return {'profiles': [{'ssid': profile['ssid'], 'active': profile['uuid'] == active}
+                                 for profile in self.network.profiles()]}
+
     def call(self, action, **values):
         validate_policy({'action': action, **values})
         with self.lock_factory():
             if action == 'status':return self.status()
+            if action == 'profiles':
+                active = self.network.active('wlan0')
+                return {'profiles': [{**p, 'active': p['uuid'] == active} for p in self.network.profiles()]}
             self.assert_station_role()
             if action == 'data_off':
                 with self.modem_lock_factory():
@@ -145,9 +158,6 @@ class NetworkPolicy:
                     self.write('network-policy-state.json', {'boot': self.boot(), 'source': None,
                         'streaks': {}, 'last_switch': 0, 'health': {'wifi': False, 'sim': False}})
                 return {**self.status(), 'data_off': True}
-            if action == 'profiles':
-                active = self.network.active('wlan0')
-                return {'profiles': [{**p, 'active': p['uuid'] == active} for p in self.network.profiles()]}
             if action == 'configure':
                 previous = self.config()
                 config = {k: values[k] for k in ('mode', 'enabled', 'auto_wifi', 'cellular_consent')}
