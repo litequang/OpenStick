@@ -165,7 +165,7 @@ HTML = '''<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewp
 <form id="wifi"><label for="ssid">Tên Wi-Fi (SSID)</label><input id="ssid" name="ssid" maxlength="32" autocomplete="off" required>
 <label for="password">Mật khẩu Wi-Fi</label><input id="password" name="password" type="password" minlength="8" maxlength="63" autocomplete="new-password" required><button id="connect" type="submit">Kết nối Wi-Fi</button></form>
 <p><small>Mật khẩu không hiển thị trong báo cáo. Thiết bị lưu khóa Wi-Fi để tự kết nối sau khi bật nguồn. Nếu đổi mạng không thành công, vẫn có thể cấu hình lại qua USB.</small></p></details><p id="operation-status" role="status"></p></section>
-<section><strong>Website công khai</strong><p><a href="https://__OPENSTICK_HOSTNAME__" target="_blank" rel="noopener">__OPENSTICK_HOSTNAME__</a></p><small>Trang quản trị Wi-Fi chỉ truy cập qua USB. Sau khi lưu Wi-Fi, có thể cắm nguồn USB để thiết bị tự kết nối và chạy website.</small></section></main>
+<section><strong>Website công khai</strong><p><a href="https://__OPENSTICK_HOSTNAME__" target="_blank" rel="noopener">__OPENSTICK_HOSTNAME__</a></p><small>Quản trị qua USB hoặc Wi-Fi có đăng nhập nếu đã bật. Sau khi lưu Wi-Fi, có thể cắm nguồn USB để thiết bị tự kết nối và chạy website.</small></section></main>
 <script>
 const token=__OPENSTICK_BOOTSTRAP_TOKEN__||new URLSearchParams(location.hash.slice(1)).get('token')||sessionStorage.getItem('openstick-hosting-token')||'';if(token)sessionStorage.setItem('openstick-hosting-token',token);history.replaceState(null,'',location.pathname);
 const status=document.getElementById('status'),networks=document.getElementById('networks'),notice=document.getElementById('operation-status');let busy=false,wifiConnected=false,initialized=false;
@@ -176,7 +176,7 @@ networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=n
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -190,9 +190,12 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
 
     @app.before_request
     def guard():
-        authority = '172.16.42.1' if usb_portal else f'127.0.0.1:{port}'
-        origin = 'http://' + authority
-        if request.host != authority or request.headers.get('Origin', origin) != origin:
+        expected_authority = authority() if callable(authority) else authority
+        if expected_authority is None and lan_auth is None:
+            expected_authority = '172.16.42.1' if usb_portal else f'127.0.0.1:{port}'
+        if not expected_authority:return jsonify(error='FORBIDDEN'), 403
+        origin = 'http://' + expected_authority
+        if request.host != expected_authority or request.headers.get('Origin', origin) != origin:
             return jsonify(error='FORBIDDEN'), 403
         if request.headers.get('Sec-Fetch-Site') == 'cross-site':
             return jsonify(error='FORBIDDEN'), 403
@@ -202,10 +205,14 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     @app.after_request
     def headers(response):
         response.headers['Cache-Control'] = 'no-store'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        # Native login/logout form POSTs use no-cors mode. With no-referrer,
+        # browsers serialize Origin as "null", failing our strict origin check.
+        # same-origin preserves the origin locally and sends no referrer outside.
+        response.headers['Referrer-Policy'] = 'same-origin' if lan_auth is not None else 'no-referrer'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
-        response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"
+        form_action = "'self'" if lan_auth is not None else "'none'"
+        response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action " + form_action + "; frame-ancestors 'none'; base-uri 'none'"
         return response
 
     @app.get('/')
@@ -213,6 +220,10 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
         if usb_portal and modem_backend is not None:
             page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi'), 1)
+        if usb_portal and lan_settings is not None and lan_auth is None:
+            page = page.replace('</main>', render_template('lan_settings.html') + '</main>', 1)
+        if usb_portal and site_backend is not None:
+            page = page.replace('</main>', '<section><h2>Quản lý website</h2><p>Tạo và sửa HTML/CSS/JS, tải hình ảnh và tài nguyên cho web tĩnh.</p><a href="/website">Mở trình quản lý Website →</a></section></main>', 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -267,6 +278,19 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             return render_template('overview.html', token=token, page='overview', hostname=hostname)
         from .modem import register_modem_routes
         register_modem_routes(app, modem_backend, token)
+    if usb_portal and lan_settings is not None and lan_auth is None:
+        from .lan_access import register_lan_settings
+        register_lan_settings(app, lan_settings, token, lan_changed)
+    if usb_portal and site_backend is not None:
+        # Only this authenticated/token-protected endpoint accepts file bodies.
+        @app.before_request
+        def site_body_limit():
+            if request.path == '/api/site':request.max_content_length = 1500000
+        from .static_site import register_site_routes
+        register_site_routes(app, site_backend, token, hostname)
+    if lan_auth is not None:
+        from .lan_access import install_lan_auth
+        install_lan_auth(app, lan_auth)
     return app
 
 

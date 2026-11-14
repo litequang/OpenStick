@@ -8,6 +8,7 @@ from waitress import serve
 
 from .hosting import REMOTE, create_hosting_app
 from .modem_device import ModemManager
+from .static_site import StaticSite
 
 
 class LocalWifi:
@@ -41,13 +42,19 @@ def usb_socket():
 
 
 def main():
+    from .lan_access import LanSettings
+    from .lan_device import wifi_ipv4
+    def lan_changed():
+        result = subprocess.run(['rc-service', 'openstick-lan', 'restart'], capture_output=True, timeout=25)
+        if result.returncode:raise RuntimeError('LAN_RESTART_FAILED')
     with open('/etc/openstick/hosting.json', encoding='utf-8') as source:
         hostname = json.load(source)['hostname']
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
-                             modem_backend=ModemManager())
+                             modem_backend=ModemManager(), lan_settings=LanSettings(address=wifi_ipv4),
+                             lan_changed=lan_changed, site_backend=StaticSite())
     with usb_socket() as sock:
         serve(app, sockets=[sock], threads=2, channel_timeout=30,
-              max_request_body_size=4096, ident='OpenStick')
+              max_request_body_size=1500000, ident='OpenStick')
 
 
 if __name__ == '__main__':

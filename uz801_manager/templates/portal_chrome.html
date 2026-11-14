@@ -20,6 +20,7 @@
   {% endfor %}
   </div>
 </header>
+{% if lan_session %}<div class="access-banner"><span>Đã đăng nhập qua Wi-Fi</span><form action="/logout" method="post"><input type="hidden" name="csrf" value="{{ logout_csrf }}"><button class="secondary" style="min-height:32px;padding:4px 10px;font-size:12px">Đăng xuất</button></form></div>{% endif %}
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính">
 {% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi & Web','/','wifi'),('network','Mạng SIM','/modem/network','sim')] %}
   <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% endif %}"{% if page == key %} aria-current="page"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>

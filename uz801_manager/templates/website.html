@@ -1,0 +1,35 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Website</title></head><body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><h1>Website</h1><a href="/">Wi-Fi &amp; Web</a></div>
+<p>Web tĩnh HTML/CSS/JavaScript. Thay đổi có hiệu lực ngay sau khi lưu.</p>
+<p><a href="https://{{ hostname }}" target="_blank" rel="noopener noreferrer">Mở website công khai ↗</a></p>
+<p id="site-status" role="status" aria-live="polite">Đang đọc danh sách file…</p>
+<div class="site-workspace">
+<section><h2>File website</h2><button id="site-refresh" class="secondary">Làm mới</button><div id="site-files" class="site-files"></div><p id="site-usage" class="metric-note"></p></section>
+<section><h2 id="site-heading">Tạo hoặc sửa file</h2>
+<label for="site-path">Đường dẫn, ví dụ index.html hoặc assets/style.css</label><input id="site-path" maxlength="240" placeholder="index.html" autocomplete="off">
+<label for="site-text">Nội dung UTF-8</label><textarea id="site-text" class="site-editor" spellcheck="false" rows="18" placeholder="<!doctype html>…"></textarea>
+<div class="row"><button id="site-save">Lưu và xuất bản</button><button id="site-new" class="secondary">File mới</button><button id="site-delete" class="secondary" disabled>Xóa file đã chọn</button></div>
+<p class="metric-note">Thư mục được tạo theo đường dẫn. Tối đa 1 MiB/file, 500 file và 64 MiB/website. Chỉ hỗ trợ file tĩnh; không chạy PHP, Node.js hay WordPress.</p>
+<label for="site-upload">Tải file ảnh, font hoặc file tĩnh lên</label><input id="site-upload" type="file"><button id="site-upload-send" class="secondary">Tải lên đường dẫn bên trên</button>
+<p class="metric-note">Chọn file sẽ điền tên vào đường dẫn. Có thể sửa đường dẫn trước khi tải lên. File HTML được hiển thị bằng văn bản trong trình sửa, không chạy trong trang quản trị.</p>
+</section></div>
+<script>
+const siteToken={{ token|tojson }},byId=id=>document.getElementById(id);
+let selected=null,version=null,siteBusy=false,dirty=false;
+const errors={FILE_CHANGED:'File đã thay đổi. Mở lại file để tránh ghi đè thay đổi mới.',PATH_INVALID:'Đường dẫn không hợp lệ hoặc loại file không được hỗ trợ.',FILE_TOO_LARGE:'File vượt quá 1 MiB.',SITE_TOO_LARGE:'Website vượt quá 64 MiB.',SITE_TOO_MANY_FILES:'Website vượt quá 500 file.'};
+async function siteCall(value){const r=await fetch('/api/site',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':siteToken},body:JSON.stringify(value)});if(r.status===401){location.href='/login';throw Error('Cần đăng nhập lại.')}const data=await r.json();if(!r.ok)throw Error(errors[data.error]||'Thao tác chưa thành công. Kiểm tra kết nối rồi thử lại.');return data}
+async function siteJob(work){if(siteBusy)return;siteBusy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await work()}catch(e){byId('site-status').textContent=e.message}finally{siteBusy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);byId('site-delete').disabled=!selected}}
+async function listFiles(){const data=await siteCall({action:'list'}),list=byId('site-files');list.replaceChildren();for(const file of data.files){const b=document.createElement('button');b.className='site-file secondary';b.textContent=file.path+' · '+(file.bytes/1024).toFixed(1)+' KiB';b.onclick=()=>openFile(file.path);list.append(b)}byId('site-usage').textContent=`${data.files.length}/500 file · ${(data.bytes/1048576).toFixed(2)}/64 MiB`;}
+function canLeave(){return !dirty||confirm('Bỏ các thay đổi chưa lưu?')}
+async function openFile(path){if(!canLeave())return;await siteJob(async()=>{const data=await siteCall({action:'get',path});selected=path;version=data.etag;byId('site-path').value=path;byId('site-text').value=data.text??'';byId('site-text').disabled=data.text===null;byId('site-heading').textContent=path;dirty=false;byId('site-status').textContent=data.text===null?'File nhị phân: có thể tải file thay thế hoặc xóa.':'Đã mở file. Chỉ xuất bản khi bấm Lưu.'})}
+byId('site-refresh').onclick=()=>siteJob(listFiles);
+byId('site-new').onclick=()=>{if(!canLeave())return;selected=null;version=null;dirty=false;byId('site-path').value='';byId('site-text').value='';byId('site-text').disabled=false;byId('site-delete').disabled=true;byId('site-heading').textContent='File mới';byId('site-path').focus()};
+byId('site-text').oninput=()=>dirty=true;
+byId('site-save').onclick=()=>siteJob(async()=>{const path=byId('site-path').value.trim();if(byId('site-text').disabled)throw Error('File nhị phân cần tải file thay thế.');if(!confirm('Xuất bản file '+path+' lên website công khai?'))return;const data=await siteCall({action:'put',path,text:byId('site-text').value,expected:path===selected?version:null,confirm:true});selected=path;version=data.etag;dirty=false;byId('site-heading').textContent=path;byId('site-status').textContent='Đã lưu và xuất bản. Nếu Cloudflare còn bản cũ, hãy thử tải lại trang.';await listFiles()});
+byId('site-delete').onclick=()=>siteJob(async()=>{if(!selected||!confirm('Xóa vĩnh viễn file '+selected+' khỏi website?'))return;await siteCall({action:'delete',path:selected,expected:version,confirm:true});selected=null;version=null;dirty=false;byId('site-text').value='';byId('site-path').value='';byId('site-status').textContent='Đã xóa file.';await listFiles()});
+byId('site-upload').onchange=()=>{const file=byId('site-upload').files[0];if(file&&canLeave()){byId('site-path').value=file.name;dirty=false;}};
+byId('site-upload-send').onclick=()=>siteJob(async()=>{const file=byId('site-upload').files[0],path=byId('site-path').value.trim();if(!file)throw Error('Chọn file cần tải lên.');if(file.size>1048576)throw Error(errors.FILE_TOO_LARGE);if(!confirm('Xuất bản file '+path+'?'))return;const bytes=new Uint8Array(await file.arrayBuffer());let raw='';for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));await siteCall({action:'upload',path,base64:btoa(raw),expected:path===selected?version:null,confirm:true});dirty=false;byId('site-upload').value='';byId('site-status').textContent='Đã tải lên. Mở file trong danh sách để sửa hoặc xóa.';await listFiles();selected=null;version=null;});
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+siteJob(listFiles);
+</script></main></body></html>

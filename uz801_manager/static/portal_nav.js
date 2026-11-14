@@ -21,7 +21,15 @@ function renderHeader(c){
  set('network-status','Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nMạng đang dùng: '+portalTechnology(c.access_technologies)+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nInternet cho web vẫn dùng Wi-Fi.');
  set('signal-status',c.signal_percent==null?'Chưa có số liệu mức sóng.':c.signal_percent+'% — chất lượng do modem báo.\n'+(c.signal_recent?'Số liệu gần đây.':'Số liệu cũ, chưa có cập nhật mới.'));
 }
+function setupStatusPopovers(root=document){
+ const chips=Array.from(root.querySelectorAll('.status-chip'));
+ const closeExcept=keep=>chips.forEach(chip=>{if(chip!==keep)chip.open=false});
+ root.addEventListener('click',event=>closeExcept(chips.find(chip=>chip.contains(event.target))));
+ root.addEventListener('keydown',event=>{if(event.key==='Escape')closeExcept(null)});
+ chips.forEach(chip=>chip.addEventListener('toggle',()=>{if(chip.open)closeExcept(chip)}));
+}
 if(typeof window!=='undefined')window.addEventListener('DOMContentLoaded',()=>{
+ setupStatusPopovers();
  const nav=document.getElementById('portal-nav');if(!nav)return;
  const root=document.scrollingElement||document.documentElement;
  const position=()=>boundedScrollPosition(root.scrollTop,root.scrollHeight-root.clientHeight);

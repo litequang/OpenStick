@@ -26,10 +26,15 @@ passed at about 13.1 Mbps; throughput is variable, not a capacity guarantee.
 
 The dark [dashboard and navigation](PORTAL_UI.md) are at `/overview`.
 
+Optional password-protected Wi-Fi administration and the `/website`
+static file editor are described in [LAN and website management](LAN_AND_WEBSITE.md).
+USB remains the way to enable/disable LAN access and set its password.
+
 For subsequent use on a saved network, a suitable USB power supply is enough;
 a computer provides power and management access but is not the Internet
-upstream. A different, unsaved network requires USB management to enter its
-credentials. This configuration does not create a Wi-Fi hotspot.
+upstream. Enter credentials for a new network through USB, or through an
+already enabled LAN session while it is still reachable. Changing Wi-Fi can
+disconnect that LAN session. This configuration does not create a Wi-Fi hotspot.
 
 The portal listens on `172.16.42.1:80` and binds its socket to Linux interface
 `usb0` using `SO_BINDTODEVICE`; failure to bind stops the service. Its API
