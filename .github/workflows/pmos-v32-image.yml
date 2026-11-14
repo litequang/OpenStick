@@ -1,0 +1,93 @@
+name: postmarketOS V3.2 console image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/uz801-v32-postmarketos]
+    paths: [.github/workflows/pmos-v32-image.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PMBOOTSTRAP_REV: e0dfe2cda7f3a0b70cdcc96f3060100839322aa4
+      PMAPORTS_REV: 2a8621d64d91647f7362eac59e7cdc091ff2bba8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install standard Linux build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 git openssl kpartx util-linux qemu-user-static binfmt-support xz-utils
+          git --version
+          uname -r
+      - name: Fetch pinned official sources
+        run: |
+          git clone --depth 1 --branch main https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git "$RUNNER_TEMP/pmbootstrap"
+          git -C "$RUNNER_TEMP/pmbootstrap" fetch --depth 1 origin "$PMBOOTSTRAP_REV"
+          git -C "$RUNNER_TEMP/pmbootstrap" checkout --detach "$PMBOOTSTRAP_REV"
+          git clone --depth 1 --branch v26.06 https://gitlab.postmarketos.org/postmarketOS/pmaports.git "$RUNNER_TEMP/pmaports"
+          git -C "$RUNNER_TEMP/pmaports" fetch --depth 1 origin "$PMAPORTS_REV"
+          git -C "$RUNNER_TEMP/pmaports" checkout --detach "$PMAPORTS_REV"
+          test "$(git -C "$RUNNER_TEMP/pmbootstrap" rev-parse HEAD)" = "$PMBOOTSTRAP_REV"
+          test "$(git -C "$RUNNER_TEMP/pmaports" rev-parse HEAD)" = "$PMAPORTS_REV"
+      - name: Configure documented console and extlinux install
+        run: |
+          cat > "$RUNNER_TEMP/pmbootstrap.cfg" <<EOF
+          [pmbootstrap]
+          aports = $RUNNER_TEMP/pmaports
+          work = $RUNNER_TEMP/pmb-work
+          device = qcom-msm8916
+          kernel = extlinux
+          ui = console
+          service_manager = openrc
+          user = user
+          hostname = openstick
+          locale = C.UTF-8
+          timezone = Asia/Ho_Chi_Minh
+          ssh_keys = False
+          extra_packages = nginx,networkmanager,openssh,python3,curl
+          extra_space = 256
+          is_default_channel = False
+
+          [providers]
+
+          [mirrors]
+          EOF
+          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y status
+      - name: Generate standard combined image
+        run: |
+          # --password is the upstream automation option. This is a public
+          # dummy password, not a user secret. No Wi-Fi or tunnel is configured.
+          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y --details-to-stdout install --filesystem btrfs --no-split --no-sparse --password 123456
+          python3 "$RUNNER_TEMP/pmbootstrap/pmbootstrap.py" -c "$RUNNER_TEMP/pmbootstrap.cfg" -y export "$RUNNER_TEMP/pmos-export"
+      - name: Check size and package image
+        run: |
+          mkdir -p output
+          IMAGE="$RUNNER_TEMP/pmos-export/qcom-msm8916.img"
+          test -f "$IMAGE"
+          test "$(stat -Lc '%s' "$IMAGE")" -le 2632384000
+          test "$(stat -Lc '%s' "$IMAGE")" -gt 536870912
+          cp -L "$IMAGE" output/qcom-msm8916.img
+          sha256sum output/qcom-msm8916.img > output/EXPANDED_SHA256SUMS.txt
+          xz -T2 -2 output/qcom-msm8916.img
+          (cd output && sha256sum qcom-msm8916.img.xz > SHA256SUMS.txt)
+          printf 'pmbootstrap=%s\npmaports=%s\nchannel=v26.06\ndevice=qcom-msm8916\nkernel=extlinux\nui=console\nfilesystem=btrfs\nlayout=combined-userdata-only\nhardware_boot=NOT_TESTED\n' "$PMBOOTSTRAP_REV" "$PMAPORTS_REV" > output/BUILD.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postmarketos-v2606-qcom-msm8916-console
+          path: output/
+          retention-days: 7
+          compression-level: 0
+      - name: Preserve build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmbootstrap-build-log
+          path: ${{ runner.temp }}/pmb-work/log.txt
+          retention-days: 3
