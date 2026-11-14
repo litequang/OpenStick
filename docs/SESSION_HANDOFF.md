@@ -1,16 +1,29 @@
 # Handoff — 2026-11-14, home machine
 
-## Portal management navigation (source update)
+## Portal management navigation (deployed on USB)
 
 The portal now includes `/manage`, grouping existing controls into connectivity,
 SIM/modem, and website/system sections. The bottom dock links to this hub; its
 previous direct network item remains accessible at `/modem/network`. Feature
 links are conditional on registered backends. Existing API handlers, network
-policy, credentials, and Wi-Fi recovery behavior were not changed. The UI
-change is source-only until deployed and visually checked on the actual USB.
+policy, credentials, and Wi-Fi recovery behavior were not changed.
+The UI was deployed on the actual USB on 2026-11-14 from commit `067d347`.
+Only `hosting.py`, `templates/portal_chrome.html`, `templates/manage.html`,
+and `static/portal.css` were replaced under `/opt/openstick/uz801_manager`.
+The existing CSS was confirmed byte-equivalent to the predecessor after
+normalizing CRLF line endings. The backup on the device is
+`/var/lib/openstick/deploy-backups/home-20261114/before-manage-ui-1794669809.tar.gz`.
+The `openstick-wifi` and `openstick-lan` services restarted successfully.
+Checks on the real USB and from the home PC: `/manage`, `/overview`, `/`,
+and `/static/portal.css` HTTP 200. The USB's LAN IPv4 was present, LAN `/login`
+returned 200, and unauthenticated LAN `/manage` redirected (302). All six
+checked OpenStick services were running, and the local website loopback
+returned 200. End-to-end authenticated LAN login, public Tunnel access and
+visual/mobile acceptance were not retested during this UI-only deployment.
 Validation after this change: full suite 379 passed / 1 Windows symlink skip
 (including the navigation and route access assertions); focused navigation test
-1 passed, self-test assets/API passed. Hardware was not tested for this UI change.
+1 passed, self-test assets/API passed. Live hardware HTTP checks are listed
+above; interactive/visual acceptance remains pending.
 
 Branch `codex/uz801-v32-postmarketos`. No merge,
 release, flash or partition changes. Earlier company shutdown notes are
