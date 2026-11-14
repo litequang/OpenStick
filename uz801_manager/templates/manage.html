@@ -33,6 +33,7 @@
 <div class="manage-grid">
 {% if features.website %}<a class="manage-link" href="/website"><strong>Quản lý website</strong><span>Danh sách file, chỉnh sửa, tải lên và xuất bản website tĩnh.</span></a>{% endif %}
 <a class="manage-link" href="/overview"><strong>Sức khỏe thiết bị</strong><span>RAM, nhiệt độ, eMMC, swap, trạng thái kết nối và dịch vụ.</span></a>
+{% if features.leds %}<a class="manage-link" href="/settings/leds"><strong>Đèn thông báo</strong><span>Bật/tắt từng màu, chọn nhịp nháy hoặc theo hoạt động Wi-Fi.</span></a>{% endif %}
 </div></section>
 {% if can_manage_lan %}
 <section class="manage-group ux-security-group" id="lan-access">

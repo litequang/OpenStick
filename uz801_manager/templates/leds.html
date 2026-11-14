@@ -1,0 +1,13 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Đèn thông báo</title></head><body><main>
+{% include 'portal_chrome.html' %}
+<div class="page-title"><h1>Đèn thông báo</h1><button id="led-refresh" class="secondary" type="button">Đọc lại</button></div>
+<p>Chọn cách hoạt động riêng cho từng màu. Bấm Lưu để áp dụng ngay và dùng lại sau khi cấp nguồn.</p>
+<p class="muted">Đèn trên USB này hỗ trợ bật/tắt từng màu, không chỉnh độ sáng liên tục. Chế độ theo Wi-Fi báo hoạt động Wi-Fi, không xác nhận Internet hay dữ liệu SIM.</p>
+<form id="led-form"><fieldset id="led-fields" disabled style="border:0;padding:0;min-width:0">
+<div id="led-controls" class="manage-grid"></div>
+<p class="ux-action-row"><button id="led-save" type="submit">Lưu và áp dụng</button><button id="led-all-off" class="secondary" type="button">Chọn tắt tất cả</button><button id="led-default" class="secondary" type="button">Chọn mặc định</button></p>
+</fieldset></form>
+<p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
+<p class="metric-note">Mặc định khôi phục trạng thái trước lần lưu tùy chỉnh đầu tiên. Đọc lại sẽ bỏ các lựa chọn chưa lưu. Chỉ những chế độ thiết bị đang hỗ trợ mới được hiển thị.</p>
+<script>const ledToken={{ token|tojson }};</script><script src="/static/leds.js"></script>
+</main></body></html>

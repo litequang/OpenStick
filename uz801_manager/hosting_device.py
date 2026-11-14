@@ -13,6 +13,7 @@ from .hotspot import Hotspot
 from .sms_archive import ArchivedModem
 from .network_policy import NetworkPolicy
 from .setup_ap import SetupAP
+from .leds import LedSettings
 
 
 class LocalWifi:
@@ -60,7 +61,7 @@ def main():
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
                              authority=('172.16.42.1', '172.16.42.1:8765', LAN_AUTHORITY),
                              modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
-                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP())
+                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings())
     with usb_socket() as sock, usb_socket(8765) as named_sock:
         serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=30,
               max_request_body_size=1500000, ident='OpenStick')

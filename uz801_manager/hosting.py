@@ -225,7 +225,7 @@ networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=n
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None, led_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -342,7 +342,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         def manage():
             features = {'network': network_backend is not None, 'setup': setup_backend is not None,
                         'hotspot': hotspot_backend is not None, 'website': site_backend is not None,
-                        'lan': lan_settings is not None and lan_auth is None}
+                        'lan': lan_settings is not None and lan_auth is None, 'leds': led_backend is not None}
             return render_template('manage.html', token=token, page='manage', features=features,
                                    can_manage_lan=lan_settings is not None and lan_auth is None)
         from .modem import register_modem_routes
@@ -369,6 +369,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     if usb_portal and setup_backend is not None:
         from .setup_web import register_setup_routes
         register_setup_routes(app, setup_backend, token)
+    if usb_portal and led_backend is not None:
+        from .led_web import register_led_routes
+        register_led_routes(app, led_backend, token)
     return app
 
 
