@@ -72,10 +72,57 @@ from checksums, image generation and fastboot command return codes.
 - The user requested shutdown: filesystem sync completed, normal poweroff
   was requested and SSH stopped. On resume Windows sees the USB network,
   but SSH refuses connections; a complete USB power cycle was requested.
-- **CHECKPOINT: application deployment is pending USB SSH recovery.** The
-  USB portal code and tests are ready. Nginx hosting, Tunnel connectivity,
-  automatic time refresh on Wi-Fi changes, and unattended restart have not
-  yet been verified on this installation. No further flash was attempted.
+- A complete normal power cycle did not restore SSH. The precise cause of
+  that earlier outage remains UNVERIFIED because shell access was unavailable.
+  After the user's reset-held replug, lk1st fastboot was verified again.
+  Only `userdata` was reinstalled with the identical, checksum-verified
+  standard image. All three sparse transfers completed successfully and
+  normal Linux USB SSH returned. Bootchain, GPT and modem/NV were not written
+  in this reinstall.
+- Management was configured again using the local key, a new private password,
+  key-only login and `AllowUsers user@172.16.42.0/24`. SSH's default runlevel
+  is explicitly enabled. Listening on IPv4 wildcard avoids requiring the USB
+  IP to exist before sshd starts. A new boot ID and successful pinned-key SSH
+  after normal reboot were verified before application deployment.
+- Wi-Fi autoconnect and outbound HTTPS passed again. Packages `py3-flask`
+  and `py3-waitress`, the USB portal, Nginx and the official ARM64 cloudflared
+  binary were installed. Cloudflared's downloaded digest matched the official
+  release asset digest. Account-wide Cloudflare authorization remained on
+  Windows; only the specific tunnel credential was deployed.
+- Live USB HTTP and API checks: PASS for the Vietnamese page, Wi-Fi status,
+  scan, missing-token rejection, cross-origin rejection, incorrect Host
+  rejection, and no-store responses. Passwords are not returned by these APIs.
+- Public HTTPS returned the expected static page through the configured fixed
+  hostname; cloudflared registered a tunnel connection. Nginx's on-device file
+  matched its installation SHA-256. The Cloudflare zone appends an analytics
+  script, so the public response is not claimed to be byte-identical to the
+  origin file. One request with the Python default user-agent returned 403;
+  a browser user-agent returned 200. No Cloudflare security setting was changed.
+- Chronyd reported a nonzero stratum and `Leap status: Normal`: live NTP
+  synchronization PASS. A Wi-Fi-up dispatcher restarts chronyd on reconnection.
+- A post-install reboot exposed a real startup defect: stock Nginx exited
+  with `bind() to 127.0.0.1:8080 failed (99: Address not available)` while
+  NetworkManager was still bringing up loopback. SSH, the USB portal and
+  cloudflared returned, but the public site gave 502. Starting Nginx later
+  restored service. The stock nginx runlevel entry was replaced with the
+  supervised foreground service `scripts/openrc/openstick-web`, which retries
+  a failed process. The Nginx configuration test is performed during deployment,
+  not as a boot-time precondition that could prevent the supervisor starting.
+  After another normal reboot, OpenRC recorded one automatic Nginx respawn;
+  its loopback listener and public HTTPS recovered without manual intervention.
+  USB portal, saved Wi-Fi and pinned SSH also returned on that new boot. Chronyd
+  subsequently reached a nonzero stratum and Normal leap status without a clock
+  write from Windows. All 18 live HTTP/API/service/time checks then passed.
+- Windows Computer Use stopped before rendering the portal because it could
+  not confidently determine the browser URL. Visual layout, interactive form
+  submission and browser responsiveness on the actual USB remain UNVERIFIED;
+  HTTP/API success is not reported as a visual browser PASS.
+- A cold power cycle of the final service configuration, use from a standalone
+  power supply, switching to a second physical Wi-Fi network, SMS, USSD and
+  LTE data remain UNVERIFIED. No cellular configuration or messages were sent.
+- Local regression suite after deployment: **172 passed**, exit code 0.
+  Manager self-test: PASS, exit code 0. The Android Manager's self-test correctly
+  reports its own hardware path NOT_TESTED; Linux validation above was separate.
 
 ## Windows USB driver selection
 

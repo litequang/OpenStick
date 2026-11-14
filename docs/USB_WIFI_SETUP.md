@@ -1,8 +1,11 @@
 # OpenStick USB Wi-Fi setup
 
-Status: application code tested; device deployment and browser smoke testing
-are pending USB SSH recovery. The addresses below describe the configured
-target, not an assertion that the service is already running.
+Status on the tested FY_UZ801_V3.2 unit: installed. USB HTTP, Wi-Fi status
+and scan, public HTTPS through the fixed Cloudflare hostname, and NTP
+synchronization passed live checks. Visual browser testing is UNVERIFIED:
+Windows Computer Use stopped because it could not confidently determine the
+browser URL. See the [execution record](UZ801_V32_INSTALL_SOURCE.md) for
+restart verification and remaining limits.
 
 After installation, connect the dongle to a computer and open
 `http://172.16.42.1` in a browser. Select **Tìm mạng Wi-Fi**, choose a WPA/WPA2
@@ -25,6 +28,28 @@ Public static content is served separately by Nginx on `127.0.0.1:8080` from
 `/var/www/openstick`. The tunnel routes only the configured public hostname
 to that listener. Tunnel credentials, SSH keys, Wi-Fi profiles and device
 identifiers remain local and must not be committed.
+
+Nginx runs in the foreground under the OpenRC service
+[`openstick-web`](../scripts/openrc/openstick-web). The stock daemon service
+is disabled to avoid two services managing the same listener. On this image,
+NetworkManager can report started before loopback receives `127.0.0.1`;
+stock Nginx then exited with `Address not available`. The foreground service
+retries a failed process after three seconds. The portal and tunnel are also
+supervised. None of these services changes firmware or partition layout.
+
+For maintenance over the local pinned SSH key, the account is `user` at
+`172.16.42.1`. Upload website files using SFTP into `/var/www/openstick`;
+Nginx serves changes directly. SSH password authentication and root login
+are disabled; authentication is restricted to the USB subnet. SSH listens
+without requiring the USB IP to exist at daemon startup, and its default
+runlevel is explicitly enabled. Keep the management private key locally.
+
+Chronyd starts automatically; the NetworkManager Wi-Fi-up dispatcher also
+restarts it to refresh time after reconnection. An initial clock correction
+was needed during first provisioning. A running chronyd process alone is
+not proof of synchronization: verify `chronyc tracking` reports a nonzero
+stratum and `Leap status: Normal` after startup. Tunnel startup can take
+longer while Wi-Fi, DNS and time synchronization become available.
 
 The optional Windows launcher uses key-pinned USB SSH and `sudo -n` against
 the Linux account. It requires the local `pmos_known_hosts` pin and

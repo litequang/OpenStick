@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+# NetworkManager may report started before loopback has its IPv4 address.
+# Supervise foreground nginx so a transient bind failure is retried.
+name="OpenStick static website"
+supervisor=supervise-daemon
+command=/usr/sbin/nginx
+command_args="-c /etc/nginx/nginx.conf -g 'daemon off;'"
+respawn_delay=3
+respawn_max=0
+output_log=/var/log/nginx/openstick-supervisor.log
+error_log=/var/log/nginx/openstick-supervisor.log
+
+depend() {
+    need networkmanager
+}
+
+start_pre() {
+    checkpath --directory --owner nginx:nginx /run/nginx
+}
