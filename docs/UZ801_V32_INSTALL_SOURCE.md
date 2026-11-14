@@ -32,3 +32,28 @@ This is provenance evidence, not a successful boot test of this USB unit.
 Do not reuse a newer, oversized TZ by merging partitions. Follow the guide's
 bootloader verification and firmware sequence. Keep hardware outcomes distinct
 from checksums, image generation and fastboot command return codes.
+
+## Execution record — 2026-11-14
+
+- Standard image build: PASS, [Actions run 43552842104](https://github.com/litequang/OpenStick/actions/runs/43552842104),
+  source commit `24161601ee819fd69041418ccfb18c087e916386`.
+- Windows tests, EXE build and smoke checks: PASS,
+  [Actions run 43552842058](https://github.com/litequang/OpenStick/actions/runs/43552842058).
+  The local suite also passed: 167 tests, exit code 0.
+- Downloaded artifact digest and both compressed/expanded image checksums: PASS.
+  Expanded image: 1589641216 bytes, SHA-256
+  `4a1e1e0b527fafab470d719c7a19b127c9d7d4401738b3fa80fc0451c3d1f2d7`.
+  Its MBR contains two subpartitions and its root Btrfs signature was checked.
+  No custom filesystem or sparse encoder was used.
+- Before writing: the actual unit was reachable through root Android ADB;
+  its original primary GPT matched the local original and contained 27 entries.
+- Guide step `aboot`: the author's lk1st image was sent with standard fastboot;
+  flash and reboot-to-bootloader commands returned success. The USB interface
+  then disappeared. As explicitly noted in the guide, a cold replug while
+  holding the recovery/reset button is the next step.
+- **STOP: lk1st runtime verification is pending.** The new guide's TZ, HYP,
+  SBL1 and postmarketOS image have not been written yet. Linux boot, Wi-Fi,
+  Nginx and Cloudflare Tunnel remain **NOT_TESTED** on this installation.
+
+The USB/firmware operation logs, backup, identifiers and credentials remain
+local under ignored directories. They are not part of this repository.
