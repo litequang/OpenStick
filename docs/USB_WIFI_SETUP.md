@@ -58,3 +58,10 @@ launcher after device installation.
 
 The read-only Android backup Manager retains its existing safety gates.
 The Linux Wi-Fi modules contain no flash, erase, restore or firmware APIs.
+
+The installed USB portal also links to `/modem` for SMS/USSD and 3G/4G mode
+selection. The inserted SIM is registered and the modem exposes Messaging
+and USSD interfaces. A secondary PIN2 report is displayed without treating
+it as a primary SIM lock. End-to-end SMS/USSD transactions remain unverified;
+see [SMS/USSD readiness and usage](UZ801_SMS_USSD.md). This does not enable
+Internet data over the SIM or expose SMS through the public website.

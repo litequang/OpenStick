@@ -113,7 +113,7 @@ networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=n
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -148,6 +148,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     @app.get('/')
     def index():
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
+        if usb_portal and modem_backend is not None:
+            page = page.replace('<main>', '<main><nav><a href="/modem">SMS / USSD và trạng thái 4G</a></nav>', 1)
         # Device mode is served only by a socket bound to the physical USB
         # interface. Same-origin API requests still require this random token.
         return page.replace('__OPENSTICK_BOOTSTRAP_TOKEN__', json.dumps(token if usb_portal else ''))
@@ -194,6 +196,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         thread.start()
         return jsonify(accepted=True), 202
 
+    if usb_portal and modem_backend is not None:
+        from .modem import register_modem_routes
+        register_modem_routes(app, modem_backend, token)
     return app
 
 
