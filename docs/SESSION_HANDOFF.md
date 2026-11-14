@@ -1,5 +1,31 @@
 # Handoff — 2026-11-14, home machine
 
+## Latest deployment: common local URL, usability UI and signal icons
+
+The actual USB now runs `ea9fcc8`, including the requested `0dda4fc` usability
+integration and `c3ca851` local naming. Use **http://openstick.local:8765** on
+PC USB, station Wi-Fi or the stick's AP. The PC system resolver, real USB
+multicast and named HTTP were verified. Both station and setup-AP named login
+were checked on the device; phone visual acceptance remains open. Avahi is
+enabled for boot on USB/Wi-Fi only. Existing USB and AP IP fallbacks remain.
+The header shows carrier on SIM, and fresh 0–4 signal bars on the network
+chip with clickable details. Source tests: **387 passed, one symlink skip**.
+
+See [the deployment report](USB_UI_DEPLOYMENT_2026_11_14.md) for the exact
+source, file list, backups, rollback, HTTP and security checks and limitations.
+The current observed network role is setup AP, with no pending setup job;
+four station profiles remain saved, zero active while AP is running.
+The owner reports rejoining their older home router fails although other
+networks work after hotspot mode. A private profile comparison found the
+target's key/settings unchanged and no stored denylist/BSSID lock. Do not
+assume all AP-to-station transitions are broken or infer the password is
+wrong solely from the driver errors. This router-specific fault is still open.
+
+Local website HTTP and Tunnel service are healthy, but the public website
+returned Cloudflare HTTP 403 in checks from both PC and USB. Public access is
+not certified. Responsive browser/phone checks were blocked by unsupported
+URL enforcement for the Windows browser and remain unverified.
+
 ## Saved Wi-Fi management overview (deployed on the actual USB)
 
 The `/manage` hub now shows a dedicated **Wi-Fi đã lưu** section with a count,

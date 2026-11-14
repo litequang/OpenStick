@@ -5,11 +5,20 @@ diện. Đọc tài liệu này trước khi sửa UI hoặc triển khai lại.
 `codex/uz801-v32-postmarketos`. Bản Windows v0.1.1 trong README là ứng dụng
 backup cũ; panel Linux trên USB là luồng riêng.
 
+**Cập nhật mới nhất:** USB đã cài `ea9fcc8`, gồm giao diện `0dda4fc`, địa chỉ
+chung `http://openstick.local:8765` qua USB/Wi-Fi/hotspot, cùng icon nhà mạng
+và cột sóng. Xem `docs/USB_UI_DEPLOYMENT_2026_11_14.md` và phần đầu handoff.
+Trạng thái quan sát cuối là AP cài đặt; không có pending setup, vẫn còn 4
+profile station. Một router nhà từng dùng được vẫn chưa nối lại được, còn
+router khác nối được sau AP. Khóa/tham số profile mục tiêu khớp backup, không
+có denylist hay khóa BSSID trong profile. Chưa giải quyết lỗi riêng router đó.
+
 ## Yêu cầu đã thống nhất với chủ USB
 
 - SMS gửi/nhận được bật theo khả năng modem/SIM; dữ liệu SIM mặc định tắt.
   Chỉ bật Internet SIM khi người dùng chọn, không tự cấp quyền dùng dữ liệu.
-- SIM và mức sóng chung một icon; icon Wi-Fi thể hiện đang nhận hay phát.
+- Yêu cầu icon mới: SIM hiển thị tên nhà mạng; mục Mạng hiển thị công nghệ và
+  cột sóng, bấm xem chi tiết. Icon Wi-Fi thể hiện đang nhận hay phát.
 - SMS giống ứng dụng điện thoại: danh sách hội thoại, màn hội thoại riêng,
   màn soạn mới riêng. Không nhúng form gửi SMS vào mọi màn.
 - USSD cần phản hồi mới theo từng lần gửi, kể cả nội dung giống lần trước.
@@ -40,6 +49,9 @@ backup cũ; panel Linux trên USB là luồng riêng.
 - Hotspot setup dùng `192.168.8.1:8765/setup`. SSID/password riêng được sinh
   trên thiết bị, xem qua trang `/setup` hoặc thẻ kết nối. Không có password mặc định.
 - Station dùng IP DHCP: đọc trạng thái/router, không hardcode IP nhà vào repo.
+- Địa chỉ chung mới: `http://openstick.local:8765`. Avahi trên `usb0,wlan0`
+  tự cập nhật địa chỉ theo DHCP/AP; PC nối USB cũng có listener cổng 8765.
+  Không nới Host/Origin thành wildcard; giữ exact Origin theo từng Host.
 - Website `/var/www/openstick`, Nginx loopback 8080 và Tunnel đang được giữ lại.
   Không thêm panel quản trị/SMS vào public Tunnel.
 
