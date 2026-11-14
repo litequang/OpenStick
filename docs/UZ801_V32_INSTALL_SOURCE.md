@@ -59,10 +59,23 @@ from checksums, image generation and fastboot command return codes.
 - Windows initially bound the Linux-style USB composite parent to the old
   Android Recovery WinUSB driver. Switching that exact device to Microsoft's
   USB Composite Device exposed a CDC NCM child. On this Windows 10 host the
-  child still requires manual selection of the inbox UsbNcm Host Device
-  driver; it currently has no network adapter/IP address.
-- **CHECKPOINT: Linux USB SSH is not yet verified.** Full userspace boot,
-  Wi-Fi, Nginx and Cloudflare Tunnel remain **NOT_TESTED** on this installation.
+  child required manual selection of the inbox UsbNcm Host Device driver.
+  That selection completed successfully and the host received `172.16.42.2`.
+- Linux userspace and pinned USB SSH: **PASS**, postmarketOS v26.06,
+  AArch64, kernel `6.12.1-msm8916`. `wlan0` was present.
+- Wi-Fi connection, default route over `wlan0`, and outbound HTTPS: **PASS**.
+  The saved profile enables autoconnect. No hotspot or cellular connection
+  was configured. ModemManager was disabled and WWAN marked unmanaged.
+- The public build password was replaced; management uses a local SSH key.
+  Chronyd was enabled. The initial incorrect clock was corrected over SSH;
+  automatic NTP synchronization after a cold boot still needs verification.
+- The user requested shutdown: filesystem sync completed, normal poweroff
+  was requested and SSH stopped. On resume Windows sees the USB network,
+  but SSH refuses connections; a complete USB power cycle was requested.
+- **CHECKPOINT: application deployment is pending USB SSH recovery.** The
+  USB portal code and tests are ready. Nginx hosting, Tunnel connectivity,
+  automatic time refresh on Wi-Fi changes, and unattended restart have not
+  yet been verified on this installation. No further flash was attempted.
 
 ## Windows USB driver selection
 
