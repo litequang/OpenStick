@@ -10,15 +10,24 @@ function portalTechnology(value){if(value==null||value===0)return 'chưa xác đ
 function renderHeader(c){
  const set=(id,text)=>{const e=document.getElementById(id);if(e)e.textContent=text};
  const state=(id,value)=>{const e=document.getElementById('chip-'+id);if(e)e.dataset.state=value};
- if(!c){for(const k of ['modem','sim','network']){set('chip-'+k+'-label','Chờ');state(k,'warning')}return}
+ const summary=(id,text)=>{const e=document.getElementById('chip-'+id+'-summary');if(e){e.setAttribute('aria-label',text);e.title=text}};
+ const network=document.getElementById('chip-network');
+ if(network)network.dataset.bars='unknown';
+ if(!c){for(const k of ['modem','sim','network']){set('chip-'+k+'-label','Chờ');state(k,'warning');summary(k,'Chưa đọc được trạng thái '+k);set(k+'-status','Chưa đọc được trạng thái. Thông tin trước đó có thể đã thay đổi.')}set('signal-status','Chưa có số liệu mức sóng mới.');return}
  set('chip-modem-label',c.registered?'Online':c.state||'Modem');state('modem',c.registered?'ready':'warning');
- set('chip-sim-label',!c.sim_present?'No SIM':c.sim_locked?'Khóa':c.signal_percent==null?'SIM':'SIM '+c.signal_percent+'%');state('sim',c.sim_present&&!c.sim_locked&&c.signal_recent?'ready':'warning');
- set('chip-network-label',c.access_technologies&16384?'4G':c.registered?'Mạng':'Tìm');state('network',c.registered?'ready':'warning');
+ const carrier=!c.sim_present?'No SIM':c.sim_locked?'SIM khóa':c.operator_name||'Chưa rõ';
+ set('chip-sim-label',carrier);state('sim',c.sim_present&&!c.sim_locked?'ready':'warning');summary('sim','Nhà mạng: '+carrier+'. Bấm xem thông tin SIM.');
+ const technology=!c.sim_present?'No SIM':c.sim_locked?'Khóa':!c.registered?'Tìm':c.access_technologies&32768?'5G':c.access_technologies&16384?'4G':c.access_technologies&16352?'3G':c.access_technologies&28?'2G':'Mạng';
+ const validSignal=c.sim_present&&!c.sim_locked&&c.registered&&c.signal_recent===true&&Number.isFinite(c.signal_percent)&&c.signal_percent>=0&&c.signal_percent<=100;
+ const bars=validSignal?Math.ceil(c.signal_percent/25):null;
+ if(network)network.dataset.bars=bars==null?'unknown':String(bars);
+ set('chip-network-label',technology);state('network',validSignal?'ready':'warning');
+ summary('network','Mạng '+technology+', '+(bars==null?'chưa có mức sóng mới':bars+'/4 vạch, '+c.signal_percent+'%')+'. Bấm xem chi tiết.');
  set('modem-status','Modem: '+(c.state||'chưa xác định')+'\n'+(c.registered?'Đã đăng ký mạng.':'Chưa đăng ký mạng.'));
  set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Vào Mạng SIM để bật.':'Đang chờ SIM hoặc đăng ký mạng.');
- set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'SIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
+ set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
  set('network-status','Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nMạng đang dùng: '+portalTechnology(c.access_technologies)+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
- set('signal-status',c.signal_percent==null?'Chưa có số liệu mức sóng.':c.signal_percent+'% — chất lượng do modem báo.\n'+(c.signal_recent?'Số liệu gần đây.':'Số liệu cũ, chưa có cập nhật mới.'));
+ set('signal-status',validSignal?bars+'/4 vạch · '+c.signal_percent+'% — chất lượng do modem báo.\nSố liệu gần đây.':!c.sim_present?'Không có SIM để đo sóng.':c.sim_locked?'SIM đang khóa, chưa có mức sóng khả dụng.':!c.registered?'Chưa đăng ký mạng; chưa có mức sóng kết nối.':c.signal_percent==null?'Chưa có số liệu mức sóng.':c.signal_recent!==true?'Số liệu cũ: '+c.signal_percent+'%. Chưa có cập nhật mới; không hiển thị vạch sóng cũ.':'Chưa có số liệu mức sóng hợp lệ.');
 }
 function renderWifiHeader(w){
  const chip=document.getElementById('chip-wifi'),label=document.getElementById('chip-wifi-label'),detail=document.getElementById('wifi-status'),link=document.getElementById('wifi-settings-link');
@@ -35,7 +44,7 @@ function setupHeaderStatus(){
  const header=document.querySelector('.portal-header'),token=header?.dataset.statusToken;if(!token)return;
  let pending=false;
  const refresh=async()=>{if(pending||document.hidden)return;pending=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);if(value.modem_status)renderHeader(value.modem_status)}catch(_){renderWifiHeader(null)}finally{clearTimeout(timer);pending=false}
+  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);renderHeader(value.modem_status||null)}catch(_){renderWifiHeader(null);renderHeader(null)}finally{clearTimeout(timer);pending=false}
  };
  refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 }

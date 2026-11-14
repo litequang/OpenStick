@@ -5,6 +5,7 @@ class Element {
  constructor(){this.disabled=false;this.dataset={};this.value='';this.open=true;this.options=[];this.textContent='';}
  replaceChildren(...nodes){this.options=nodes;}
  add(node){this.options.push(node);}
+ setAttribute(name,value){this[name]=value;}
  set innerHTML(_){throw Error('Render network data as text');}
 }
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()]));

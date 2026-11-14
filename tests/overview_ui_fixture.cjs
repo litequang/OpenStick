@@ -1,7 +1,7 @@
 // Render the actual dashboard script with fixtures; not a visual browser test.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const html=fs.readFileSync(process.argv[2],'utf8');
-class Element{constructor(){this.textContent='';this.style={};this.dataset={};this.children=[];}replaceChildren(){this.children=[];}append(...items){this.children.push(...items);}set innerHTML(_){throw Error('Use textContent');}}
+class Element{constructor(){this.textContent='';this.style={};this.dataset={};this.children=[];}replaceChildren(){this.children=[];}append(...items){this.children.push(...items);}setAttribute(name,value){this[name]=value;}set innerHTML(_){throw Error('Use textContent');}}
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()]));
 let posts=0;
 const data={system:{ram:{used:150*1048576,total:400*1048576},storage:{used:1073741824,total:2*1073741824},
@@ -9,7 +9,7 @@ const data={system:{ram:{used:150*1048576,total:400*1048576},storage:{used:10737
  emmc:{life_used_ranges:[],pre_eol:'unknown',written_since_boot:1048576,estimated_daily_write:113*1048576},
  swap:{used:0,total:500*1048576,zram_used:0,zram_total:500*1048576,other_used:0,other_total:0},
  uptime_s:2400,os:'<script>Fixture Linux</script>',kernel:'fixture'},
- wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384}},
+ wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{operator_name:'Fixture carrier',registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384}},
  services:{'openstick-web':true,'cloudflared':null}};
 const context={console,Date,setTimeout,setInterval:()=>0,document:{hidden:false,getElementById:id=>elements[id]||null,createElement:()=>new Element()},
  fetch:async(_,options={})=>{if(options.method==='POST'){assert.equal(JSON.parse(options.body).action,'overview');posts++;return {ok:true};}return {ok:true,json:async()=>({busy:false,error:false,result:data})};}};
@@ -22,7 +22,24 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  assert.match(elements['note-sms'].textContent,/chưa cài đơn giá/);
  assert.equal(elements['overview-os'].textContent,'<script>Fixture Linux</script>');
  assert.equal(elements['chip-network-label'].textContent,'4G');
- assert.equal(elements['chip-sim-label'].textContent,'SIM 64%');
+ assert.equal(elements['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(elements['chip-network'].dataset.bars,'3');
+ assert.match(elements['signal-status'].textContent,/3\/4.*64%/);
+ assert.match(elements['chip-network-summary']['aria-label'],/3\/4/);
+ for(const [percent,bars] of [[0,'0'],[1,'1'],[25,'1'],[26,'2'],[50,'2'],[51,'3'],[75,'3'],[76,'4'],[100,'4']]){
+  context.renderHeader({...data.wifi.modem_status,signal_percent:percent});
+  assert.equal(elements['chip-network'].dataset.bars,bars);
+ }
+ for(const changes of [{signal_percent:null},{signal_percent:101},{signal_percent:-1},{signal_recent:false},{registered:false},{sim_present:false},{sim_locked:true}]){
+  context.renderHeader({...data.wifi.modem_status,...changes});
+  assert.equal(elements['chip-network'].dataset.bars,'unknown');
+ }
+ context.renderHeader({...data.wifi.modem_status,operator_name:'<script>Fixture carrier</script>'});
+ assert.equal(elements['chip-sim-label'].textContent,'<script>Fixture carrier</script>');
+ context.renderHeader(null);
+ assert.equal(elements['chip-network'].dataset.bars,'unknown');
+ assert.match(elements['signal-status'].textContent,/Chưa/);
+ context.renderHeader(data.wifi.modem_status);
  assert.equal(elements['chip-signal'],undefined);
  context.renderWifiHeader(data.wifi);
  assert.match(elements['wifi-status'].textContent,/fixture/);

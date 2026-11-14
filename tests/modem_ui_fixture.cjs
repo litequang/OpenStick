@@ -9,6 +9,7 @@ class Element{
  replaceChildren(...nodes){this.children=nodes;this.options=nodes;this.value='';}
  add(option){this.options.push(option);}
  append(...nodes){this.children.push(...nodes);}
+ setAttribute(name,value){this[name]=value;}
  set innerHTML(value){throw Error('Use textContent for SMS/network content');}
 }
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()]));
