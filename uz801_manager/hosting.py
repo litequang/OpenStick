@@ -243,13 +243,19 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         if expected_authority is None and lan_auth is None:
             expected_authority = '172.16.42.1' if usb_portal else f'127.0.0.1:{port}'
         if not expected_authority:return jsonify(error='FORBIDDEN'), 403
-        origin = 'http://' + expected_authority
-        if request.host != expected_authority or request.headers.get('Origin', origin) != origin:
+        authorities = (expected_authority,) if isinstance(expected_authority, str) else expected_authority
+        origin = 'http://' + request.host
+        if request.host not in authorities or request.headers.get('Origin', origin) != origin:
             return jsonify(error='FORBIDDEN'), 403
         if request.headers.get('Sec-Fetch-Site') == 'cross-site':
             return jsonify(error='FORBIDDEN'), 403
         if request.path.startswith('/api/') and not secrets.compare_digest(request.headers.get('X-OpenStick-Token', ''), token):
             return jsonify(error='FORBIDDEN'), 403
+
+    @app.context_processor
+    def lan_address_context():
+        from .lan_access import LAN_URL
+        return {'stable_lan_url': LAN_URL if usb_portal and (lan_auth is not None or lan_settings is not None) else None}
 
     @app.after_request
     def headers(response):

@@ -11,6 +11,9 @@ from pathlib import Path
 from flask import jsonify, redirect, render_template, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
+LAN_AUTHORITY = 'openstick.local:8765'
+LAN_URL = 'http://' + LAN_AUTHORITY
+
 
 class LanSettings:
     def __init__(self, directory='/var/lib/openstick', address=lambda: None):
@@ -30,7 +33,8 @@ class LanSettings:
 
     def status(self):
         value, address = self.private(), self.address()
-        return {'enabled': value is not None, 'url': 'http://' + address + ':8765' if address else None}
+        return {'enabled': value is not None, 'url': 'http://' + address + ':8765' if address else None,
+                'stable_url': LAN_URL if address else None}
 
     def configure(self, password):
         if (not isinstance(password, str) or not 12 <= len(password) <= 128

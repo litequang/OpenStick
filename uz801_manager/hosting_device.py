@@ -35,14 +35,14 @@ class LocalWifi:
         return parsed
 
 
-def usb_socket():
+def usb_socket(port=80):
     # Bind to the incoming interface as well as its address. Linux's weak
     # host model otherwise permits traffic to a USB IP arriving over Wi-Fi.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, b'usb0\0')
-        sock.bind(('172.16.42.1', 80))
+        sock.bind(('172.16.42.1', port))
         return sock
     except Exception:
         sock.close()
@@ -50,7 +50,7 @@ def usb_socket():
 
 
 def main():
-    from .lan_access import LanSettings
+    from .lan_access import LAN_AUTHORITY, LanSettings
     from .lan_device import wifi_ipv4
     def lan_changed():
         result = subprocess.run(['rc-service', 'openstick-lan', 'restart'], capture_output=True, timeout=25)
@@ -58,10 +58,11 @@ def main():
     with open('/etc/openstick/hosting.json', encoding='utf-8') as source:
         hostname = json.load(source)['hostname']
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
+                             authority=('172.16.42.1', '172.16.42.1:8765', LAN_AUTHORITY),
                              modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
                              lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP())
-    with usb_socket() as sock:
-        serve(app, sockets=[sock], threads=2, channel_timeout=30,
+    with usb_socket() as sock, usb_socket(8765) as named_sock:
+        serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=30,
               max_request_body_size=1500000, ident='OpenStick')
 
 

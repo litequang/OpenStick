@@ -8,7 +8,7 @@ from waitress import serve
 
 from .hosting import create_hosting_app
 from .hosting_device import LocalWifi
-from .lan_access import LanSettings
+from .lan_access import LAN_AUTHORITY, LanSettings
 from .modem_device import ModemManager
 from .static_site import StaticSite
 from .hotspot import Hotspot
@@ -39,13 +39,18 @@ def lan_socket():
         raise
 
 
+def lan_authorities(address):
+    # Keep both exact authorities private to the Wi-Fi-bound listener.
+    # Origin must still match the specific Host used for each request.
+    return (address + ':8765', LAN_AUTHORITY) if address else ()
+
+
 def main():
     settings = LanSettings(address=wifi_ipv4)
     while not settings.private():time.sleep(3)
     with open('/etc/openstick/hosting.json') as source:hostname = json.load(source)['hostname']
     def authority():
-        address = wifi_ipv4()
-        return address + ':8765' if address else None
+        return lan_authorities(wifi_ipv4())
     app = create_hosting_app(backend=LocalWifi(), modem_backend=ArchivedModem(ModemManager()), usb_portal=True,
                              hostname=hostname, lan_auth=settings,
                              authority=authority, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP())

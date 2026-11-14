@@ -9,6 +9,7 @@
 {% endfor %}
 </div>
 <section><h2>Kết nối</h2><dl class="connection-list">
+{% if stable_lan_url %}<dt>Quản trị cố định</dt><dd><a href="{{ stable_lan_url }}">{{ stable_lan_url }}</a> · qua cáp USB, cùng Wi-Fi hoặc hotspot USB</dd>{% endif %}
 <dt>Modem</dt><dd id="overview-modem">Đang đọc…</dd><dt>Wi-Fi</dt><dd id="overview-wifi">Đang đọc…</dd><dt>Địa chỉ Wi-Fi</dt><dd id="overview-ip">—</dd><dt>Quản trị USB</dt><dd>172.16.42.1</dd><dt>Thời gian chạy</dt><dd id="overview-uptime">—</dd><dt>Hệ điều hành</dt><dd id="overview-os">—</dd><dt>Kernel</dt><dd id="overview-kernel">—</dd><dt>Website</dt><dd><a href="https://{{ hostname }}" target="_blank" rel="noopener">{{ hostname }}</a></dd></dl></section>
 <details class="ux-advanced"><summary>Dịch vụ và cổng (thông tin kỹ thuật)</summary><section id="services"><h2>Dịch vụ và cổng</h2><dl class="connection-list" id="service-list"></dl><p class="metric-note">Quản trị: cổng 80 qua USB. Nginx website: 127.0.0.1:8080. Cloudflare Tunnel phục vụ website công khai. Đổi Wi-Fi tại <a href="/">Kết nối Wi-Fi</a>; cài mạng di động tại <a href="/modem/network">Mạng SIM</a>.</p></section></details>
 <p class="overview-foot">Số liệu lấy trực tiếp từ Linux. Sức khỏe eMMC là ước lượng do chip công bố; lượng ghi/ngày là ngoại suy theo thời gian chạy. Cước SMS cần đơn giá tại màn SMS và không thay thế hóa đơn nhà mạng.</p>

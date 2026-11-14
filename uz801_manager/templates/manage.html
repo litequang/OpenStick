@@ -2,6 +2,7 @@
 {% include 'portal_chrome.html' %}
 <div class="page-title"><div><p class="ux-eyebrow">THIẾT LẬP THIẾT BỊ</p><h1>Quản lý</h1></div></div>
 <p class="manage-intro">Chọn nhóm theo việc cần làm. Mở màn cài đặt không tự thay đổi Wi-Fi, SIM hay website.</p>
+{% if stable_lan_url %}<section class="manage-group"><h2>Địa chỉ quản trị cố định</h2><p><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a></p><p class="muted">Dùng chung trên PC nối cáp USB, điện thoại cùng Wi-Fi hoặc nối hotspot của USB, kể cả khi IP thay đổi. Qua Wi-Fi cần đăng nhập bằng mật khẩu quản trị đã đặt.</p></section>{% endif %}
 <section class="manage-group" aria-labelledby="manage-connectivity">
 <h2 id="manage-connectivity">Kết nối &amp; Internet</h2>
 <p class="metric-note">Wi-Fi nhận mạng và điểm phát Wi-Fi là hai chế độ khác nhau.</p>

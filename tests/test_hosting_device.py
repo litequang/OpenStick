@@ -31,7 +31,8 @@ def test_windows_page_does_not_publish_its_api_token():
         assert 'private-fixture' not in client.get('/', base_url='http://127.0.0.1:8770').text
 
 
-def test_device_socket_requires_usb_interface_before_binding_address(monkeypatch):
+@pytest.mark.parametrize('port',[80,8765])
+def test_device_socket_requires_usb_interface_before_binding_address(monkeypatch,port):
     calls = []
     class Socket:
         def setsockopt(self, level, option, value):
@@ -42,9 +43,24 @@ def test_device_socket_requires_usb_interface_before_binding_address(monkeypatch
             calls.append(('close',))
     monkeypatch.setattr(hosting_device.socket, 'SO_BINDTODEVICE', 25, raising=False)
     monkeypatch.setattr(hosting_device.socket, 'socket', lambda *a: Socket())
-    hosting_device.usb_socket()
+    hosting_device.usb_socket(port)
     assert ('option', 25, b'usb0\0') in calls
-    assert calls.index(('option', 25, b'usb0\0')) < calls.index(('bind', ('172.16.42.1', 80)))
+    assert calls.index(('option', 25, b'usb0\0')) < calls.index(('bind', ('172.16.42.1', port)))
+
+
+def test_named_usb_link_preserves_legacy_url_and_rejects_other_origins():
+    from uz801_manager.lan_access import LAN_AUTHORITY, LAN_URL
+    authorities=('172.16.42.1','172.16.42.1:8765',LAN_AUTHORITY)
+    app=create_hosting_app(backend=Backend(),usb_portal=True,token='fixture',authority=authorities)
+    with app.test_client() as client:
+        for authority in authorities:
+            base='http://'+authority
+            assert client.get('/',base_url=base).status_code==200
+            assert client.get('/api/state',base_url=base).status_code==403
+            assert client.get('/api/state',base_url=base,headers={
+                'X-OpenStick-Token':'fixture','Origin':base}).status_code==200
+        assert client.get('/',base_url=LAN_URL,headers={'Origin':'http://172.16.42.1'}).status_code==403
+        assert client.get('/',base_url='http://evil.invalid:8765').status_code==403
 
 
 def test_device_socket_fails_closed_when_interface_binding_fails(monkeypatch):

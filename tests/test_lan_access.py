@@ -4,7 +4,8 @@ import re
 import pytest
 
 from uz801_manager.hosting import create_hosting_app
-from uz801_manager.lan_access import LanSettings, LoginLimiter
+from uz801_manager.lan_access import LAN_URL, LanSettings, LoginLimiter
+from uz801_manager.lan_device import lan_authorities
 
 BASE = 'http://192.0.2.2:8765'
 PASSWORD = 'fixture-admin-passphrase'
@@ -31,7 +32,7 @@ def test_credentials_stay_local_and_no_default_password_is_enabled(tmp_path):
     result = settings.configure(PASSWORD)
     stored = (tmp_path / 'lan-admin.json').read_text()
     assert PASSWORD not in stored and 'password_hash' not in json.dumps(result)
-    assert result == {'enabled': True, 'url': BASE}
+    assert result == {'enabled': True, 'url': BASE, 'stable_url': LAN_URL}
     for password in ('short', None, 'x' * 129, 'valid-password\n'):
         with pytest.raises(ValueError):settings.configure(password)
 
@@ -110,3 +111,32 @@ def test_usb_configuration_needs_token_exact_fields_and_confirmation(tmp_path):
                            json={'action': 'configure', 'password': PASSWORD, 'confirm': True})
     assert response.status_code == 200 and PASSWORD not in response.text and 'hash' not in response.text
     assert client.post('/api/lan', base_url=base, headers={**headers, 'Origin': 'http://evil.invalid'}, json={'action': 'disable', 'confirm': True}).status_code == 403
+
+
+def test_stable_name_keeps_lan_login_and_exact_origin_guard_across_ip_changes(tmp_path):
+    address=['192.0.2.2']
+    settings=LanSettings(tmp_path,address=lambda:address[0]);settings.configure(PASSWORD)
+    app=create_hosting_app(backend=object(),modem_backend=object(),usb_portal=True,
+                          token='fixture',lan_auth=settings,authority=lambda:lan_authorities(address[0]))
+    client=app.test_client()
+    assert client.get('/manage',base_url=LAN_URL).location=='/login'
+    assert client.get('/api/state',base_url=LAN_URL,headers={'X-OpenStick-Token':'fixture'}).status_code==401
+    page=client.get('/login',base_url=LAN_URL)
+    csrf=re.search(r'name="csrf" value="([^"]+)"',page.text)[1]
+    assert client.post('/login',base_url=LAN_URL,headers={'Origin':LAN_URL},
+                       data={'csrf':csrf,'password':PASSWORD}).status_code==302
+    assert client.get('/manage',base_url=LAN_URL).status_code==200
+    for current in ['192.0.2.42','192.168.8.1']:
+        address[0]=current
+        assert client.get('/manage',base_url=LAN_URL).status_code==200
+        assert client.get('/login',base_url='http://'+current+':8765').status_code==200
+        assert settings.status()['stable_url']==LAN_URL
+    assert client.get('/login',base_url=BASE).status_code==403
+    for origin in [BASE,'http://192.168.8.1:8765','https://evil.invalid','null']:
+        assert client.get('/manage',base_url=LAN_URL,headers={'Origin':origin}).status_code==403
+    assert client.get('/manage',base_url='http://evil.invalid:8765').status_code==403
+    assert client.get('/manage',base_url=LAN_URL,headers={'Sec-Fetch-Site':'cross-site'}).status_code==403
+    assert client.get('/manage',base_url='http://openstick.local').status_code==403
+    address[0]=None
+    assert client.get('/manage',base_url=LAN_URL).status_code==403
+    assert settings.status()['stable_url'] is None
