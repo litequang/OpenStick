@@ -23,6 +23,8 @@ It uses ordinary private local links and lightweight JavaScript, without React.
 | Mạng SIM | `/modem/network` | Actual advertised 3G/4G choices; explain SIM-data/APN readiness |
 | Wi-Fi cài đặt | `/setup` | Enter SSID/password, save and connect autonomously, recover AP on failure; no SIM needed |
 
+A collapsible **Quản lý & cài đặt** menu beneath the status header links directly to Nguồn Internet, Phát Wi-Fi, Wi-Fi cài đặt and Website on every portal screen. The dock uses the shorter “Wi-Fi” label on narrow screens and truncates long labels rather than overflowing into adjacent destinations. Keyboard users have a skip-navigation link and visible focus styles. This is source-only UI work pending visual inspection on the USB and phone.
+
 Header icons open native keyboard-accessible details for modem, combined
 SIM/signal, network and Wi-Fi station/hotspot. An already registered modem is labeled operational rather than
 showing an unexplained disabled activation button. Only a disabled modem offers
