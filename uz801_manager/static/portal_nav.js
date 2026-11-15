@@ -28,6 +28,9 @@ function portalWriteCache(key,value){
 function portalDisplayModem(modem){
  if(!modem||typeof modem.registered!=='boolean'||typeof modem.sim_present!=='boolean')return null;
  const result={};for(const key of ['state','registered','sim_present','sim_locked','operator_name','access_technologies','signal_percent','signal_recent','secondary_lock','can_enable'])if(Object.hasOwn(modem,key))result[key]=modem[key];
+ // This is display-only information. A short-lived modem sample gap must not
+ // erase the last usable signal on the next full-page navigation.
+ if(portalLastSignal&&modem.sim_present&&!modem.sim_locked)result.last_signal={...portalLastSignal};
  return result;
 }
 function portalDisplayWifi(wifi){
@@ -61,24 +64,35 @@ function renderHeader(c){
  if(!c||typeof c.registered!=='boolean'||typeof c.sim_present!=='boolean'){for(const k of ['modem','sim','network'])portalFreshness(k,true);return}
  for(const k of ['modem','sim','network'])portalFreshness(k,false);
  set('chip-modem-label',c.registered?'Online':c.state||'Modem');state('modem',c.registered?'ready':'warning');
- const carrier=!c.sim_present?'No SIM':c.sim_locked?'SIM khóa':c.operator_name||'Chưa rõ';
- set('chip-sim-label',carrier);state('sim',c.sim_present&&!c.sim_locked?'ready':'warning');summary('sim','Nhà mạng: '+carrier+'. Bấm xem thông tin SIM.');
- const technology=!c.sim_present?'No SIM':c.sim_locked?'Khóa':!c.registered?'Tìm':c.access_technologies&32768?'5G':c.access_technologies&16384?'4G':c.access_technologies&16352?'3G':c.access_technologies&28?'2G':'Mạng';
+ const knownCarrier=typeof c.operator_name==='string'&&c.operator_name.trim()?c.operator_name.trim():null;
+ const measuredTechnology=c.access_technologies&32768?'5G':c.access_technologies&16384?'4G':c.access_technologies&16352?'3G':c.access_technologies&28?'2G':null;
  const validSignal=c.sim_present&&!c.sim_locked&&c.registered&&c.signal_recent===true&&Number.isFinite(c.signal_percent)&&c.signal_percent>=0&&c.signal_percent<=100;
- const contextValid=c.sim_present&&!c.sim_locked&&c.registered;
- if(!contextValid||(portalLastSignal&&portalLastSignal.carrier!==c.operator_name))portalLastSignal=null;
- if(validSignal)portalLastSignal={percent:c.signal_percent,carrier:c.operator_name};
+ // A missing operator, a transient unregistered response or stale signal is
+ // not proof of a network switch. SIM removal/locking and a *known* new
+ // operator are authoritative invalidations.
+ if(!c.sim_present||c.sim_locked||(portalLastSignal?.carrier&&knownCarrier&&portalLastSignal.carrier!==knownCarrier))portalLastSignal=null;
+ if(!portalLastSignal&&c.last_signal&&c.sim_present&&!c.sim_locked&&
+    Number.isFinite(c.last_signal.percent)&&c.last_signal.percent>=0&&c.last_signal.percent<=100&&
+    (!knownCarrier||!c.last_signal.carrier||knownCarrier===c.last_signal.carrier)){
+  portalLastSignal={percent:c.last_signal.percent,carrier:c.last_signal.carrier||null,technology:c.last_signal.technology||null};
+ }
+ if(validSignal)portalLastSignal={percent:c.signal_percent,carrier:knownCarrier||portalLastSignal?.carrier||null,technology:measuredTechnology||portalLastSignal?.technology||null};
+ const previousCarrier=portalLastSignal?.carrier||null;
+ const carrier=!c.sim_present?'No SIM':c.sim_locked?'SIM khóa':knownCarrier||previousCarrier||'Chưa rõ';
+ set('chip-sim-label',carrier);state('sim',c.sim_present&&!c.sim_locked?'ready':'warning');summary('sim','Nhà mạng: '+carrier+'. Bấm xem thông tin SIM.');
+ const technology=!c.sim_present?'No SIM':c.sim_locked?'Khóa':measuredTechnology||portalLastSignal?.technology||(!c.registered?'Tìm':'Mạng');
  const shownSignal=validSignal?c.signal_percent:portalLastSignal?.percent;
  const bars=shownSignal==null?null:Math.ceil(shownSignal/25);
  if(network)network.dataset.bars=bars==null?'unknown':String(bars);
- set('chip-network-label',technology);state('network',validSignal?'ready':'warning');
+ set('chip-network-label',technology);state('network',bars!=null?'ready':'warning');
  summary('network','Mạng '+technology+', '+(bars==null?'chưa có mức sóng mới':bars+'/4 vạch, '+shownSignal+'%'+(validSignal?'':' (lần đo gần nhất)'))+'. Bấm xem chi tiết.');
  set('modem-status','Modem: '+(c.state||'chưa xác định')+'\n'+(c.registered?'Đã đăng ký mạng.':'Chưa đăng ký mạng.'));
  set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Vào Mạng SIM để bật.':'Đang chờ SIM hoặc đăng ký mạng.');
- set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
- set('network-status','Nhà mạng: '+(c.operator_name||'chưa xác định')+'\nMạng đang dùng: '+portalTechnology(c.access_technologies)+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
+ set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+carrier+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
+ set('network-status','Nhà mạng: '+carrier+'\nMạng đang dùng: '+(measuredTechnology?portalTechnology(c.access_technologies):portalLastSignal?.technology||portalTechnology(c.access_technologies))+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
  set('signal-status',validSignal?bars+'/4 vạch · '+c.signal_percent+'% — chất lượng do modem báo.\nSố liệu gần đây.':shownSignal!=null?bars+'/4 vạch · '+shownSignal+'% — lần đo gần nhất; chưa có cập nhật mới.':!c.sim_present?'Không có SIM để đo sóng.':c.sim_locked?'SIM đang khóa, chưa có mức sóng khả dụng.':!c.registered?'Chưa đăng ký mạng; chưa có mức sóng kết nối.':'Chưa có số liệu mức sóng hợp lệ.');
- if(contextValid&&!validSignal)portalFreshness('network',true);
+ if(c.sim_present&&!c.sim_locked&&!validSignal)portalFreshness('network',true);
+ if(c.sim_present&&!c.sim_locked&&!knownCarrier&&previousCarrier)portalFreshness('sim',true);
 }
 function renderWifiHeader(w){
  const chip=document.getElementById('chip-wifi'),label=document.getElementById('chip-wifi-label'),detail=document.getElementById('wifi-status'),link=document.getElementById('wifi-settings-link');

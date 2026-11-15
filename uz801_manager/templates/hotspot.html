@@ -5,13 +5,7 @@
 <h2>Chia sẻ dữ liệu SIM qua Wi-Fi</h2>
 <p>SIM cấp Internet cho web, Tunnel và điện thoại kết nối Wi-Fi của USB. Chế độ này thay Wi-Fi đang nhận mạng; không nhận và phát lại Wi-Fi cùng lúc.</p>
 <section><h2>Trạng thái</h2><p id="hotspot-status" role="status" style="white-space:pre-wrap">Đang kiểm tra…</p><button id="hotspot-refresh" class="secondary">Kiểm tra lại</button><p class="metric-note">Driver có AP không đồng nghĩa đã thử thành công hotspot. Cần kiểm tra điện thoại nhận IP, truy cập Internet và website sau lần bật đầu.</p></section>
-<section><h2><span class="ux-step">1</span> Cấu hình điểm phát (tùy chọn)</h2><p class="ux-form-note">Nếu USB đang phát Wi-Fi cài đặt, khi bật SIM hệ thống sẽ dùng luôn <strong>tên, mật khẩu và địa chỉ quản trị đang có</strong>. Không cần tắt Wi-Fi cài đặt hay nhập mật khẩu khác. Cấu hình riêng dưới đây dùng khi muốn phát SIM từ mạng Wi-Fi khác. Lưu cấu hình không tự bật dữ liệu di động.</p><form id="hotspot-settings">
-<label for="hotspot-ssid">Tên Wi-Fi USB sẽ phát</label><input id="hotspot-ssid" maxlength="32" required placeholder="OpenStick-4G" autocomplete="off">
-<label for="hotspot-password">Mật khẩu Wi-Fi (8–63 ký tự ASCII)</label><input id="hotspot-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password">
-<details class="ux-advanced"><summary>Kênh phát (nâng cao)</summary>
-<label for="hotspot-channel">Kênh 2,4 GHz</label><select id="hotspot-channel"><option>1</option><option selected>6</option><option>11</option></select>
-</details>
-<button id="hotspot-save">Chỉ lưu cấu hình</button></form></section>
+<section><h2><span class="ux-step">1</span> Wi-Fi USB dùng chung</h2><p class="ux-form-note">Chỉ có <strong>một tên, mật khẩu và kênh phát</strong> cho Wi-Fi cài đặt khi mất mạng và Wi-Fi chia sẻ Internet từ SIM. Bạn có thể thay đổi tại <a href="/setup#usb-ap-settings">Cài đặt Wi-Fi USB</a>; lưu không tự bật dữ liệu SIM.</p><p id="hotspot-identity" role="status"></p></section>
 <section id="sim-apn"><h2>APN — kết nối Internet của SIM</h2><p>SIM có sóng 4G và đã đăng ký gói dữ liệu vẫn cần APN phù hợp để truy cập Internet.</p>
 <p id="hotspot-apn-current" role="status">Đang đọc APN đã lưu…</p>
 <form id="hotspot-apn-settings">
@@ -19,7 +13,7 @@
 <label for="hotspot-apn">APN của SIM</label><input id="hotspot-apn" maxlength="100" pattern="[a-z0-9][a-z0-9.\-]*" placeholder="APN Internet do nhà mạng cung cấp" autocomplete="off" autocapitalize="none" spellcheck="false" disabled>
 <p class="metric-note">Chọn nhập thủ công nếu tự nhận không kết nối được. Nhập APN đúng với nhà mạng và gói SIM; không nhập mã PIN SIM. Giữ chế độ không roaming.</p>
 <button id="hotspot-apn-save" disabled>Chỉ lưu APN</button>
-<p class="metric-note">Lưu APN không bật dữ liệu SIM và không đổi mật khẩu Wi-Fi. Nếu chưa có cấu hình điểm phát, lưu tên và mật khẩu Wi-Fi trước.</p>
+<p class="metric-note">Lưu APN không bật dữ liệu SIM và không đổi mật khẩu Wi-Fi. Nếu chưa có tên Wi-Fi USB, cấu hình ở mục Wi-Fi cài đặt.</p>
 </form></section>
 <section><h2><span class="ux-step">2</span> Bật thử và xác nhận</h2><p class="ux-callout ux-warning">Khi đang phát Wi-Fi cài đặt, bật thử sẽ kiểm tra Internet SIM rồi tự chuyển sang phát Internet bằng <strong>cùng tên và mật khẩu Wi-Fi</strong>. Điện thoại có thể bị ngắt vài giây và cần kết nối lại. Dữ liệu SIM có thể phát sinh cước cho mọi thiết bị đã kết nối. Bạn phải xác nhận giữ trong 5 phút; nếu không, USB cố gắng quay lại chế độ trước đó.</p>
 <label class="checkline"><input id="hotspot-consent" type="checkbox"> Tôi đồng ý dùng dữ liệu SIM (có thể phát sinh cước), thay kết nối Wi-Fi hiện tại và sẽ kết nối lại để xác nhận.</label>
@@ -32,16 +26,17 @@
 const hotspotToken={{ token|tojson }},h=id=>document.getElementById(id);
 let hotspotBusy=false,hotspotState=null,loaded=false,hotspotLastOperation=null;
 const policyActiveMessage='Tự quản lý Internet đang bật. Vào Nguồn Internet để tắt trước khi phát Wi-Fi.';
-const messages={CELLULAR_NO_INTERNET:'SIM chưa truy cập Internet được. Chưa chuyển sang phát Wi-Fi; kiểm tra gói dữ liệu và APN.',SIM_NOT_READY:'SIM chưa sẵn sàng hoặc chưa đăng ký mạng.',MODEM_BUSY:'Modem đang bận hoặc có phiên USSD; kết thúc rồi thử lại.',NETWORK_BUSY:'Đang có thao tác mạng khác. Thử lại sau.',AP_UNSUPPORTED:'Không đủ hỗ trợ AP hoặc dịch vụ DHCP.',CELLULAR_ALREADY_ACTIVE:'Đang có phiên dữ liệu SIM khác. Chưa thay đổi phiên đó.',HOTSPOT_CONFIRM_EXPIRED:'Lượt thử đã hết hạn hoặc đã quay về mạng cũ.',ROLLBACK_FAILED:'Chưa xác nhận khôi phục mạng cũ được. Giữ USB cắm và kiểm tra qua 172.16.42.1.',HOTSPOT_ACTIVE:'Đang phát hoặc đang thử hotspot. Tắt trước khi sửa cấu hình.'};
+const messages={CELLULAR_NO_INTERNET:'SIM chưa truy cập Internet được. Chưa chuyển sang phát Wi-Fi; kiểm tra gói dữ liệu và APN.',SIM_NOT_READY:'SIM chưa sẵn sàng hoặc chưa đăng ký mạng.',MODEM_BUSY:'Không thể hủy an toàn phiên USSD đang chờ, hoặc modem đang thực hiện SMS/USSD. Chờ thao tác kết thúc rồi thử lại.',NETWORK_BUSY:'Đang có thao tác mạng khác. Thử lại sau.',AP_UNSUPPORTED:'Không đủ hỗ trợ AP hoặc dịch vụ DHCP.',CELLULAR_ALREADY_ACTIVE:'Đang có phiên dữ liệu SIM khác. Chưa thay đổi phiên đó.',HOTSPOT_CONFIRM_EXPIRED:'Lượt thử đã hết hạn hoặc đã quay về mạng cũ.',ROLLBACK_FAILED:'Chưa xác nhận khôi phục mạng cũ được. Giữ USB cắm và kiểm tra qua 172.16.42.1.',HOTSPOT_ACTIVE:'Đang phát hoặc đang thử hotspot. Tắt trước khi sửa cấu hình.'};
 messages.CELLULAR_CONNECT_FAILED='Không tạo được kết nối dữ liệu SIM. Kiểm tra APN, gói dữ liệu và trạng thái SIM.';
 messages.AP_START_FAILED='Chưa khởi động được điểm phát Wi-Fi. Đã yêu cầu khôi phục kết nối trước đó; kiểm tra lại qua USB.';
-messages.HOTSPOT_NOT_CONFIGURED='Lưu tên và mật khẩu điểm phát trước khi bật thử.';
+messages.HOTSPOT_NOT_CONFIGURED='Cấu hình Wi-Fi USB ở trang Wi-Fi cài đặt rồi bật thử.';
 messages.CELLULAR_UNAVAILABLE='Chưa tìm thấy giao diện dữ liệu SIM phù hợp trên USB.';
 messages.CHECKPOINT_UNAVAILABLE='Chưa tạo được điểm khôi phục mạng. Kiểm tra lại qua USB.';
 function drawHotspot(s){
  hotspotState=s;
  h('hotspot-status').textContent=`AP từ driver: ${s.ap_supported?'có':'chưa có'}\nWi-Fi USB: ${s.hotspot_active?'đang chia sẻ SIM qua '+s.ssid:s.setup_active?'đang phát cài đặt '+s.setup_ssid+' (chưa chia sẻ SIM)':'chưa phát'}\nDữ liệu SIM: ${s.cellular_connected?'đã kết nối':'chưa kết nối'}\nTự bật sau cấp nguồn: ${s.enabled?'đã lưu':'chưa bật'}\nKiểm chứng: ${s.verification==='UNVERIFIED'?'chưa kiểm thử đầu cuối':'đã kiểm tra liên kết trên USB; cần xác nhận điện thoại'}`;
- if(!loaded&&s.configured){h('hotspot-ssid').value=s.ssid;h('hotspot-apn').value=s.apn;h('hotspot-channel').value=s.channel}loaded=true;
+ h('hotspot-identity').textContent=s.configured?`Tên Wi-Fi: ${s.ssid} · Kênh 2,4 GHz: ${s.channel}`:'Wi-Fi USB chưa được cấu hình.';
+ if(!loaded){h('hotspot-apn').value=s.apn}loaded=true;
  h('hotspot-start').disabled=hotspotBusy||(!s.configured&&!s.setup_active)||!s.ap_supported||s.hotspot_active||s.pending||!h('hotspot-consent').checked;
  h('hotspot-stop').disabled=hotspotBusy||!s.configured;
  h('hotspot-pending').hidden=!s.pending;h('hotspot-transition').hidden=!s.hotspot_active;
@@ -102,10 +97,10 @@ async function hotspotCall(action,extra={}){
     if(action==='start'&&freshStartReceipt&&receipt.error)throw Error(messages[receipt.error]||'Bật hotspot chưa thành công. Kiểm tra lại trạng thái USB.');
     if(data.error)throw Error(messages[data.error]||'Thao tác chưa thành công. Kiểm tra lại qua USB.');
     const initial=!loaded;drawHotspot(data.result);drawApn(data.result,initial);
-    let notice=action==='configure'?'Đã lưu; chưa bật dữ liệu SIM hoặc điểm phát.':action==='start'?'Đã bật thử hotspot. Nếu đang dùng Wi-Fi cài đặt, hãy kết nối lại cùng tên/mật khẩu cũ rồi xác nhận giữ trong 5 phút.':action==='keep'?'Đã giữ chế độ SIM → Wi-Fi.':action==='stop'?'Đã tắt hotspot và dữ liệu SIM.'+(data.result.wifi_restored?' Đã nối lại Wi-Fi cũ.':' Wi-Fi cũ chưa kết nối; có thể quản trị qua USB.'):'Đã cập nhật trạng thái.';
+    let notice=action==='start'?'Đã bật thử hotspot. Hãy kết nối lại Wi-Fi USB theo cấu hình đã lưu rồi xác nhận giữ trong 5 phút.':action==='keep'?'Đã giữ chế độ SIM → Wi-Fi.':action==='stop'?'Đã tắt hotspot và dữ liệu SIM.'+(data.result.wifi_restored?' Đã nối lại Wi-Fi cũ.':' Wi-Fi cũ chưa kết nối; có thể quản trị qua USB.'):'Đã cập nhật trạng thái.';
     if(action==='status'&&data.last_operation?.error)notice='Lần thao tác gần nhất chưa thành công: '+(messages[data.last_operation.error]||'Kiểm tra lại qua USB.');
     if(action==='configure_apn')notice='Đã lưu APN; chưa bật dữ liệu SIM. Bấm Bật thử SIM → Wi-Fi để kiểm tra kết nối.';
-    h('hotspot-notice').textContent=notice;if(action==='configure')h('hotspot-password').value='';return;
+    h('hotspot-notice').textContent=notice;return;
    }
    await new Promise(resolve=>setTimeout(resolve,700));
   }
@@ -113,7 +108,6 @@ async function hotspotCall(action,extra={}){
  }catch(e){h('hotspot-notice').textContent=e.message}
  finally{hotspotBusy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(hotspotState){drawHotspot(hotspotState);drawApn(hotspotState)}}
 }
-h('hotspot-settings').onsubmit=e=>{e.preventDefault();if(h('hotspot-apn-mode').value==='manual'&&!apnValue()){h('hotspot-notice').textContent='Nhập APN do nhà mạng cung cấp hoặc chọn tự nhận.';return}hotspotCall('configure',{ssid:h('hotspot-ssid').value,password:h('hotspot-password').value,channel:Number(h('hotspot-channel').value),apn:apnValue(),confirm:true})};
 h('hotspot-apn-settings').onsubmit=e=>{e.preventDefault();hotspotCall('configure_apn',{apn:apnValue(),confirm:true})};
 h('hotspot-apn-mode').onchange=()=>{if(hotspotState)drawApn(hotspotState)};
 h('hotspot-consent').onchange=()=>{if(hotspotState)drawHotspot(hotspotState)};

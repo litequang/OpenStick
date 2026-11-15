@@ -17,7 +17,8 @@ def validate_setup(value):
     if not isinstance(value, dict):raise ValueError('INPUT_INVALID')
     action = value.get('action')
     fields = {'enable': {'confirm'}, 'disable': {'confirm'}, 'start': {'confirm'},
-              'stop': {'confirm'}, 'scan': {'confirm'}, 'connect': {'ssid', 'password', 'confirm'}}
+              'stop': {'confirm'}, 'scan': {'confirm'}, 'connect': {'ssid', 'password', 'confirm'},
+              'configure_ap': {'ssid', 'password', 'channel', 'confirm'}}
     if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
     if value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
     if action == 'connect':
@@ -25,6 +26,14 @@ def validate_setup(value):
         if (not isinstance(ssid, str) or not 1 <= len(ssid.encode()) <= 32
                 or not isinstance(password, str) or not 8 <= len(password) <= 63
                 or any(ord(c) < 32 for c in ssid + password)):
+            raise ValueError('INPUT_INVALID')
+    if action == 'configure_ap':
+        ssid, password, channel = value['ssid'], value['password'], value['channel']
+        if (not isinstance(ssid, str) or not 1 <= len(ssid.encode('utf-8')) <= 32
+                or any(ord(c) < 32 or ord(c) == 127 for c in ssid)
+                or not isinstance(password, str) or (password and
+                    (not 8 <= len(password) <= 63 or any(ord(c) < 32 or ord(c) > 126 for c in password)))
+                or type(channel) is not int or channel not in (1, 6, 11)):
             raise ValueError('INPUT_INVALID')
     return action
 
@@ -109,7 +118,8 @@ class SetupAP(Hotspot):
         config, state = self.read('setup-ap.json'), self.state()
         active = self.network.active('wlan0') == SETUP_UUID and self.network.ready()
         result = {'enabled': config.get('enabled') is True, 'configured': bool(config.get('ssid')),
-                  'ssid': config.get('ssid'), 'setup_active': active, 'lan_ready': self.lan_ready(),
+                  'ssid': config.get('ssid'), 'channel': config.get('channel', 6),
+                  'setup_active': active, 'lan_ready': self.lan_ready(),
                   'url': 'http://' + AP_ADDRESS + ':8765/setup',
                   'busy': bool(self.read('setup-pending.json')), 'result': state.get('result'),
                   'error': state.get('error'), 'attempt': state.get('attempt'),
@@ -132,13 +142,18 @@ class SetupAP(Hotspot):
         if not config.get('ssid'):
             config = {'ssid': 'OpenStick-Setup-' + secrets.token_hex(2).upper(),
                       'password': secrets.token_urlsafe(15)}
+        config.setdefault('channel', 6)
         config['enabled'] = True
         self.write('setup-ap.json', config)
+        self._save_ap_profile(config)
+
+    def _save_ap_profile(self, config):
         ssid, password = config['ssid'], config['password']
+        escaped = ssid.replace('\\', '\\\\').replace(';', '\\;')
         psk = hashlib.pbkdf2_hmac('sha1', password.encode(), ssid.encode(), 4096, 32).hex()
         text = (f'[connection]\nid=openstick-setup\nuuid={SETUP_UUID}\ntype=wifi\n'
                 'interface-name=wlan0\nautoconnect=false\n\n'
-                f'[wifi]\nmode=ap\nband=bg\nchannel=6\nssid={ssid}\n'
+                f'[wifi]\nmode=ap\nband=bg\nchannel={config["channel"]}\nssid={escaped}\n'
                 'cloned-mac-address=permanent\npowersave=2\n\n'
                 f'[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\nproto=rsn;\npairwise=ccmp;\ngroup=ccmp;\npmf=1\n\n'
                 f'[ipv4]\nmethod=manual\naddress1={AP_ADDRESS}/24\nnever-default=true\n\n'
@@ -148,10 +163,47 @@ class SetupAP(Hotspot):
         self.atomic(path, text)
         self.network.load(path)
 
+    def configure_ap(self, values):
+        if not self.lan_ready():raise RuntimeError('LAN_NOT_CONFIGURED')
+        if not self.network.ap_capable():raise RuntimeError('AP_UNSUPPORTED')
+        # Updating a saved AP profile does not switch the active WLAN or
+        # cellular connection. Allow staging while SIM sharing is running;
+        # reject only a live handoff, whose rollback snapshot must be stable.
+        if self.read('hotspot-pending.json'):
+            raise RuntimeError('NETWORK_BUSY')
+        path = self.profiles / 'openstick-setup.nmconnection'
+        config_path = self.directory / 'setup-ap.json'
+        if path.is_symlink() or config_path.is_symlink():raise RuntimeError('SETUP_OPERATION_FAILED')
+        original_profile = path.read_text() if path.exists() else None
+        original_config = config_path.read_text() if config_path.exists() else None
+        previous = self.read('setup-ap.json')
+        password = values['password'] or previous.get('password')
+        if not isinstance(password, str) or not 8 <= len(password) <= 63:
+            raise ValueError('INPUT_INVALID')
+        updated = {**previous, 'ssid': values['ssid'], 'password': password,
+                   'channel': values['channel']}
+        try:
+            self._save_ap_profile(updated)  # Only stage; do not disconnect the live AP.
+            self.write('setup-ap.json', updated)
+        except Exception:
+            try:
+                if original_profile is None:
+                    try:self.network.nm('connection', 'delete', 'uuid', SETUP_UUID)
+                    except Exception:pass
+                    path.unlink(missing_ok=True)
+                else:
+                    self.atomic(path, original_profile);self.network.load(path)
+                if original_config is None:config_path.unlink(missing_ok=True)
+                else:self.atomic(config_path, original_config)
+            except Exception:raise RuntimeError('SETUP_OPERATION_FAILED') from None
+            raise RuntimeError('SETUP_OPERATION_FAILED') from None
+        return self.status()
+
     def call(self, action, **values):
         validate_setup({'action': action, **values})
         with self.lock_factory():
             if self.read('setup-pending.json'):raise RuntimeError('NETWORK_BUSY')
+            if action == 'configure_ap':return self.configure_ap(values)
             if action == 'enable':
                 self.provision()
                 return self.status()

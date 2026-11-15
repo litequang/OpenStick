@@ -1,5 +1,34 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-15: one shared Wi-Fi identity deployed to the real USB
+
+Installed the single Wi-Fi identity control for both setup/recovery AP and
+SIM-backed Internet hotspot. `/setup#usb-ap-settings` edits the shared SSID,
+password and 2.4 GHz channel; `/hotspot` links to that control and retains the
+separate SIM APN settings. Saving the identity stages it for the next AP
+activation, including when a SIM hotspot is currently active; it does not
+disconnect the running AP or activate cellular data. A pending network handoff
+blocks this edit to preserve rollback state. The hotspot start flow uses the
+shared identity and the existing explicit SIM consent/confirmation.
+
+Deployment source validation previously completed: **465 pytest PASS, 1 SKIP**
+(Windows symlink privilege), plus JavaScript syntax and `git diff --check`.
+Seven modified portal files were checksum-verified against the live predeploy
+baseline and installed under `/opt/openstick/uz801_manager/` with backup
+`/var/lib/openstick/deploy-backups/home-20261114/before-shared-wifi-1794707861.tar.gz`
+(archive contains all seven prior files). Restarted only the `openstick-hotspot`,
+`openstick-wifi` and `openstick-lan` OpenRC services; all reported started.
+Installed SHA-256 checks passed for all seven files. USB Ethernet HTTP `/setup`,
+`/hotspot`, `/overview`, `/static/setup.js` and `/static/portal_nav.js` returned
+200. `wlan0` remained on the same predeploy NetworkManager connection,
+`openstick-64c2ad14edc821c1`; there were no hotspot/setup pending trials.
+No reboot, radio-mode change or cellular activation was performed. Browser
+visual acceptance and changing shared Wi-Fi credentials on a physical phone
+remain for owner testing; HTTP status does not prove end-to-end Internet.
+
+See [shared Wi-Fi deployment](SHARED_WIFI_2026_11_15.md) for file hashes,
+deployment details and a minimally disruptive manual acceptance sequence.
+
 ## 2026-11-15: setup AP → SIM Internet sharing without changing Wi-Fi credentials
 
 Installed the smart hotspot handoff in the actual UZ801 V3.2 USB portal. The

@@ -54,10 +54,29 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
   context.renderHeader({...data.wifi.modem_status,...changes});
   assert.equal(elements['chip-network'].dataset.bars,'4');assert.equal(elements['chip-network'].dataset.stale,'true');
  }
- for(const changes of [{registered:false},{sim_present:false},{sim_locked:true}]){
+ context.renderHeader({...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0});
+ assert.equal(elements['chip-network'].dataset.bars,'4');
+ assert.equal(elements['chip-network-label'].textContent,'4G');
+ assert.equal(elements['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(elements['chip-network'].dataset.stale,'true');
+ context.portalRememberHeader({modem_status:{...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0}});
+ const warmSignal=Object.fromEntries(Object.keys(elements).map(id=>[id,new Element()]));
+ const signalContext={console,Date,sessionStorage,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,AbortController,
+  document:{hidden:false,getElementById:id=>warmSignal[id]||null,createElement:()=>new Element(),
+   querySelector:selector=>selector==='.portal-header'?{dataset:{statusToken:'fixture-token'}}:null,addEventListener:()=>{}},fetch:()=>new Promise(()=>{})};
+ vm.createContext(signalContext);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),signalContext);
+ signalContext.setupHeaderStatus();
+ assert.equal(warmSignal['chip-network'].dataset.bars,'4');
+ assert.equal(warmSignal['chip-network-label'].textContent,'4G');
+ assert.equal(warmSignal['chip-sim-label'].textContent,'Fixture carrier');
+ for(const changes of [{sim_present:false},{sim_locked:true}]){
   context.renderHeader({...data.wifi.modem_status,...changes});
   assert.equal(elements['chip-network'].dataset.bars,'unknown');
  }
+ context.renderHeader(data.wifi.modem_status);
+ context.renderHeader({...data.wifi.modem_status,operator_name:'Other carrier',signal_recent:false,signal_percent:null});
+ assert.equal(elements['chip-network'].dataset.bars,'unknown','confirmed carrier change invalidates previous bars');
  context.renderHeader({...data.wifi.modem_status,operator_name:'<script>Fixture carrier</script>'});
  assert.equal(elements['chip-sim-label'].textContent,'<script>Fixture carrier</script>');
  context.renderHeader(null);

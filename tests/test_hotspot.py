@@ -77,7 +77,7 @@ def test_setup_wifi_auto_switches_to_same_ssid_psk_and_restores_setup_on_stop(se
     backend, network, _ = setup_hotspot
     saved = setup_mode(backend, network)
     backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
-    assert not backend.call('status')['configured']
+    assert backend.call('status')['configured']
     assert backend.call('status')['setup_active']
     assert backend.call('status')['setup_ssid'] == saved['ssid']
     trial = start(backend)
@@ -103,7 +103,7 @@ def test_setup_wifi_auto_switches_to_same_ssid_psk_and_restores_setup_on_stop(se
     assert ('setup_services', True) in network.calls
     assert network.current['wwan0qmi0'] is None
     assert not (backend.directory / 'hotspot-setup-origin.json').exists()
-    assert not backend.call('status')['configured']
+    assert backend.call('status')['configured']
     # A later request can reuse the setup Wi-Fi, with no extra setup action.
     assert start(backend)['hotspot_active']
 
@@ -318,6 +318,44 @@ def test_apn_only_rolls_back_file_and_nm_on_load_failure(setup_hotspot):
     assert len(loads)==2 and all(p.read_bytes()==data for p,data in originals.items())
 
 
+def test_apn_save_bootstraps_from_shared_setup_wifi_without_starting_data(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup = setup_mode(backend, network)
+    network.calls.clear()
+    result = backend.call('configure_apn', apn='fixture.apn', confirm=True)
+    assert result['configured'] and result['ssid'] == setup['ssid']
+    assert result['apn'] == 'fixture.apn' and result['setup_active']
+    assert backend.read('setup-ap.json') == setup
+    assert 'apn=fixture.apn' in (backend.profiles / 'openstick-cellular.nmconnection').read_text()
+    assert not any(call[0] in ('checkpoint', 'up', 'down') for call in network.calls)
+    assert network.current['wwan0qmi0'] is None
+
+
+def test_first_apn_save_restores_original_setup_on_profile_load_failure(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    paths = [backend.directory / 'setup-ap.json', backend.profiles / 'openstick-setup.nmconnection']
+    originals = {path: path.read_bytes() for path in paths}
+    original_load = network.load
+    failed = [False]
+    def fail_cellular_once(path):
+        if path.name == 'openstick-cellular.nmconnection' and not failed[0]:
+            failed[0] = True
+            raise RuntimeError('hidden test failure')
+        return original_load(path)
+    network.load = fail_cellular_once
+    network.calls.clear()
+    with pytest.raises(RuntimeError, match='^HOTSPOT_OPERATION_FAILED$'):
+        backend.call('configure_apn', apn='fixture.apn', confirm=True)
+    assert failed[0]
+    assert all(path.read_bytes() == data for path, data in originals.items())
+    assert not (backend.directory / 'hotspot.json').exists()
+    assert not (backend.profiles / 'openstick-hotspot.nmconnection').exists()
+    assert not (backend.profiles / 'openstick-cellular.nmconnection').exists()
+    assert network.current['wlan0'] == SETUP_UUID
+    assert not any(call[0] in ('checkpoint', 'up', 'down') for call in network.calls)
+
+
 def test_sim_without_internet_keeps_home_wifi_and_stops_trial_data(setup_hotspot):
     backend, network, _ = setup_hotspot
     configure(backend)
@@ -354,6 +392,43 @@ def test_sim_lock_and_ussd_gates_precede_any_data_connection(setup_hotspot, read
     backend.readiness = lambda: ready
     with pytest.raises(RuntimeError):start(backend)
     assert not any(call[0] in ('checkpoint', 'up', 'nm') for call in network.calls)
+
+
+def test_start_cancels_idle_waiting_ussd_only_after_modem_ack(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    configure(backend)
+    state = {'registered': True, 'sim_present': True, 'ussd_state': 3}
+    backend.readiness = lambda: state.copy()
+    def cancel():
+        assert not any(call[0] in ('checkpoint', 'up', 'nm') for call in network.calls)
+        state['ussd_state'] = 1
+        return {'cancelled': True, 'modem_acknowledged': True}
+    backend.ussd_cancel = cancel
+    assert start(backend)['hotspot_active']
+
+
+@pytest.mark.parametrize('ussd_state,response,after', [
+    (2, None, 2),
+    (3, {'cancelled': True, 'modem_acknowledged': False}, 1),
+    (3, {'cancelled': True, 'modem_acknowledged': True}, 3),
+])
+def test_start_does_not_change_network_when_ussd_cannot_safely_end(
+        setup_hotspot, ussd_state, response, after):
+    backend, network, _ = setup_hotspot
+    configure(backend)
+    state = {'registered': True, 'sim_present': True, 'ussd_state': ussd_state}
+    backend.readiness = lambda: state.copy()
+    callbacks = []
+    def cancel():
+        callbacks.append(True)
+        state['ussd_state'] = after
+        return response
+    backend.ussd_cancel = cancel
+    network.calls.clear()
+    with pytest.raises(RuntimeError, match='^MODEM_BUSY$'):
+        start(backend)
+    assert len(callbacks) == (0 if ussd_state == 2 else 1)
+    assert network.calls == []
 
 
 def test_expired_trial_recovers_in_independent_worker_and_cannot_be_kept(setup_hotspot):

@@ -72,6 +72,84 @@ def test_provision_is_stable_private_and_never_activates_network(setup):
     assert 'autoconnect=false' in profile and 'mode=ap' in profile and 'pmf=1' in profile
 
 
+def test_shared_ap_configuration_stages_changes_without_interrupting_live_setup(setup):
+    backend, network, _ = setup
+    network.wifi = SETUP_UUID
+    original = backend.status(credentials=True)
+    network.events.clear()
+    changed = backend.call('configure_ap', ssid='USB shared network',
+                           password='', channel=11, confirm=True)
+    assert changed['ssid'] == 'USB shared network'
+    assert changed['channel'] == 11 and changed['setup_active']
+    assert backend.status(credentials=True)['password'] == original['password']
+    profile = (backend.profiles / 'openstick-setup.nmconnection').read_text()
+    assert 'ssid=USB shared network\n' in profile and 'channel=11\n' in profile
+    assert network.wifi == SETUP_UUID
+    assert all(event[0] not in ('up', 'down', 'reboot', 'services') for event in network.events)
+    assert 'password' not in changed
+
+
+def test_shared_ap_change_rolls_back_profile_and_settings_on_failure(setup):
+    backend, network, _ = setup
+    profile = backend.profiles / 'openstick-setup.nmconnection'
+    config = backend.directory / 'setup-ap.json'
+    original = {path: path.read_bytes() for path in (profile, config)}
+    normal_load = network.load
+    attempts = [0]
+    def fail_once(path):
+        attempts[0] += 1
+        if attempts[0] == 1:raise RuntimeError('private provider failure')
+        normal_load(path)
+    network.load = fail_once
+    network.events.clear()
+    with pytest.raises(RuntimeError, match='^SETUP_OPERATION_FAILED$'):
+        backend.call('configure_ap', ssid='New staged USB', password='new-secret-pass',
+                     channel=1, confirm=True)
+    assert attempts[0] == 2
+    assert all(path.read_bytes() == data for path, data in original.items())
+    assert not any(event[0] in ('up', 'down', 'reboot') for event in network.events)
+
+
+@pytest.mark.parametrize('ssid,password,channel', [
+    ('', '', 6), ('x' * 33, '', 6), ('USB', 'short', 6),
+    ('USB', '', 4), ('USB', '', True), ('\nUSB', '', 11),
+])
+def test_invalid_shared_ap_changes_never_mutate_network(setup, ssid, password, channel):
+    backend, network, _ = setup
+    network.events.clear()
+    with pytest.raises(ValueError, match='^INPUT_INVALID$'):
+        backend.call('configure_ap', ssid=ssid, password=password,
+                     channel=channel, confirm=True)
+    assert network.events == []
+
+
+@pytest.mark.parametrize('role', ['sim-ap', 'cellular'])
+def test_shared_ap_can_be_staged_while_sim_is_active_without_network_changes(setup, role):
+    backend, network, _ = setup
+    if role == 'sim-ap':network.wifi = AP_UUID
+    else:network.cell = 'sim-active'
+    profile = backend.profiles / 'openstick-setup.nmconnection'
+    original = profile.read_bytes()
+    network.events.clear()
+    backend.call('configure_ap', ssid='Other USB', password='', channel=1, confirm=True)
+    assert profile.read_bytes() != original
+    assert network.wifi == (AP_UUID if role == 'sim-ap' else None)
+    assert network.cell == ('sim-active' if role == 'cellular' else None)
+    assert all(event[0] not in ('up', 'down', 'reboot', 'services') for event in network.events)
+
+
+def test_shared_ap_change_during_trial_is_rejected_before_writes(setup):
+    backend, network, _ = setup
+    backend.write('hotspot-pending.json', {'attempt': 'busy'})
+    profile = backend.profiles / 'openstick-setup.nmconnection'
+    original = profile.read_bytes()
+    network.events.clear()
+    with pytest.raises(RuntimeError, match='^NETWORK_BUSY$'):
+        backend.call('configure_ap', ssid='Other USB', password='', channel=1, confirm=True)
+    assert profile.read_bytes() == original
+    assert network.events == []
+
+
 def test_fallback_waits_then_starts_without_sim_and_never_activates_cellular(setup):
     backend, network, clock = setup
     backend.tick();clock[0] += 59;backend.tick()

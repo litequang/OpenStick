@@ -168,13 +168,35 @@ class Hotspot:
     def __init__(self, directory='/var/lib/openstick', profiles='/etc/NetworkManager/system-connections',
                  network=None, lock_factory=network_lock, modem_lock_factory=modem_lock,
                  readiness=None, clock=time.monotonic, boot=boot_id, available=shutil.which,
-                 setup_services=None):
+                 setup_services=None, ussd_cancel=None):
         self.directory, self.profiles = Path(directory), Path(profiles)
         self.network = network or Network()
         self.lock_factory, self.modem_lock_factory = lock_factory, modem_lock_factory
         self.readiness = readiness or (lambda: ModemManager(lock_factory=nullcontext).call('status'))
         self.clock, self.boot, self.available = clock, boot, available
         self.setup_services = setup_services or self._setup_services
+        self.ussd_cancel = ussd_cancel or self._cancel_waiting_ussd
+
+    @staticmethod
+    def _cancel_waiting_ussd():
+        # start() already owns the modem lock; reacquiring it would deadlock.
+        return ModemManager(lock_factory=nullcontext).call(
+            'ussd_cancel', operation=str(uuid.uuid4()), confirm=True)
+
+    def _clear_waiting_ussd(self, ready):
+        if ready.get('ussd_state') == 3:
+            try:
+                result = self.ussd_cancel()
+                if (not isinstance(result, dict) or result.get('cancelled') is not True
+                        or result.get('modem_acknowledged') is not True):
+                    raise RuntimeError('MODEM_BUSY')
+                ready = self.readiness()  # Verify idle before *any* NM change.
+                if ready.get('ussd_state') != 1:
+                    raise RuntimeError('MODEM_BUSY')
+            except Exception:
+                raise RuntimeError('MODEM_BUSY') from None
+        if ready.get('ussd_state') in (2, 3):
+            raise RuntimeError('MODEM_BUSY')
 
     def _setup_services(self, enabled):
         # Use the same firewall/DHCP implementation as the setup AP supervisor.
@@ -196,14 +218,15 @@ class Hotspot:
         """Keep the setup SSID/PSK/BSSID while changing to NM Internet sharing."""
         setup = self.read('setup-ap.json')
         path = self.profiles / 'openstick-setup.nmconnection'
-        if (setup.get('enabled') is not True or not setup.get('ssid') or not setup.get('password')
+        if (not setup.get('ssid') or not setup.get('password')
                 or path.is_symlink() or not path.is_file()):
             raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
         profile = configparser.ConfigParser(interpolation=None)
         profile.read_string(path.read_text())
         from .setup_ap import SETUP_UUID
+        escaped_ssid = setup['ssid'].replace('\\', '\\\\').replace(';', '\\;')
         if (profile.get('connection', 'uuid', fallback=None) != SETUP_UUID
-                or profile.get('wifi', 'ssid', fallback=None) != setup['ssid']
+                or profile.get('wifi', 'ssid', fallback=None) != escaped_ssid
                 or profile.get('wifi', 'mode', fallback=None) != 'ap'
                 or not profile.get('wifi-security', 'psk', fallback=None)):
             raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
@@ -293,9 +316,12 @@ class Hotspot:
         from .setup_ap import SETUP_UUID
         active = self.network.active('wlan0')
         ap = active == AP_UUID
-        setup = self.read('setup-ap.json') if active == SETUP_UUID else {}
+        setup = self.read('setup-ap.json')
         setup_active = active == SETUP_UUID and setup.get('enabled') is True
-        return {'configured': bool(config.get('ssid')), 'ssid': config.get('ssid'), 'channel': config.get('channel'),
+        unified = bool(setup.get('ssid') and setup.get('password'))
+        return {'configured': unified or bool(config.get('ssid')),
+                'ssid': setup.get('ssid') if unified else config.get('ssid'),
+                'channel': setup.get('channel', 6) if unified else config.get('channel'),
                 'apn': config.get('apn', ''), 'enabled': config.get('enabled', False),
                 'ap_supported': self.network.ap_capable(), 'hotspot_active': ap,
                 'setup_active': setup_active, 'setup_ssid': setup.get('ssid') if setup_active else None,
@@ -347,7 +373,6 @@ class Hotspot:
 
     def configure_apn(self, apn):
         config = self.read('hotspot.json')
-        if not config.get('ssid'):raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
         if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:
             raise RuntimeError('HOTSPOT_ACTIVE')
         devices = self.network.devices()
@@ -355,28 +380,39 @@ class Hotspot:
         if self.network.active(devices[0]):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
         if config.get('enabled') or self.read('network-policy.json').get('enabled'):
             raise RuntimeError('POLICY_ACTIVE')
-        path = self.profiles / 'openstick-cellular.nmconnection'
-        if path.is_symlink() or not path.is_file():raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
-        original, stored = path.read_text(), (self.directory / 'hotspot.json').read_text()
-        profile = configparser.ConfigParser(interpolation=None)
-        profile.read_string(original)
-        if (profile.get('connection', 'uuid', fallback=None) != CELL_UUID
-                or profile.get('connection', 'type', fallback=None) != 'gsm' or not profile.has_section('gsm')):
+        bootstrap = not config.get('ssid')
+        if bootstrap and not self.read('setup-ap.json').get('ssid'):
             raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
-        profile.set('gsm', 'auto-config', 'false' if apn else 'true')
-        if apn:profile.set('gsm', 'apn', apn)
-        else:profile.remove_option('gsm', 'apn')
-        output = io.StringIO();profile.write(output, space_around_delimiters=False)
+        snapshot = self._setup_snapshot() if bootstrap else None
+        path = self.profiles / 'openstick-cellular.nmconnection'
+        original, stored = None, None
         try:
+            if bootstrap:
+                self._adopt_setup_ap()
+                config = self.read('hotspot.json')
+            if path.is_symlink() or not path.is_file():raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+            original, stored = path.read_text(), (self.directory / 'hotspot.json').read_text()
+            profile = configparser.ConfigParser(interpolation=None)
+            profile.read_string(original)
+            if (profile.get('connection', 'uuid', fallback=None) != CELL_UUID
+                    or profile.get('connection', 'type', fallback=None) != 'gsm' or not profile.has_section('gsm')):
+                raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+            profile.set('gsm', 'auto-config', 'false' if apn else 'true')
+            if apn:profile.set('gsm', 'apn', apn)
+            else:profile.remove_option('gsm', 'apn')
+            output = io.StringIO();profile.write(output, space_around_delimiters=False)
             self.atomic(path, output.getvalue())
             self.network.load(path)
             config.update(apn=apn, tested=False)
             self.write('hotspot.json', config)
-        except Exception:
+        except Exception as error:
             try:
-                self.atomic(path, original);self.network.load(path)
-                self.atomic(self.directory / 'hotspot.json', stored)
+                if bootstrap:self._restore_setup_snapshot({'setup_handoff': snapshot})
+                elif original is not None and stored is not None:
+                    self.atomic(path, original);self.network.load(path)
+                    self.atomic(self.directory / 'hotspot.json', stored)
             except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
+            if str(error) == 'HOTSPOT_NOT_CONFIGURED':raise
             raise RuntimeError('HOTSPOT_OPERATION_FAILED') from None
         return self.status()
 
@@ -431,25 +467,26 @@ class Hotspot:
         from .setup_ap import SETUP_UUID
         previous = self.network.active('wlan0')
         handoff = previous == SETUP_UUID
-        if not config.get('ssid') and not handoff:raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+        unified = bool(self.read('setup-ap.json').get('ssid'))
+        if not config.get('ssid') and not unified:raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
         ready = self.readiness()
         if not ready.get('registered') or ready.get('sim_locked') or not ready.get('sim_present'):
             raise RuntimeError('SIM_NOT_READY')
-        if ready.get('ussd_state') in (2, 3):raise RuntimeError('MODEM_BUSY')
+        self._clear_waiting_ussd(ready)
         if not self.network.ap_capable() or not self.available('dnsmasq'):raise RuntimeError('AP_UNSUPPORTED')
         devices = self.network.devices()
         if len(devices) != 1:raise RuntimeError('CELLULAR_UNAVAILABLE')
         control = devices[0]
         if self.network.active(control):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
-        snapshot = self._setup_snapshot() if handoff else None
+        snapshot = self._setup_snapshot() if unified else None
         checkpoint = self.network.checkpoint(['wlan0', control])
         pending = {'checkpoint': checkpoint, 'attempt': secrets.token_hex(16), 'boot': self.boot(),
                    'expires': self.clock() + 285, 'previous_wifi': previous}
-        if handoff:pending['setup_handoff'] = snapshot
+        if unified:pending['setup_handoff'] = snapshot
         self.write('hotspot-pending.json', pending)
         phase = 'cellular'
         try:
-            if handoff:self._adopt_setup_ap()
+            if unified:self._adopt_setup_ap()
             self.network.nm('radio', 'wwan', 'on')
             self.network.up(CELL_UUID)
             interface = self.network.cellular_interface(control)
@@ -464,9 +501,9 @@ class Hotspot:
             try:self.network.checkpoint_action(checkpoint, True)
             except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
             try:
-                if handoff:
+                if unified:
                     self._restore_setup_snapshot(pending)
-                    self._resume_setup_services()
+                    if handoff:self._resume_setup_services()
             except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
             (self.directory / 'hotspot-pending.json').unlink(missing_ok=True)
             if str(error) in ('CELLULAR_NO_INTERNET', 'AP_START_FAILED'):raise

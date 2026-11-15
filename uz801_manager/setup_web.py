@@ -43,7 +43,8 @@ def register_setup_routes(app, backend, token):
         except (ValueError, TypeError, UnicodeError):return jsonify(error='INPUT_INVALID'), 400
         except Exception as error:
             allowed = {'NETWORK_BUSY', 'LAN_NOT_CONFIGURED', 'AP_UNSUPPORTED', 'HOTSPOT_ACTIVE',
-                       'POLICY_ACTIVE', 'CELLULAR_ALREADY_ACTIVE', 'SETUP_NOT_CONFIGURED', 'SETUP_NOT_ACTIVE'}
+                       'POLICY_ACTIVE', 'CELLULAR_ALREADY_ACTIVE', 'SETUP_NOT_CONFIGURED', 'SETUP_NOT_ACTIVE',
+                       'SETUP_OPERATION_FAILED'}
             return jsonify(error=str(error) if str(error) in allowed else 'SETUP_OPERATION_FAILED'), 409
         finally:
             if isinstance(value, dict):value.clear()

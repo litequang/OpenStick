@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**15/11/2026 — đã triển khai cấu hình Wi-Fi phát dùng chung lên USB thật:**
+`/setup#usb-ap-settings` cho đổi một bộ SSID/mật khẩu/kênh cho Wi-Fi cài đặt
+và Wi-Fi chia sẻ Internet SIM; `/hotspot` trỏ về cùng mục, APN vẫn độc lập.
+Lưu cấu hình chỉ áp dụng ở lần phát tiếp theo; nếu đang phát hotspot SIM sẽ
+không tự ngắt. Không được sửa khi đang có handoff chờ xác nhận. Đã cài đúng 7
+tệp portal, sao lưu và xác minh SHA-256 trên USB; 3 dịch vụ đều started, các
+trang `/setup`, `/hotspot`, `/overview` và 2 JS trả HTTP 200. Kết nối `wlan0`
+trước/sau không đổi, không có pending; **không reboot hoặc chuyển mạng**.
+Source đã qua **465 pytest PASS, 1 SKIP Windows**. Chưa kiểm thử thao tác đổi
+SSID/mật khẩu hoặc xác minh Internet từ điện thoại sau bản mới. Xem
+`docs/SHARED_WIFI_2026_11_15.md` và đầu `docs/SESSION_HANDOFF.md` để biết
+đường dẫn bản sao lưu và điều kiện kiểm thử thật.
+
 **15/11/2026 — hotspot SIM thông minh đã cài lên USB:** Khi setup AP đang
 phát, `/hotspot` có thể chuyển sang dùng Internet SIM với cùng SSID/mật khẩu,
 địa chỉ `192.168.8.1:8765` và `openstick.local:8765`; người dùng vẫn phải
