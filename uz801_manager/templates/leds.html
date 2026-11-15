@@ -1,13 +1,20 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Đèn thông báo</title></head><body><main>
 {% include 'portal_chrome.html' %}
 <div class="page-title"><h1>Đèn thông báo</h1><button id="led-refresh" class="secondary" type="button">Đọc lại</button></div>
-<p>Chọn trạng thái, rồi phối cả ba đèn: tắt, sáng liên tục hoặc nháy với tốc độ riêng. Khi USB đổi trạng thái, cả bộ đèn tự đổi theo trong khoảng 3 giây.</p>
+<p>Chọn trạng thái mạng, chọn style ánh sáng rồi lưu. USB tự áp dụng quy tắc đã lưu khi trạng thái thay đổi. Ba LED là các kênh bật/tắt riêng, không hỗ trợ làm mờ liên tục.</p>
 <p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
 <form id="led-network-form"><fieldset id="led-network-fields" disabled style="border:0;padding:0;min-width:0">
 <section><h2><span class="ux-step">1</span> Chọn trạng thái</h2><p id="led-network-current" class="metric-note"></p>
 <label for="led-network-state">Trạng thái muốn chỉnh</label><select id="led-network-state" style="width:100%"><option value="sim_hotspot">Phát hotspot từ SIM</option><option value="wifi_station">USB đang nhận Wi-Fi</option><option value="setup_hotspot">Phát hotspot cài đặt</option><option value="cellular_data">Kết nối dữ liệu SIM, không dùng Wi-Fi</option><option value="offline">Chưa có kết nối</option><option value="unknown">Chưa đọc được trạng thái mạng</option></select>
 <p class="metric-note">Chuyển lựa chọn chỉ để sửa cấu hình; không đổi mạng hoặc bật dữ liệu SIM.</p></section>
-<section><h2><span class="ux-step">2</span> Phối đèn cho trạng thái này</h2><div id="led-network-controls" class="manage-grid"></div><p class="metric-note">Mỗi màu có thể sáng hoặc nháy đồng thời với các màu khác. Thời gian sáng/tắt từ 100 đến 5000 ms; 500 + 500 ms tương đương một nhịp mỗi giây.</p><button id="led-network-off" type="button" class="secondary">Chọn tắt cả ba cho trạng thái này</button></section>
+<section><h2><span class="ux-step">2</span> Chọn style ánh sáng</h2>
+<p class="metric-note">Chọn mẫu gợi ý, xem trước ba LED rồi bấm Lưu quy tắc ở dưới. Chọn mẫu không gửi lệnh tới USB. Hiệu ứng mô phỏng trên màn hình có thể khác nhịp thực tế của driver.</p>
+<label for="led-style-filter">Nhóm style</label><select id="led-style-filter" class="led-style-filter"><option value="recommended">Đề xuất</option><option value="all">Tất cả 12 style</option><option value="calm">Nhẹ nhàng</option><option value="vivid">Nổi bật</option><option value="signal">Trạng thái &amp; cảnh báo</option></select>
+<div id="led-style-gallery" class="led-style-gallery" role="group" aria-label="Các kiểu LED chọn nhanh"></div>
+<div class="led-style-current" aria-live="polite"><span class="led-style-current-label">Mẫu đang chọn</span><strong id="led-style-current-name">Đang tải…</strong><p id="led-style-current-info" class="metric-note">Ba kênh sáng/tắt, không phải RGB 24-bit hay chuyển màu liên tục.</p></div>
+<details class="ux-advanced" id="led-manual"><summary>Tùy chỉnh từng đèn (nâng cao)</summary>
+<div id="led-network-controls" class="manage-grid"></div><p class="metric-note">Mỗi đèn có thể tắt, sáng liên tục hoặc nháy riêng. Thời gian sáng/tắt từ 100 đến 5000 ms. Thao tác thủ công vẫn được giữ khi đổi trạng thái trước khi lưu.</p>
+<button id="led-network-off" type="button" class="secondary">Chọn tắt cả ba cho trạng thái này</button></details></section>
 <p class="ux-action-row"><button id="led-network-save" type="submit">Lưu quy tắc và bật tự động</button><button id="led-network-disable" class="secondary" type="button">Tắt tự động, dùng chế độ cố định</button></p>
 <p class="metric-note">Lưu giữ lựa chọn cho mọi trạng thái bạn vừa sửa và dùng lại sau khi cấp nguồn. Nếu nhiều kết nối cùng hoạt động, USB chọn một bộ theo thứ tự: hotspot cài đặt → hotspot SIM → nhận Wi-Fi → dữ liệu SIM.</p>
 </fieldset></form>
