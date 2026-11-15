@@ -1,5 +1,29 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**15/11/2026 — Đã chỉnh lại giao diện `/setup` và triển khai lên USB thật:**
+Hai thẻ rõ ràng cho USB nhận Wi-Fi và USB phát Wi-Fi (cấu hình chung với
+hotspot SIM). Trên điện thoại các thẻ xếp dọc, máy tính xếp hai cột; các
+biểu mẫu, cảnh báo và nút lưu đã được sắp lại, thêm nút hiện/ẩn mật khẩu.
+Chức năng điều khiển điểm phát nâng cao được thu gọn. Giữ nguyên backend,
+SSID/mật khẩu đã lưu, lựa chọn radio, Tunnel, trang web, quyền SSH và kết nối
+Wi-Fi hiện tại. Kiểm tra nguồn: 465 PASS, 1 SKIP Windows, 36 test setup PASS;
+Chrome preview trên 1280/390/320px không tràn ngang nhưng **chưa thay thế
+kiểm thử trực quan trên điện thoại thật**.
+
+**Cập nhật tiếp giao diện nâng cao (cùng ngày):** Bốn nút lớn trước đây được
+gom thành hai dòng cài đặt (tự phát khi mất kết nối; phát Wi-Fi thủ công),
+mỗi dòng hiện trạng thái bật/tắt hoặc đang phát và chỉ một hành động phù hợp.
+Fixture JavaScript đã kiểm tra cả chu trình enable/disable/start/stop; toàn bộ
+pytest 465 PASS, 1 SKIP. Đã cài lần hai trên USB, kiểm tra SHA-256, trang web,
+dịch vụ Wi-Fi và LAN, không đổi cấu hình Wi-Fi. Sao lưu lần hai:
+`/var/lib/openstick/deploy-backups/home-20261114/before-setup-ui-1794751697.tar.gz`.
+
+Đã cài ba tệp `setup.html`, `setup.js`, `portal.css`, xác nhận SHA-256 sau
+triển khai, bốn dịch vụ đều started và năm URL HTTP 200. Wi-Fi `wlan0`
+không đổi kết nối, không có pending trial; không reboot, không bật dữ liệu SIM.
+Backup: `/var/lib/openstick/deploy-backups/home-20261114/before-setup-ui-1794751001.tar.gz`.
+Xem đầu `docs/SESSION_HANDOFF.md` để biết phạm vi và giới hạn nghiệm thu.
+
 **15/11/2026 — đã cài bộ chọn LED style mới lên USB thật:** Nhánh
 `ui/led-style-gallery-20261115` đã gộp vào `codex/uz801-v32-postmarketos`.
 Trang `/settings/leds` có 12 style nhấp nháy/sáng/tắt và 4 bộ style chọn nhanh

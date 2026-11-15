@@ -1,34 +1,153 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Wi-Fi cài đặt</title></head><body><main>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OpenStick — Cài đặt Wi-Fi</title>
+</head>
+<body><main>
 {% include 'portal_chrome.html' %}
-<div class="page-title"><h1>Khôi phục kết nối Wi-Fi</h1><a href="/manage">← Quản lý</a></div>
-<p>Không kết nối được Wi-Fi đã lưu trong khoảng 60 giây? USB tự phát Wi-Fi để điện thoại vào cài, kể cả không có SIM. Chế độ này không tự bật dữ liệu SIM.</p>
-<section id="setup-connect-pane"><h2><span class="ux-step">1</span> Chọn Wi-Fi cho USB</h2><p class="ux-form-note">Quét để chọn mạng hoặc nhập tên Wi-Fi ẩn. Chọn tên chưa thực hiện kết nối.</p><form id="setup-connect">
-<p><button id="setup-scan" type="button" class="secondary">Quét mạng Wi-Fi</button></p>
-<label for="setup-networks">Chọn Wi-Fi từ lần quét gần nhất</label><select id="setup-networks"><option value="">Nhập tên bên dưới hoặc quét mạng</option></select>
-<p id="setup-scan-note" class="metric-note">Chọn mạng chỉ điền tên, chưa đổi kết nối. Có thể nhập tay tên mạng ẩn.</p>
-<label for="setup-ssid">Tên Wi-Fi 2,4 GHz (SSID)</label><input id="setup-ssid" required maxlength="32" autocomplete="off">
-<label for="setup-password">Mật khẩu Wi-Fi</label><input id="setup-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password">
-<p class="ux-callout ux-warning">Lưu sẽ cho USB khởi động lại một lần. Điện thoại có thể mất kết nối tạm thời; nếu mạng mới thất bại, thiết bị sẽ thử các Wi-Fi đã lưu rồi khôi phục điểm phát cài đặt.</p><button id="setup-submit">Lưu và kết nối (khởi động lại)</button></form>
-<p>Nhập đúng tên mạng, kể cả chữ hoa/thường. USB lưu cấu hình rồi khởi động lại một lần; điện thoại sẽ mất kết nối tạm thời. Sau khi lên nguồn, USB thử mạng mới rồi các Wi-Fi đã lưu. Nếu kết nối được, nối điện thoại vào cùng Wi-Fi và mở lại <a href="http://openstick.local:8765/setup">http://openstick.local:8765/setup</a>. Nếu không mạng nào kết nối được, USB phát lại hotspot cài đặt sau khoảng 1–3 phút để bạn sửa. Wi-Fi có mạng nội bộ vẫn dùng để quản trị dù không có Internet.</p>
-<p id="setup-station-link"></p>
-<p class="metric-note">Khi cắm vào PC, trang <a href="http://172.16.42.1/setup">172.16.42.1/setup</a> vẫn dùng được trong lúc đổi Wi-Fi. Không bắt buộc PC cho các lần đổi mạng sau.</p></section>
-<section id="usb-ap-settings"><h2>Wi-Fi USB sẽ phát — cấu hình dùng chung</h2>
-<p class="ux-form-note">Cùng tên Wi-Fi, mật khẩu và kênh phát cho chế độ cài đặt khi mất mạng và chia sẻ Internet từ SIM. Đây là Wi-Fi <strong>USB phát ra</strong>, khác với Wi-Fi gia đình USB kết nối ở trên. Lưu cấu hình không ngắt kết nối, bật SIM hay khởi động lại. Nếu Wi-Fi USB đang phát, thay đổi áp dụng ở lần phát tiếp theo.</p>
-<form id="setup-ap-form">
-<label for="setup-ap-ssid">Tên Wi-Fi USB (SSID)</label><input id="setup-ap-ssid" required maxlength="32" autocomplete="off">
-<label for="setup-ap-password">Mật khẩu mới (để trống nếu giữ nguyên, 8–63 ký tự ASCII)</label><input id="setup-ap-password" type="password" minlength="8" maxlength="63" autocomplete="new-password">
-<label for="setup-ap-channel">Kênh 2,4 GHz</label><select id="setup-ap-channel"><option value="1">1</option><option value="6">6</option><option value="11">11</option></select>
-<button id="setup-ap-save">Lưu thông tin Wi-Fi USB</button></form>
-<p id="setup-ap-notice" role="status" aria-live="polite"></p>
-<p class="metric-note">Bạn vẫn có thể lưu thẻ kết nối bên dưới. Nếu đổi mật khẩu, hãy cập nhật thông tin Wi-Fi đã lưu trên điện thoại trước lần phát tiếp theo.</p>
-</section>
-<section><h2><span class="ux-step">2</span> Trạng thái &amp; khôi phục</h2><p id="setup-state" role="status" style="white-space:pre-wrap">Đang kiểm tra…</p>
-<p id="setup-notice" aria-live="polite"></p>
-<details class="ux-advanced"><summary>Điều khiển chế độ Wi-Fi cài đặt (nâng cao)</summary><p class="ux-form-note">Những thao tác bên dưới có thể thay đổi mạng Wi-Fi đang hoạt động.</p><p class="ux-action-row"><button id="setup-enable">Bật tự phát khi mất Wi-Fi</button> <button id="setup-disable" class="secondary">Tắt tự phát</button></p>
-<p class="ux-action-row"><button id="setup-start">Phát Wi-Fi cài đặt ngay</button> <button id="setup-stop" class="secondary">Dừng &amp; thử Wi-Fi cũ</button></p></details>
-<p class="metric-note">Nếu đã bật hotspot dùng SIM hoặc có phiên dữ liệu SIM, USB giữ chế độ bạn đã chọn. Dừng chế độ đó trước để dùng Wi-Fi cài đặt. Wi-Fi còn kết nối nhưng không có Internet sẽ không tự chuyển sang hotspot.</p></section>
-<section><h2><span class="ux-step">3</span> Lưu thông tin khi không có PC</h2><p>Wi-Fi USB dùng chung một mật khẩu khi cài đặt và khi chia sẻ SIM, giữ nguyên qua các lần cấp nguồn. Lưu vào điện thoại để dùng khi chỉ cắm USB vào sạc hoặc pin dự phòng.</p>
-<button id="setup-reveal" class="secondary">Xem thông tin kết nối</button><pre id="setup-credentials" hidden style="white-space:pre-wrap"></pre><p><button id="setup-card" class="secondary">Tải thẻ kết nối</button></p>
-<p>Kết nối điện thoại vào Wi-Fi USB, chọn <strong>tiếp tục kết nối dù không có Internet</strong>, rồi mở <a href="http://openstick.local:8765/setup">http://openstick.local:8765/setup</a>. Nếu điện thoại chưa nhận tên này, dùng <a href="http://192.168.8.1:8765/setup">http://192.168.8.1:8765/setup</a>. Đăng nhập bằng mật khẩu quản trị LAN đã đặt; mật khẩu này khác mật khẩu Wi-Fi.</p></section>
 
-<script src="/static/setup.js"></script></main></body></html>
+<div class="setup-page-heading">
+  <p class="ux-eyebrow">QUẢN LÝ MẠNG WI-FI</p>
+  <h1>Cài đặt Wi-Fi</h1>
+  <p>Quản lý mạng USB kết nối và Wi-Fi USB phát ra từ cùng một nơi.</p>
+</div>
+
+<div class="setup-panel-grid">
+  <section id="setup-connect-pane" class="setup-panel setup-panel-station">
+    <div class="setup-panel-heading">
+      <span class="setup-panel-icon" aria-hidden="true">↘</span>
+      <div>
+        <span class="setup-panel-type">USB nhận Wi-Fi</span>
+        <h2>Kết nối vào mạng</h2>
+        <p>Cho USB dùng Wi-Fi nhà hoặc mạng có sẵn.</p>
+      </div>
+    </div>
+    <form id="setup-connect" class="setup-form">
+      <div class="setup-field">
+        <div class="setup-label-action">
+          <label for="setup-networks">Mạng tìm thấy</label>
+          <button id="setup-scan" type="button" class="secondary setup-scan-button">↻ Quét mạng</button>
+        </div>
+        <select id="setup-networks"><option value="">Quét hoặc nhập tên mạng bên dưới</option></select>
+        <p id="setup-scan-note" class="setup-field-help">Chọn mạng để tự điền tên. USB chưa kết nối ngay.</p>
+      </div>
+      <div class="setup-field">
+        <label for="setup-ssid">Tên Wi-Fi (SSID)</label>
+        <input id="setup-ssid" required maxlength="32" autocomplete="off" placeholder="Tên Wi-Fi 2,4 GHz">
+        <span class="setup-field-help">Có thể nhập tên Wi-Fi ẩn; phân biệt chữ hoa và chữ thường.</span>
+      </div>
+      <div class="setup-field">
+        <label for="setup-password">Mật khẩu Wi-Fi</label>
+        <div class="setup-password-control">
+          <input id="setup-password" type="password" minlength="8" maxlength="63" required autocomplete="new-password" placeholder="Nhập mật khẩu mạng">
+          <button type="button" class="secondary setup-password-toggle" id="setup-password-toggle" aria-controls="setup-password" aria-pressed="false">Hiện</button>
+        </div>
+      </div>
+      <div class="setup-impact setup-impact-warning" role="note">
+        <span aria-hidden="true">!</span>
+        <p><strong>USB sẽ khởi động lại một lần.</strong> Kết nối có thể ngắt tạm thời. Nếu không vào được mạng mới, USB sẽ thử Wi-Fi đã lưu rồi phát Wi-Fi cài đặt để khôi phục.</p>
+      </div>
+      <button id="setup-submit" class="setup-primary-action" type="submit">Lưu &amp; kết nối Wi-Fi →</button>
+    </form>
+    <details class="setup-help-details">
+      <summary>Sau khi đổi mạng, truy cập lại thế nào?</summary>
+      <p>Chờ USB khởi động lại và nối điện thoại vào cùng Wi-Fi. Sau đó mở <a href="http://openstick.local:8765/setup">openstick.local:8765/setup</a>. Nếu không mạng nào kết nối được, Wi-Fi cài đặt sẽ phát lại sau khoảng 1–3 phút.</p>
+      <p>PC cắm USB vẫn quản lý được tại <a href="http://172.16.42.1/setup">172.16.42.1/setup</a>. Wi-Fi nội bộ vẫn dùng được để quản trị dù không có Internet.</p>
+      <div class="setup-station-address">Địa chỉ sau khi kết nối: <span id="setup-station-link"></span></div>
+    </details>
+  </section>
+
+  <section id="usb-ap-settings" class="setup-panel setup-panel-ap">
+    <div class="setup-panel-heading">
+      <span class="setup-panel-icon" aria-hidden="true">↗</span>
+      <div>
+        <span class="setup-panel-type">USB phát Wi-Fi</span>
+        <h2>Thông tin mạng phát</h2>
+        <p>Dùng chung cho Wi-Fi cài đặt và chia sẻ Internet SIM.</p>
+      </div>
+    </div>
+    <div class="setup-info-tag">Một tên Wi-Fi · Một mật khẩu · Một kênh phát</div>
+    <form id="setup-ap-form" class="setup-form">
+      <div class="setup-field">
+        <label for="setup-ap-ssid">Tên Wi-Fi USB (SSID)</label>
+        <input id="setup-ap-ssid" required maxlength="32" autocomplete="off" placeholder="Tên mạng USB sẽ phát">
+      </div>
+      <div class="setup-field">
+        <label for="setup-ap-password">Đổi mật khẩu Wi-Fi USB</label>
+        <div class="setup-password-control">
+          <input id="setup-ap-password" type="password" minlength="8" maxlength="63" autocomplete="new-password" placeholder="Để trống nếu giữ mật khẩu cũ">
+          <button type="button" class="secondary setup-password-toggle" id="setup-ap-password-toggle" aria-controls="setup-ap-password" aria-pressed="false">Hiện</button>
+        </div>
+        <span class="setup-field-help">Để trống để giữ mật khẩu hiện tại. Mật khẩu mới cần 8–63 ký tự ASCII.</span>
+      </div>
+      <div class="setup-field setup-channel-field">
+        <label for="setup-ap-channel">Kênh phát 2,4 GHz</label>
+        <select id="setup-ap-channel"><option value="1">Kênh 1</option><option value="6">Kênh 6</option><option value="11">Kênh 11</option></select>
+      </div>
+      <div class="setup-impact" role="note">
+        <span aria-hidden="true">✓</span>
+        <p><strong>Lưu không ngắt kết nối.</strong> Thông tin mới được dùng ở lần phát Wi-Fi USB tiếp theo; không tự bật dữ liệu SIM.</p>
+      </div>
+      <button id="setup-ap-save" class="setup-primary-action" type="submit">Lưu cấu hình Wi-Fi USB</button>
+    </form>
+    <p id="setup-ap-notice" class="setup-feedback" role="status" aria-live="polite"></p>
+    <p class="setup-field-help setup-panel-footnote">Nếu đổi mật khẩu, điện thoại cần cập nhật mật khẩu Wi-Fi USB trước lần kết nối tiếp theo.</p>
+  </section>
+</div>
+
+<section class="setup-secondary-panel" id="setup-status-panel">
+  <div class="setup-secondary-heading">
+    <div><h2>Trạng thái &amp; khôi phục</h2><p>Kiểm tra chế độ Wi-Fi cài đặt và điều khiển khi cần.</p></div>
+  </div>
+  <div id="setup-state" class="setup-current-status" role="status" aria-live="polite">Đang kiểm tra…</div>
+  <p id="setup-notice" class="setup-feedback" aria-live="polite"></p>
+  <details class="ux-advanced setup-advanced">
+    <summary>Điều khiển nâng cao <span class="setup-summary-hint">Tự động &amp; thủ công</span></summary>
+    <div class="setup-control-list">
+      <div class="setup-control-row">
+        <div class="setup-control-copy">
+          <div class="setup-control-title">Tự phát khi mất kết nối</div>
+          <p>USB tự mở Wi-Fi cài đặt khi không kết nối được mạng đã lưu.</p>
+          <span class="setup-control-state" id="setup-auto-state" data-active="unknown">Đang kiểm tra</span>
+        </div>
+        <div class="setup-control-actions">
+          <button type="button" id="setup-enable" class="setup-control-button" hidden>Bật tự phát</button>
+          <button type="button" id="setup-disable" class="secondary setup-control-button" hidden>Tắt tự phát</button>
+        </div>
+      </div>
+      <div class="setup-control-row">
+        <div class="setup-control-copy">
+          <div class="setup-control-title">Phát Wi-Fi cài đặt thủ công</div>
+          <p>Dùng khi cần điện thoại kết nối trực tiếp để sửa Wi-Fi của USB.</p>
+          <span class="setup-control-state" id="setup-ap-state" data-active="unknown">Đang kiểm tra</span>
+        </div>
+        <div class="setup-control-actions">
+          <button type="button" id="setup-start" class="setup-control-button" hidden>Phát Wi-Fi ngay</button>
+          <button type="button" id="setup-stop" class="secondary setup-control-button" hidden>Dừng &amp; thử Wi-Fi cũ</button>
+        </div>
+      </div>
+    </div>
+    <p class="setup-control-caution">Thao tác phát/dừng có thể ngắt Wi-Fi đang dùng. Nếu USB đang dùng SIM hoặc hotspot SIM, cần đổi chế độ đó trước. Mất Internet nhưng Wi-Fi vẫn kết nối sẽ không kích hoạt tự phát.</p>
+  </details>
+</section>
+
+<section class="setup-secondary-panel" id="setup-recovery-panel">
+  <div class="setup-secondary-heading">
+    <div><h2>Lưu thông tin kết nối</h2><p>Lưu thẻ Wi-Fi USB vào điện thoại để dùng khi không có PC.</p></div>
+  </div>
+  <div class="setup-recovery-actions">
+    <button id="setup-reveal" class="secondary">Xem thông tin kết nối</button>
+    <button id="setup-card" class="secondary">↓ Tải thẻ kết nối</button>
+  </div>
+  <pre id="setup-credentials" class="setup-credentials" hidden></pre>
+  <details class="setup-help-details">
+    <summary>Cách truy cập khi USB phát Wi-Fi cài đặt</summary>
+    <p>Kết nối điện thoại vào Wi-Fi USB và chọn <strong>tiếp tục kết nối dù không có Internet</strong>. Mở <a href="http://openstick.local:8765/setup">openstick.local:8765/setup</a>; nếu không truy cập được, dùng <a href="http://192.168.8.1:8765/setup">192.168.8.1:8765/setup</a>.</p>
+    <p>Đăng nhập bằng mật khẩu quản trị LAN đã đặt. Mật khẩu này khác mật khẩu Wi-Fi.</p>
+  </details>
+</section>
+
+<script src="/static/setup.js"></script>
+</main></body></html>

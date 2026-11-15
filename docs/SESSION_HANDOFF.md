@@ -1,5 +1,46 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-15: Wi-Fi setup management UI redesigned and deployed
+
+The real USB `/setup` portal now has two prominent Wi-Fi panels: **USB joins
+a Wi-Fi network** and **USB broadcasts Wi-Fi**. The latter edits the one
+shared SSID, password and channel for both recovery/setup AP and SIM Internet
+sharing. Form labels, scan action, password reveal controls, save actions,
+warnings and recovery guidance are grouped clearly; advanced setup-AP
+controls are collapsed. Existing routes, HTML IDs and backend operations are
+preserved. Desktop has two columns, and small screens stack the panels.
+
+Source checks: **465 passed, 1 skipped** (Windows symlink privilege); focused
+setup checks **36 passed**; JavaScript syntax, fixture and diff checks passed.
+Local Chrome previews at 1280, 390 and 320px had no horizontal overflow; those
+mock previews do not constitute Android/iOS physical acceptance.
+
+Live deployment installed only `templates/setup.html`, `static/setup.js` and
+`static/portal.css` after verifying baseline SHA-256 and staged checksums.
+Automatic rollback and a three-file archive were prepared:
+`/var/lib/openstick/deploy-backups/home-20261114/before-setup-ui-1794751001.tar.gz`.
+Restarted `openstick-wifi` and `openstick-lan` portal services only. Checks on
+the real USB passed for installed hashes, five HTTP 200 endpoints (`/setup`,
+`/hotspot`, `/overview`, and the two static assets), and all four OpenRC
+services (Wi-Fi, LAN, hotspot, LED) started. `wlan0` stayed connected to the
+same NetworkManager profile, and neither hotspot nor setup had a pending
+trial. No reboot, SIM activation or Wi-Fi configuration change was made.
+Owner phone visual/touch acceptance is still pending.
+
+The follow-up advanced-control UI was installed on the USB in a second
+deployment. Instead of four large always-present buttons, the expanded section
+shows two compact control rows: automatic recovery AP and manual setup AP.
+Each row has a live status badge and only the action applicable to that state.
+The synthetic JavaScript fixture exercised enable/disable/start/stop, including
+badge transitions and button visibility; suite remained 465 passed, 1 skipped.
+The second deployment validated installed SHA-256, successful portal service
+restarts and `/setup` and static assets with the new control selectors. It
+checked that the Wi-Fi profile did not change and no trial was pending. A
+transient connection refusal immediately after restarting the portal cleared
+within the script's retry window. Backup before this second deployment:
+`/var/lib/openstick/deploy-backups/home-20261114/before-setup-ui-1794751697.tar.gz`.
+Physical phone visual/touch confirmation remains pending.
+
 ## 2026-11-15: LED style gallery deployed without changing saved LED rules
 
 Merged `ui/led-style-gallery-20261115` into the active

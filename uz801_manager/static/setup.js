@@ -4,6 +4,8 @@
  let posting=false,current=null,transition=false,lastScan=null,identityLoaded=false;
  const errors={MODEM_BUSY:'Modem \u0111ang g\u1eedi SMS ho\u1eb7c c\u00f3 phi\u00ean USSD. USB ch\u1edd k\u1ebft th\u00fac r\u1ed3i m\u1edbi kh\u1edfi \u0111\u1ed9ng l\u1ea1i.',REBOOT_FAILED:'Ch\u01b0a kh\u1edfi \u0111\u1ed9ng l\u1ea1i \u0111\u01b0\u1ee3c. \u0110\u00e3 quay l\u1ea1i Wi-Fi c\u00e0i \u0111\u1eb7t.',LAN_NOT_CONFIGURED:'Cần đặt mật khẩu quản trị LAN qua cổng USB trước khi dùng điện thoại.',HOTSPOT_ACTIVE:'Dừng hotspot dùng SIM trước khi chuyển sang Wi-Fi cài đặt.',POLICY_ACTIVE:'Đang chọn chế độ chỉ dùng SIM. Đổi chế độ tại Nguồn Internet trước.',CELLULAR_ALREADY_ACTIVE:'Dừng phiên dữ liệu SIM trước khi phát Wi-Fi cài đặt.',NETWORK_BUSY:'USB đang đổi mạng. Đợi rồi kiểm tra lại.',WIFI_CONNECT_FAILED:'Chưa kết nối được Wi-Fi mới. USB đã phát lại Wi-Fi cài đặt; kiểm tra tên mạng và mật khẩu.',SETUP_INTERRUPTED:'Lần đổi mạng bị ngắt nguồn. Đã quay lại Wi-Fi cài đặt.',SETUP_OPERATION_FAILED:'Chưa lưu được cấu hình Wi-Fi USB. Kiểm tra lại qua cổng USB.'};
  function draw(s){current=s;e('setup-state').textContent=`Tự phát khi không nối được Wi-Fi: ${s.enabled?'bật':'tắt'}\nWi-Fi cài đặt: ${s.setup_active?'đang phát':'chưa phát'}\nTên Wi-Fi: ${s.ssid||'chưa tạo'}\nTrang cài đặt: ${s.url}\nThao tác: ${s.busy?'đang xử lý':s.result==='WIFI_CONNECTED'?'đã kết nối Wi-Fi mới':'sẵn sàng'}`;
+  for(const [id,active,label] of [['setup-auto-state',s.enabled,s.enabled?'Đang bật':'Đang tắt'],['setup-ap-state',s.setup_active,s.setup_active?'Đang phát':'Chưa phát']]){const badge=e(id);badge.textContent=label;badge.dataset.active=String(Boolean(active))}
+  for(const [id,visible] of [['setup-enable',!s.enabled],['setup-disable',s.enabled],['setup-start',!s.setup_active],['setup-stop',s.setup_active]])e(id).hidden=!visible;
   if(!identityLoaded){e('setup-ap-ssid').value=s.ssid||'';e('setup-ap-channel').value=String(s.channel||6);identityLoaded=true}
   e('setup-ap-save').disabled=posting||s.busy;
   for(const id of ['setup-enable','setup-disable','setup-start','setup-stop','setup-submit','setup-scan'])e(id).disabled=posting||s.busy;
@@ -25,6 +27,10 @@
  for(const action of ['enable','disable','start','stop'])e('setup-'+action).onclick=()=>act(action);
  e('setup-scan').onclick=()=>{if(current?.setup_active&&!confirm('USB sẽ ngừng phát tạm thời để quét Wi-Fi, rồi tự phát lại sau khoảng 30 giây. Nối lại cùng Wi-Fi USB để xem danh sách. Tiếp tục?'))return;act('scan')};
  e('setup-networks').onchange=()=>{if(e('setup-networks').value)e('setup-ssid').value=e('setup-networks').value};
+ for(const [buttonId,inputId] of [['setup-password-toggle','setup-password'],['setup-ap-password-toggle','setup-ap-password']]){
+  const button=e(buttonId),input=e(inputId);
+  button.onclick=()=>{const shown=input.type==='password';input.type=shown?'text':'password';button.textContent=shown?'Ẩn':'Hiện';button.setAttribute('aria-pressed',String(shown))};
+ }
  e('setup-connect').onsubmit=event=>{event.preventDefault();act('connect',{ssid:e('setup-ssid').value,password:e('setup-password').value})};
  e('setup-ap-form').onsubmit=event=>{event.preventDefault();act('configure_ap',{ssid:e('setup-ap-ssid').value,password:e('setup-ap-password').value,channel:Number(e('setup-ap-channel').value)})};
  e('setup-reveal').onclick=async()=>{try{const r=await fetch('/api/setup/credentials',{headers});if(!r.ok)throw Error();const s=await r.json();e('setup-credentials').hidden=false;e('setup-credentials').textContent=s.configured?`Tên Wi-Fi: ${s.ssid}\nMật khẩu Wi-Fi: ${s.password}\nTrang cài đặt: ${s.url}`:'Bật tự phát trước để tạo thông tin kết nối.'}catch(_){e('setup-notice').textContent='Chưa tải được thông tin kết nối.'}};
