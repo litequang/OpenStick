@@ -6,6 +6,72 @@ const ledModes={default:'Mặc định ban đầu',off:'Tắt',on:'Luôn sáng',
 const ledStates={setup_hotspot:'Phát hotspot cài đặt',sim_hotspot:'Phát hotspot từ SIM',
   wifi_station:'USB đang nhận Wi-Fi',cellular_data:'Kết nối dữ liệu SIM, không dùng Wi-Fi',
   offline:'Chưa có kết nối',unknown:'Chưa đọc được trạng thái mạng'};
+/* Three discrete binary LEDs: presets intentionally use only supported on/off/timer.
+   No PWM, true 24-bit RGB gradients, software-driven frame loop or extra sysfs writes. */
+const ledPresetStyles=[
+  {id:'emerald',name:'Emerald Calm',group:'calm',recommended:true,description:'Xanh lá sáng ổn định, dễ nhìn cả ngày.',red:['off',500,500],green:['on',500,500],blue:['off',500,500]},
+  {id:'ocean',name:'Ocean Beacon',group:'calm',recommended:true,description:'Xanh dương nền, chớp xanh lá thật nhẹ.',red:['off',500,500],green:['blink',250,1750],blue:['on',500,500]},
+  {id:'aurora',name:'Aurora Drift',group:'calm',recommended:true,description:'Hai nhịp xanh lá và xanh dương xen nhau.',red:['off',500,500],green:['blink',650,1350],blue:['blink',1250,750]},
+  {id:'ice',name:'Ice Pulse',group:'calm',recommended:false,description:'Xanh lá đều, xanh dương nhấp nháy chậm.',red:['off',500,500],green:['on',500,500],blue:['blink',900,1100]},
+  {id:'starlight',name:'Starlight',group:'calm',recommended:false,description:'Hai tia sáng ngắn giữa khoảng tối dài.',red:['off',500,500],green:['blink',120,2880],blue:['blink',120,1880]},
+  {id:'violet',name:'Violet Neon',group:'vivid',recommended:true,description:'Đỏ và xanh dương cùng sáng, tương phản mạnh.',red:['on',500,500],green:['off',500,500],blue:['on',500,500]},
+  {id:'cyber',name:'Cyber Pulse',group:'vivid',recommended:true,description:'Đỏ chớp nhanh, xanh dương nhịp chậm hơn.',red:['blink',200,1000],green:['off',500,500],blue:['blink',550,650]},
+  {id:'triad',name:'Triad Rhythm',group:'vivid',recommended:false,description:'Ba kênh nhấp nháy với ba nhịp khác nhau.',red:['blink',200,800],green:['blink',500,500],blue:['blink',800,200]},
+  {id:'sunrise',name:'Sunrise',group:'vivid',recommended:false,description:'Đỏ nền, xanh lá phát sáng từng nhịp dài.',red:['on',500,500],green:['blink',1300,700],blue:['off',500,500]},
+  {id:'link',name:'Blue Link',group:'signal',recommended:false,description:'Chỉ xanh dương sáng liên tục, tối giản.',red:['off',500,500],green:['off',500,500],blue:['on',500,500]},
+  {id:'alert',name:'Alert Crimson',group:'signal',recommended:true,description:'Đỏ nhấp nháy rõ, hợp cho mất kết nối.',red:['blink',250,250],green:['off',500,500],blue:['off',500,500]},
+  {id:'silent',name:'Silent Night',group:'signal',recommended:true,description:'Tắt cả ba đèn khi cần yên tĩnh.',red:['off',500,500],green:['off',500,500],blue:['off',500,500]}
+];
+/* A theme pack is a draft-only mapping; the existing backend still saves
+   the exact allowlisted per-state on/off/blink rules after explicit consent. */
+const ledThemePacks={
+  signature:{setup_hotspot:'sunrise',sim_hotspot:'ocean',wifi_station:'emerald',cellular_data:'link',offline:'alert',unknown:'starlight'},
+  aurora:{setup_hotspot:'starlight',sim_hotspot:'aurora',wifi_station:'ice',cellular_data:'ocean',offline:'sunrise',unknown:'silent'},
+  cyber:{setup_hotspot:'triad',sim_hotspot:'cyber',wifi_station:'violet',cellular_data:'ice',offline:'alert',unknown:'starlight'},
+  night:{setup_hotspot:'silent',sim_hotspot:'silent',wifi_station:'silent',cellular_data:'silent',offline:'silent',unknown:'silent'}
+};
+function ledPresetRule(style){
+  const reading=key=>({mode:style[key][0],on_ms:style[key][1],off_ms:style[key][2]});
+  return {red:reading('red'),green:reading('green'),blue:reading('blue')};
+}
+function ledMatchedStyle(settings){
+  return ledPresetStyles.find(style=>['red','green','blue'].every(color=>
+    ['mode','on_ms','off_ms'].every(key=>settings[color][key]===ledPresetRule(style)[color][key])))||null;
+}
+function ledStyleDot(color,reading){
+  const dot=ledNode('span');
+  dot.className='led-style-dot led-style-'+color+' led-style-'+reading.mode;
+  dot.setAttribute('aria-hidden','true');
+  if(reading.mode==='blink')dot.style.animationDuration=(reading.on_ms+reading.off_ms)+'ms';
+  return dot;
+}
+function drawLedStyleGallery(){
+  const box=ledEl('led-style-gallery');
+  if(!networkDraft||!networkSelected||!box)return;
+  const current=networkDraft[networkSelected];
+  const active=ledMatchedStyle(current);
+  const category=ledEl('led-style-filter').value||'recommended';
+  box.replaceChildren();
+  for(const style of ledPresetStyles){
+    if(category!=='all' && (category==='recommended'?!style.recommended:style.group!==category))continue;
+    const item=ledNode('button');item.type='button';item.className='led-style-card';
+    const chosen=active?.id===style.id;item.setAttribute('aria-pressed',chosen?'true':'false');
+    const colors=ledNode('span');colors.className='led-style-colors';
+    for(const color of ['red','green','blue'])colors.append(ledStyleDot(color,ledPresetRule(style)[color]));
+    const title=ledNode('strong',style.name),caption=ledNode('span',style.description);
+    item.append(colors,title,caption);
+    item.onclick=()=>{
+      if(ledBusy||!networkReady)return;
+      captureNetwork();networkDraft[networkSelected]=ledPresetRule(style);
+      drawNetworkRule();drawLedStyleGallery();
+      ledEl('led-notice').textContent='Đã chọn '+style.name+' cho '+ledStates[networkSelected]+'. Chưa đổi LED thật; bấm Lưu quy tắc để áp dụng.';
+    };
+    box.append(item);
+  }
+  ledEl('led-style-current-name').textContent=active?active.name:'Tùy chỉnh';
+  ledEl('led-style-current-info').textContent=active?active.description+' Mẫu chỉ mô phỏng ba LED bật/tắt; chưa lưu cho USB.':'Quy tắc đang tự chỉnh. Mở phần nâng cao để kiểm tra từng kênh; chưa lưu cho USB.';
+}
+
 let networkDraft=null,networkOriginal=null,networkControls=[],networkSelected=null,networkReady=false;
 const ledErrors={LED_BUSY:'Đèn đang được cập nhật. Đợi một chút rồi thử lại.',
   LED_UNAVAILABLE:'Không tìm thấy đèn đã chọn. Bấm Đọc lại để kiểm tra.',
@@ -68,7 +134,7 @@ function captureNetwork(){
   if(!networkDraft||!networkSelected)return;
   for(const control of networkControls){
     const reading={mode:control.select.value};
-    for(const key of ['on_ms','off_ms']){const value=Number(control.inputs[key].value);reading[key]=reading.mode==='blink'||(Number.isInteger(value)&&value>=100&&value<=5000)?value:500}
+    for(const key of ['on_ms','off_ms']){const value=Number(control.inputs[key].value);reading[key]=reading.mode==='blink'?value:500}
     networkDraft[networkSelected][control.id]=reading;
   }
 }
@@ -79,7 +145,7 @@ function drawNetwork(status){
   networkDraft=JSON.parse(JSON.stringify(status.network.rules));networkOriginal=JSON.parse(JSON.stringify(networkDraft));
   if(!networkSelected)networkSelected=ledStates[status.network.state]?status.network.state:'sim_hotspot';
   ledEl('led-network-current').textContent=(status.network.enabled?'Đang tự đổi theo trạng thái. ':'Đang dùng chế độ cố định. ')+'Trạng thái lúc đọc: '+(ledStates[status.network.state]||'chưa xác định')+'.';
-  ledEl('led-network-state').value=networkSelected;drawNetworkRule();
+  ledEl('led-network-state').value=networkSelected;drawNetworkRule();drawLedStyleGallery();
 }
 function drawNetworkRule(){
   const box=ledEl('led-network-controls');box.replaceChildren();networkControls=[];
@@ -96,11 +162,26 @@ function drawNetworkRule(){
       const label=ledNode('label',text);label.htmlFor=input.id;timing.append(label,input);inputs[key]=input;
     }
     const update=()=>{const blink=select.value==='blink';timing.hidden=!blink;for(const input of Object.values(inputs)){input.disabled=!blink;input.required=blink}};
-    select.onchange=update;update();card.append(heading,caption,select,timing);box.append(card);networkControls.push({id,select,inputs,update});
+    select.onchange=()=>{update();captureNetwork();drawLedStyleGallery()};update();
+    for(const input of Object.values(inputs))input.oninput=()=>{captureNetwork();drawLedStyleGallery()};
+    card.append(heading,caption,select,timing);box.append(card);networkControls.push({id,select,inputs,update});
   }
 }
-ledEl('led-network-state').onchange=()=>{captureNetwork();networkSelected=ledEl('led-network-state').value;drawNetworkRule();ledEl('led-notice').textContent='Đang sửa lựa chọn; đèn chưa thay đổi. Bấm Lưu quy tắc để áp dụng.'};
-ledEl('led-network-off').onclick=()=>{if(ledBusy)return;for(const control of networkControls){control.select.value='off';control.update()}ledEl('led-notice').textContent='Đã chọn tắt cả ba đèn cho trạng thái này; chưa lưu.'};
+ledEl('led-network-state').onchange=()=>{captureNetwork();networkSelected=ledEl('led-network-state').value;drawNetworkRule();drawLedStyleGallery();ledEl('led-notice').textContent='Đang sửa lựa chọn; đèn chưa thay đổi. Bấm Lưu quy tắc để áp dụng.'};
+ledEl('led-style-filter').onchange=drawLedStyleGallery;
+ledEl('led-theme-apply').onclick=()=>{
+  if(ledBusy||!networkReady)return;
+  const pack=ledThemePacks[ledEl('led-theme-select').value];if(!pack)return;
+  captureNetwork();
+  for(const [state,id] of Object.entries(pack)){
+    const style=ledPresetStyles.find(candidate=>candidate.id===id);
+    if(!style)return;
+    networkDraft[state]=ledPresetRule(style);
+  }
+  drawNetworkRule();drawLedStyleGallery();
+  ledEl('led-notice').textContent='Đã điền bộ style cho cả 6 trạng thái. Chưa áp dụng lên LED thật; bấm Lưu quy tắc để kích hoạt.';
+};
+ledEl('led-network-off').onclick=()=>{if(ledBusy)return;for(const control of networkControls){control.select.value='off';control.update()}captureNetwork();drawLedStyleGallery();ledEl('led-notice').textContent='Đã chọn tắt cả ba đèn cho trạng thái này; chưa lưu.'};
 async function saveNetwork(enabled){
   if(ledBusy||!networkReady)return;
   if(enabled)captureNetwork();
