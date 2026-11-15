@@ -103,9 +103,9 @@ Run full `pytest`, Node synthetic LED UI fixture and app self-test.
 Verify catalog has exactly 12 styles, the four packs map six full recipes,
 and selecting them produces zero write requests until Save.
 
-Deploy only with device-version checks, a timestamped backup, the
-`openstick-led` worker safe-state check, and rollback. **Do not deploy from
-ChatGPT or change the owner's current LED preferences automatically**.
+Deploy only with owner authorization, device-version checks, a timestamped
+backup, the `openstick-led` worker safe-state check, and rollback. Never change
+the owner's existing LED preferences automatically.
 Acceptance on the actual USB should first preview and review the cards
 on mobile with the LED state unchanged, then test an explicitly consented
 style on a non-critical role and restore the original saved configuration.
@@ -113,3 +113,36 @@ style on a non-critical role and restore the original saved configuration.
 References:
 - https://docs.kernel.org/leds/leds-class.html
 - https://www.kernel.org/doc/html/latest/leds/leds-class-multicolor.html
+
+## Actual USB deployment, 2026-11-15
+
+The owner requested updating LED functionality on the USB. The LED feature
+branch was merged into `codex/uz801-v32-postmarketos`, retaining the shared
+Wi-Fi setup/SIM hotspot configuration previously installed there.
+
+The full source suite passed **465 tests** with **1 Windows symlink privilege
+skip**; the LED test subset passed **34/34**. The deploy verified the current
+USB SHA-256 hashes before copying only three UI files:
+
+| File relative to `/opt/openstick/uz801_manager` | Installed SHA-256 |
+| --- | --- |
+| `static/leds.js` | `3993e3f9aaecfb35702db1f9079b5026db8880d352d63527cee168264eb86a0b` |
+| `static/portal.css` | `59edab4c13aa62213a87a51f8bb1ad4d6e6144670ce2d4e4ea4fb405688980a4` |
+| `templates/leds.html` | `80e91a879842a2308e45310f97651e032bed7b8fbe00e0efe14406249a67bf13` |
+
+The previous three files were backed up to
+`/var/lib/openstick/deploy-backups/home-20261114/before-led-gallery-1794748543.tar.gz`;
+the archive was subsequently verified to contain exactly those three files.
+Only `openstick-wifi` and `openstick-lan` restarted, briefly interrupting portal
+HTTP while restarting; all four `openstick-led`/Wi-Fi/LAN/hotspot services were
+started after deployment. The LED page, `leds.js`, `portal.css`, `/setup`,
+`/hotspot` and `/overview` returned HTTP 200. The WLAN connection did not
+change; no network handoff was pending, and the saved LED configuration hash
+remained identical. No LED rules were applied by the installer and no reboot
+or network-mode change was made.
+
+Physical LED pattern timing and the appearance of cards on the owner's Android
+browser are still unverified. To accept the feature, the owner can preview
+styles safely at `/settings/leds`; applying any style to real LEDs requires
+pressing the existing Save button. Keep a copy of current selections before
+changing a working pattern.

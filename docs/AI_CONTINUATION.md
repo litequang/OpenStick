@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**15/11/2026 — đã cài bộ chọn LED style mới lên USB thật:** Nhánh
+`ui/led-style-gallery-20261115` đã gộp vào `codex/uz801-v32-postmarketos`.
+Trang `/settings/leds` có 12 style nhấp nháy/sáng/tắt và 4 bộ style chọn nhanh
+cho 6 trạng thái mạng; chỉ bấm **Lưu quy tắc** mới gửi thay đổi xuống USB.
+Đã triển khai ba tệp `leds.js`, `portal.css`, `leds.html` sau 465 pytest PASS,
+1 SKIP (Windows), 34 test LED PASS. SHA-256 trên USB khớp cả ba; bốn dịch vụ
+LED/Wi-Fi/LAN/hotspot đang chạy, sáu tài nguyên HTTP 200. Cấu hình LED đã
+lưu, Wi-Fi đang kết nối và pending trial đều giữ nguyên. Bản sao lưu:
+`/var/lib/openstick/deploy-backups/home-20261114/before-led-gallery-1794748543.tar.gz`.
+Đọc `docs/LED_STYLE_GALLERY_2026_11_15.md` để biết giới hạn phần cứng ba LED
+nhị phân. Chưa xác nhận trực quan bằng điện thoại hoặc nhịp sáng của 12 mẫu
+trên LED thật; không tự ý bật một bộ style hay thay quy tắc đang lưu.
+
 **15/11/2026 — đã triển khai cấu hình Wi-Fi phát dùng chung lên USB thật:**
 `/setup#usb-ap-settings` cho đổi một bộ SSID/mật khẩu/kênh cho Wi-Fi cài đặt
 và Wi-Fi chia sẻ Internet SIM; `/hotspot` trỏ về cùng mục, APN vẫn độc lập.

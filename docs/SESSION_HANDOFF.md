@@ -1,5 +1,32 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-15: LED style gallery deployed without changing saved LED rules
+
+Merged `ui/led-style-gallery-20261115` into the active
+`codex/uz801-v32-postmarketos` branch. The `/settings/leds` page now offers
+12 three-channel binary LED styles and four draft-only theme packs for all six
+network roles. Previewing or selecting a style never writes to the device;
+the existing explicit Save action is required. Current saved LED rules were
+left intact, as was the existing `openstick-led` worker implementation.
+
+Source verification: **465 passed, 1 skipped** (Windows symlink privilege)
+across the full suite; **34 LED tests passed**. Real USB deployment installed
+only `static/leds.js`, `static/portal.css`, `templates/leds.html`, after checking
+all three old-file SHA-256 hashes. Backup archive (three files):
+`/var/lib/openstick/deploy-backups/home-20261114/before-led-gallery-1794748543.tar.gz`.
+Only the Wi-Fi and LAN portal services restarted; LED worker did not restart.
+LED, Wi-Fi, LAN, hotspot OpenRC services all reported started after deployment;
+installed file hashes all matched the staged manifest. The LED page, both
+new static assets, `/setup`, `/hotspot` and `/overview` each returned HTTP 200.
+The WLAN active connection, saved LED configuration hash and absent pending
+network trial state were unchanged. There was no radio/SIM change or reboot.
+
+Visual/optical verification of the style cards and actual blink timings on
+the owner's phone/USB remains open. Three independent `max_brightness=1`
+channels cannot provide smooth 24-bit RGB effects. Refer to
+[LED Style Gallery](LED_STYLE_GALLERY_2026_11_15.md) for full behavior and
+device limitations.
+
 ## 2026-11-15: one shared Wi-Fi identity deployed to the real USB
 
 Installed the single Wi-Fi identity control for both setup/recovery AP and
