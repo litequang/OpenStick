@@ -17,8 +17,35 @@
 const overviewToken={{ token|tojson }};
 const el=id=>document.getElementById(id),put=(id,text)=>{el(id).textContent=text};
 let overviewBusy=false,overviewLoaded=false,overviewRetained=false;
+const OVERVIEW_DISPLAY_CACHE='openstick-overview-display-v1';
 const overviewKnown=new Set(),overviewServices=new Map(),finite=value=>typeof value==='number'&&Number.isFinite(value);
 const bytes=value=>value==null?'chưa có dữ liệu':value>=1073741824?(value/1073741824).toFixed(2)+' GiB':(value/1048576).toFixed(0)+' MiB';
+function rememberOverview(data){
+ const previous=portalReadCache(OVERVIEW_DISPLAY_CACHE)?.value||{},old=previous.system||{},fresh=data.system;
+ const system={...old};
+ for(const key of ['ram','storage','swap'])if(finite(fresh[key]?.used)&&finite(fresh[key]?.total)){
+  const item={used:fresh[key].used,total:fresh[key].total};
+  if(key==='swap')for(const part of ['zram_used','zram_total','other_used','other_total'])if(finite(fresh[key][part]))item[part]=fresh[key][part];
+  system[key]=item;
+ }
+ if(finite(fresh.temperature_c)){system.temperature_c=fresh.temperature_c;system.load=fresh.load}
+ if(finite(fresh.sms?.submitted_today)&&finite(fresh.sms?.submitted_month))system.sms={submitted_today:fresh.sms.submitted_today,submitted_month:fresh.sms.submitted_month,unknown_today:fresh.sms.unknown_today,estimated_today_vnd:fresh.sms.estimated_today_vnd};
+ if(finite(fresh.emmc?.written_since_boot)&&finite(fresh.emmc?.estimated_daily_write))system.emmc={...system.emmc,written_since_boot:fresh.emmc.written_since_boot,estimated_daily_write:fresh.emmc.estimated_daily_write};
+ if(fresh.emmc?.life_used_ranges?.length||['normal','warning','urgent'].includes(fresh.emmc?.pre_eol))system.emmc={...system.emmc,life_used_ranges:fresh.emmc.life_used_ranges||[],pre_eol:fresh.emmc.pre_eol};
+ for(const key of ['uptime_s','os','kernel'])if(fresh[key]!=null&&fresh[key]!=='')system[key]=fresh[key];
+ const wifi={...(previous.wifi||{}),...(portalDisplayWifi(data.wifi)||{})};
+ const modem=portalDisplayModem(data.wifi.modem_status);if(modem)wifi.modem_status=modem;
+ const services={...(previous.services||{})};for(const [key,value] of Object.entries(data.services||{}))if(typeof value==='boolean')services[key]=value;
+ portalWriteCache(OVERVIEW_DISPLAY_CACHE,{system,wifi,services});
+}
+function restoreOverview(){
+ const entry=portalReadCache(OVERVIEW_DISPLAY_CACHE);if(!entry?.value?.system||!entry.value.wifi)return;
+ try{renderOverview(entry.value,false);overviewLoaded=true;
+  for(const key of overviewKnown){const target=el('metric-'+key);target.dataset.stale='true';target.title='Số liệu lần gần nhất; đang cập nhật.'}
+  for(const target of overviewServices.values())target.dataset.stale='true';
+  put('overview-status','Số liệu lần gần nhất lúc '+new Date(entry.at).toLocaleTimeString()+' · đang làm mới ngầm');
+ }catch(_){}
+}
 function bar(key,used,total){const target=el('bar-'+key);if(target)target.style.width=used==null||!total?'0%':Math.max(0,Math.min(100,used/total*100))+'%'}
 function metric(key,available,update){
  const target=el('metric-'+key),card=el('card-'+key);
@@ -26,9 +53,9 @@ function metric(key,available,update){
  else if(overviewKnown.has(key)){target.dataset.stale='true';target.title='Số liệu lần gần nhất; chưa có cập nhật mới.';overviewRetained=true}
  else if(key==='emmc'&&card)card.hidden=true;
 }
-function renderOverview(data){
+function renderOverview(data,updateHeader=true){
  if(!data?.system||!data.wifi)throw Error('INCOMPLETE_SNAPSHOT');
- const s=data.system,w=data.wifi,c=w.modem_status;overviewRetained=false;renderHeader(c);renderWifiHeader(w);
+ const s=data.system,w=data.wifi,c=w.modem_status;overviewRetained=false;if(updateHeader){renderHeader(c);renderWifiHeader(w)}
  metric('ram',finite(s.ram?.used)&&finite(s.ram?.total),()=>{put('metric-ram',bytes(s.ram.used));put('note-ram','đã dùng trên '+bytes(s.ram.total));bar('ram',s.ram.used,s.ram.total)});
  metric('storage',finite(s.storage?.used)&&finite(s.storage?.total),()=>{put('metric-storage',bytes(s.storage.used));put('note-storage','đã dùng trên '+bytes(s.storage.total));bar('storage',s.storage.used,s.storage.total)});
  const signal=finite(c?.signal_percent)&&c.signal_percent>=0&&c.signal_percent<=100&&c.signal_recent===true;
@@ -55,6 +82,6 @@ function renderOverview(data){
   else if(target.textContent){target.dataset.stale='true';overviewRetained=true}else target.textContent='chưa xác định';
  }
 }
-async function refreshOverview(){if(overviewBusy)return;overviewBusy=true;el('overview-refresh').disabled=true;try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':overviewToken},body:JSON.stringify({action:'overview'})});if(!r.ok)throw Error();const end=Date.now()+60000;while(Date.now()<end){const p=await fetch('/api/state',{headers:{'X-OpenStick-Token':overviewToken}});if(!p.ok)throw Error();const value=await p.json();if(!value.busy){if(value.error)throw Error();renderOverview(value.result);overviewLoaded=true;put('overview-status','Cập nhật lúc '+new Date().toLocaleTimeString()+(overviewRetained?' · một số giá trị giữ lần đo gần nhất':'')+' · tự làm mới mỗi 15 giây');return}await new Promise(resolve=>setTimeout(resolve,700))}throw Error()}catch(e){put('overview-status',overviewLoaded?'Chưa cập nhật được; đang giữ số liệu lần gần nhất. Sẽ tự thử lại.':'Chưa đọc được số liệu. Kiểm tra USB rồi bấm Làm mới.')}finally{overviewBusy=false;el('overview-refresh').disabled=false}}
-el('overview-refresh').onclick=refreshOverview;setInterval(()=>{if(!document.hidden)refreshOverview()},15000);refreshOverview();
+async function refreshOverview(){if(overviewBusy)return;overviewBusy=true;el('overview-refresh').disabled=true;try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':overviewToken},body:JSON.stringify({action:'overview'})});if(!r.ok)throw Error();const end=Date.now()+60000;while(Date.now()<end){const p=await fetch('/api/state',{headers:{'X-OpenStick-Token':overviewToken}});if(!p.ok)throw Error();const value=await p.json();if(!value.busy){if(value.error)throw Error();renderOverview(value.result);rememberOverview(value.result);portalRememberHeader(value.result.wifi);overviewLoaded=true;put('overview-status','Cập nhật lúc '+new Date().toLocaleTimeString()+(overviewRetained?' · một số giá trị giữ lần đo gần nhất':'')+' · tự làm mới mỗi 15 giây');return}await new Promise(resolve=>setTimeout(resolve,700))}throw Error()}catch(e){put('overview-status',overviewLoaded?'Chưa cập nhật được; đang giữ số liệu lần gần nhất. Sẽ tự thử lại.':'Chưa đọc được số liệu. Kiểm tra USB rồi bấm Làm mới.')}finally{overviewBusy=false;el('overview-refresh').disabled=false}}
+el('overview-refresh').onclick=refreshOverview;setInterval(()=>{if(!document.hidden)refreshOverview()},15000);restoreOverview();refreshOverview();
 </script></main></body></html>

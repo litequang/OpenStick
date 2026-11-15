@@ -9,9 +9,10 @@ const data={system:{ram:{used:150*1048576,total:400*1048576},storage:{used:10737
  emmc:{life_used_ranges:[],pre_eol:'unknown',written_since_boot:1048576,estimated_daily_write:113*1048576},
  swap:{used:0,total:500*1048576,zram_used:0,zram_total:500*1048576,other_used:0,other_total:0},
  uptime_s:2400,os:'<script>Fixture Linux</script>',kernel:'fixture'},
- wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{operator_name:'Fixture carrier',registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384}},
+ wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{operator_name:'Fixture carrier',registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384,imsi:'not-for-browser-cache'}},
  services:{'openstick-web':true,'cloudflared':null}};
-const context={console,Date,setTimeout,setInterval:()=>0,document:{hidden:false,getElementById:id=>elements[id]||null,createElement:()=>new Element()},
+const saved=new Map(),sessionStorage={getItem:key=>saved.get(key)||null,setItem:(key,value)=>saved.set(key,value)};
+const context={console,Date,setTimeout,setInterval:()=>0,sessionStorage,document:{hidden:false,getElementById:id=>elements[id]||null,createElement:()=>new Element()},
  fetch:async(_,options={})=>{if(failFetch)throw Error('offline fixture');if(options.method==='POST'){assert.equal(JSON.parse(options.body).action,'overview');posts++;return {ok:true};}if(busyOnce){busyOnce=false;if(onBusy)onBusy();return {ok:true,json:async()=>({busy:true,result:{}})}}return {ok:true,json:async()=>({busy:false,error:false,result:data})};}};
 vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),context);
 vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
@@ -26,6 +27,25 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  assert.equal(elements['chip-network'].dataset.bars,'3');
  assert.match(elements['signal-status'].textContent,/3\/4.*64%/);
  assert.match(elements['chip-network-summary']['aria-label'],/3\/4/);
+ assert(!JSON.stringify([...saved.values()]).includes('not-for-browser-cache'));
+ // Simulate returning from another full-page route while both API requests are pending.
+ const restored=Object.fromEntries(Object.keys(elements).map(id=>[id,new Element()]));
+ const warm={console,Date,sessionStorage,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,AbortController,
+  document:{hidden:false,getElementById:id=>restored[id]||null,createElement:()=>new Element(),
+   querySelector:selector=>selector==='.portal-header'?{dataset:{statusToken:'fixture-token'}}:null,addEventListener:()=>{}},
+  fetch:()=>new Promise(()=>{})};
+ vm.createContext(warm);
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),warm);
+ warm.setupHeaderStatus();
+ assert.equal(restored['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(restored['chip-network'].dataset.bars,'3');
+ assert.equal(restored['chip-wifi'].dataset.stale,'true');
+ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],warm);
+ assert.equal(restored['metric-ram'].textContent,'150 MiB');
+ assert.equal(restored['overview-wifi'].textContent,'Đã kết nối fixture');
+ assert.equal(restored['metric-ram'].dataset.stale,'true');
+ assert.match(restored['overview-status'].textContent,/lần gần nhất/);
+ assert(!restored['overview-status'].textContent.includes('Đang đọc'));
  for(const [percent,bars] of [[0,'0'],[1,'1'],[25,'1'],[26,'2'],[50,'2'],[51,'3'],[75,'3'],[76,'4'],[100,'4']]){
   context.renderHeader({...data.wifi.modem_status,signal_percent:percent});
   assert.equal(elements['chip-network'].dataset.bars,bars);

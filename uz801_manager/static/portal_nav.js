@@ -7,6 +7,45 @@ class BottomNavScrollTracker{
  sample(y,time){const delta=y-this.y,elapsed=time-this.time;this.y=y;this.time=time;if(y<=BOTTOM_NAV_SCROLL.top){this.hidden=false;this.down=0;this.up=0;return this.hidden}if(elapsed<=0)return this.hidden;if(elapsed>BOTTOM_NAV_SCROLL.sampleGap){this.down=0;this.up=0}if(delta>0){this.up=delta>=BOTTOM_NAV_SCROLL.noise?0:Math.max(0,this.up-delta);if(elapsed<=BOTTOM_NAV_SCROLL.sampleGap&&delta>=BOTTOM_NAV_SCROLL.noise&&delta/elapsed>=BOTTOM_NAV_SCROLL.downSpeed)this.down+=delta;else this.down=0;if(this.down>=BOTTOM_NAV_SCROLL.downDistance)this.hidden=true}else if(delta<0){this.down=0;this.up-=delta;if(this.up>=BOTTOM_NAV_SCROLL.upDistance)this.hidden=false}return this.hidden}
 }
 function portalTechnology(value){if(value==null||value===0)return 'chưa xác định';const names=[];for(const [flag,label] of [[32768,'5G'],[16384,'4G LTE'],[8192,'3G HSPA+'],[4096,'3G EVDO-B'],[2048,'3G EVDO-A'],[1024,'3G EVDO'],[512,'CDMA 1x'],[256,'3G HSPA'],[128,'3G HSUPA'],[64,'3G HSDPA'],[32,'3G UMTS'],[16,'2G EDGE'],[8,'2G GPRS'],[4,'2G GSM']])if(value&flag)names.push(label);return names.join(' / ')||'chưa xác định'}
+// Session-only display snapshots survive full-page navigation. Do not cache
+// the raw modem API response: it may contain subscriber/device identifiers.
+const PORTAL_HEADER_CACHE='openstick-header-display-v1';
+function portalScopedCacheKey(key){
+ // LAN re-login issues a new CSRF value; isolate snapshots between sessions
+ // without storing the session/CSRF secret itself in browser storage.
+ const csrf=document.querySelector?.('.access-banner input[name="csrf"]')?.value;
+ if(!csrf)return key+'-usb';
+ let hash=2166136261;for(let i=0;i<csrf.length;i++)hash=Math.imul(hash^csrf.charCodeAt(i),16777619);
+ return key+'-lan-'+(hash>>>0).toString(36);
+}
+function portalReadCache(key){
+ try{const entry=JSON.parse(sessionStorage.getItem(portalScopedCacheKey(key)));if(entry?.version===1&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<8*3600000&&entry.value&&typeof entry.value==='object')return entry}catch(_){}
+ return null;
+}
+function portalWriteCache(key,value){
+ try{sessionStorage.setItem(portalScopedCacheKey(key),JSON.stringify({version:1,at:Date.now(),value}))}catch(_){}
+}
+function portalDisplayModem(modem){
+ if(!modem||typeof modem.registered!=='boolean'||typeof modem.sim_present!=='boolean')return null;
+ const result={};for(const key of ['state','registered','sim_present','sim_locked','operator_name','access_technologies','signal_percent','signal_recent','secondary_lock','can_enable'])if(Object.hasOwn(modem,key))result[key]=modem[key];
+ return result;
+}
+function portalDisplayWifi(wifi){
+ if(!wifi||typeof wifi.connected!=='boolean'&&typeof wifi.hotspot_active!=='boolean')return null;
+ const result={};for(const key of ['connected','hotspot_active','setup_active','ssid','channel','ipv4','gateway','signal_percent','signal_dbm'])if(Object.hasOwn(wifi,key))result[key]=wifi[key];
+ return result;
+}
+function portalRememberHeader(value){
+ const last=portalReadCache(PORTAL_HEADER_CACHE)?.value||{};
+ const wifi=portalDisplayWifi(value),modem=portalDisplayModem(value?.modem_status);
+ if(wifi||modem)portalWriteCache(PORTAL_HEADER_CACHE,{wifi:wifi||last.wifi,modem:modem||last.modem});
+}
+function portalRestoreHeader(){
+ const saved=portalReadCache(PORTAL_HEADER_CACHE)?.value;if(!saved)return;
+ if(saved.wifi)renderWifiHeader(saved.wifi);
+ if(saved.modem)renderHeader(saved.modem);
+ for(const key of ['modem','sim','network','wifi'])portalFreshness(key,true);
+}
 let portalLastSignal=null;
 function portalFreshness(key,stale){
  const chip=document.getElementById('chip-'+key),detail=document.getElementById(key+'-status'),summary=document.getElementById('chip-'+key+'-summary');
@@ -57,10 +96,13 @@ function setupHeaderStatus(){
  const header=document.querySelector('.portal-header'),token=header?.dataset.statusToken;if(!token)return;
  let pending=false;
  const refresh=async()=>{if(pending||document.hidden)return;pending=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);renderHeader(value.modem_status||null)}catch(_){renderWifiHeader(null);renderHeader(null)}finally{clearTimeout(timer);pending=false}
+  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);renderHeader(value.modem_status||null);portalRememberHeader(value)}catch(_){renderWifiHeader(null);renderHeader(null)}finally{clearTimeout(timer);pending=false}
  };
  refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 }
+// The header is already parsed at this script position. Restore before the
+// rest of the document loads to avoid a waiting-state flash on navigation.
+if(typeof document!=='undefined')portalRestoreHeader();
 function setupStatusPopovers(root=document){
  const chips=Array.from(root.querySelectorAll('.status-chip'));
  const closeExcept=keep=>chips.forEach(chip=>{if(chip!==keep)chip.open=false});
@@ -69,6 +111,8 @@ function setupStatusPopovers(root=document){
  chips.forEach(chip=>chip.addEventListener('toggle',()=>{if(chip.open)closeExcept(chip)}));
 }
 if(typeof window!=='undefined')window.addEventListener('DOMContentLoaded',()=>{
+ const logout=document.querySelector('.access-banner form[action="/logout"]');
+ logout?.addEventListener('submit',()=>{try{sessionStorage.removeItem(portalScopedCacheKey(PORTAL_HEADER_CACHE));sessionStorage.removeItem(portalScopedCacheKey('openstick-overview-display-v1'))}catch(_){}});
  setupStatusPopovers();
  setupHeaderStatus();
  const nav=document.getElementById('portal-nav');if(!nav)return;
