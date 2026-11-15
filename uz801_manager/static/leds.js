@@ -134,7 +134,7 @@ function captureNetwork(){
   if(!networkDraft||!networkSelected)return;
   for(const control of networkControls){
     const reading={mode:control.select.value};
-    for(const key of ['on_ms','off_ms']){const value=Number(control.inputs[key].value);reading[key]=reading.mode==='blink'||(Number.isInteger(value)&&value>=100&&value<=5000)?value:500}
+    for(const key of ['on_ms','off_ms']){const value=Number(control.inputs[key].value);reading[key]=reading.mode==='blink'?value:500}
     networkDraft[networkSelected][control.id]=reading;
   }
 }
