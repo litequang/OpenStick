@@ -4,36 +4,26 @@
 <p class="manage-intro">Chọn nhóm theo việc cần làm. Mở màn cài đặt không tự thay đổi Wi-Fi, SIM hay website.</p>
 {% if stable_lan_url %}<section class="manage-group"><h2>Địa chỉ quản trị cố định</h2><p><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a></p><p class="muted">Dùng chung trên PC nối cáp USB, điện thoại cùng Wi-Fi hoặc nối hotspot của USB, kể cả khi IP thay đổi. Qua Wi-Fi cần đăng nhập bằng mật khẩu quản trị đã đặt.</p></section>{% endif %}
 <section class="manage-group" aria-labelledby="manage-connectivity">
-<h2 id="manage-connectivity">Kết nối &amp; Internet</h2>
-<p class="metric-note">Wi-Fi nhận mạng và điểm phát Wi-Fi là hai chế độ khác nhau.</p>
+<h2 id="manage-connectivity">Wi-Fi</h2>
+<p class="metric-note">Mọi thao tác nhận mạng, mạng đã lưu và Wi-Fi USB phát được quản lý cùng một màn.</p>
 <div class="manage-grid">
-<a class="manage-link" href="/"><strong>Kết nối Wi-Fi</strong><span>Kiểm tra, quét và đổi mạng Wi-Fi đang cấp Internet cho USB.</span></a>
-{% if features.network %}<a class="manage-link" href="#saved-wifi"><strong>Wi-Fi đã lưu</strong><span>Xem nhanh mạng đã nhớ và trạng thái kết nối hiện tại.</span></a>
-<a class="manage-link" href="/internet"><strong>Chính sách nguồn Internet</strong><span>Ưu tiên Wi-Fi/SIM, mạng dự phòng và quản lý kết nối đã lưu.</span></a>{% endif %}
-{% if features.setup %}<a class="manage-link" href="/setup"><strong>Wi-Fi cài đặt · không cần SIM</strong><span>Kết nối lại USB từ điện thoại khi mất mạng Wi-Fi.</span></a>{% endif %}
-{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Phát Wi-Fi từ SIM · có thể tính cước</strong><span>Cấu hình APN và chia sẻ Internet di động sau khi xác nhận.</span></a>{% endif %}
-</div></section>
-{% if features.network %}
-<section class="manage-group" id="saved-wifi" aria-labelledby="saved-wifi-title">
-  <div class="manage-section-heading"><h2 id="saved-wifi-title">Wi-Fi đã lưu <span id="saved-wifi-count" class="pill" hidden></span></h2><button id="saved-wifi-refresh" class="secondary" type="button">Làm mới</button></div>
-  <p class="manage-intro">Các mạng USB đã ghi nhớ để thử kết nối lại. Danh sách chỉ hiển thị tên mạng; không hiển thị mật khẩu.</p>
-  <div id="saved-wifi-list" class="manage-wifi-list" role="status" aria-live="polite">Đang tải danh sách…</div>
-  <p class="manage-wifi-actions"><a href="/internet#saved-wifi">Kết nối hoặc quên mạng đã lưu →</a></p>
+{% if features.setup %}<a class="manage-link" href="/setup"><strong>Kết nối &amp; phát Wi-Fi</strong><span>Quét mạng, kết nối, quản lý Wi-Fi đã lưu và đổi tên/mật khẩu Wi-Fi USB phát.</span></a>{% else %}<a class="manage-link" href="/"><strong>Trạng thái Wi-Fi</strong><span>Xem kết nối và thông tin mạng đang dùng.</span></a>{% endif %}
+</div>
+<p id="saved-wifi" class="manage-legacy-link">Tìm Wi-Fi đã lưu? <a href="/setup#saved-wifi">Mở danh sách và thao tác →</a></p>
 </section>
-{% endif %}
 <section class="manage-group" aria-labelledby="manage-cellular">
-<h2 id="manage-cellular">SIM &amp; liên lạc</h2>
+<h2 id="manage-cellular">SIM &amp; Internet</h2>
 <div class="manage-grid">
-<a class="manage-link" href="/modem/network"><strong>Chế độ mạng SIM</strong><span>Trạng thái và lựa chọn 3G/4G cho SMS, USSD; không tự bật dữ liệu SIM.</span></a>
-<a class="manage-link" href="/modem/sms"><strong>Tin nhắn SMS</strong><span>Hội thoại, soạn tin và tùy chọn đồng bộ.</span></a>
-<a class="manage-link" href="/modem/ussd"><strong>USSD</strong><span>Tra tài khoản, gửi mã và xử lý phiên USSD.</span></a>
+<a class="manage-link" href="/modem/network"><strong>Mạng SIM</strong><span>Nhà mạng, cường độ sóng và tùy chọn 3G/4G.</span></a>
+{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Chia sẻ SIM qua Wi-Fi</strong><span>APN, bật/tắt Internet SIM và giữ kết nối sau khi xác nhận.</span></a>{% endif %}
+{% if features.network %}<a class="manage-link" href="/internet"><strong>Ưu tiên nguồn Internet</strong><span>Chuyển Wi-Fi/SIM, nguồn dự phòng và tắt dữ liệu di động.</span></a>{% endif %}
 </div></section>
 <section class="manage-group" aria-labelledby="manage-services">
-<h2 id="manage-services">Website &amp; hệ thống</h2>
+<h2 id="manage-services">Thiết bị &amp; dịch vụ</h2>
 <div class="manage-grid">
 {% if features.website %}<a class="manage-link" href="/website"><strong>Quản lý website</strong><span>Danh sách file, chỉnh sửa, tải lên và xuất bản website tĩnh.</span></a>{% endif %}
-<a class="manage-link" href="/overview"><strong>Sức khỏe thiết bị</strong><span>RAM, nhiệt độ, eMMC, swap, trạng thái kết nối và dịch vụ.</span></a>
 {% if features.leds %}<a class="manage-link" href="/settings/leds"><strong>Đèn thông báo</strong><span>Bật/tắt từng màu, chọn nhịp nháy hoặc theo hoạt động Wi-Fi.</span></a>{% endif %}
+<a class="manage-link" href="/overview"><strong>Thông tin &amp; sức khỏe</strong><span>RAM, nhiệt độ, eMMC, swap, trạng thái kết nối và dịch vụ.</span></a>
 </div></section>
 {% if can_manage_lan %}
 <section class="manage-group ux-security-group" id="lan-access">
@@ -49,5 +39,4 @@
 {% endif %}
 <p class="overview-foot">Mọi chức năng có thể thay đổi kết nối, phát sinh cước hoặc xóa dữ liệu vẫn yêu cầu xác nhận tại màn thao tác.</p>
 </main>
-{% if features.network %}<script>const savedWifiToken={{ token|tojson }};</script><script src="/static/manage.js"></script>{% endif %}
 </body></html>

@@ -178,15 +178,17 @@ def test_private_policy_routes_require_token_and_filter_errors(policy):
     assert all(not profile['active'] for profile in status['result']['profiles'])
 
 
-def test_saved_wifi_management_page_is_read_only_and_private(policy):
+def test_saved_wifi_action_page_and_private_readonly_api(policy):
     backend,network,_=policy
     app=create_hosting_app(backend=object(),modem_backend=object(),network_backend=backend,
-                           usb_portal=True,token='fixture')
+                           setup_backend=object(),usb_portal=True,token='fixture')
     client=app.test_client();base='http://172.16.42.1';headers={'X-OpenStick-Token':'fixture'}
-    page=client.get('/manage',base_url=base)
+    page=client.get('/setup',base_url=base)
     assert page.status_code==200
-    assert b'saved-wifi-list' in page.data and b'/static/manage.js' in page.data
-    assert b'/internet#saved-wifi' in page.data
+    assert b'saved-wifi-list' in page.data and b'/static/saved_wifi.js' in page.data
+    assert b'savedWifiActionToken' in page.data
+    manage=client.get('/manage',base_url=base)
+    assert b'/setup#saved-wifi' in manage.data
     assert client.get('/api/wifi/saved',base_url=base).status_code==403
     assert client.get('/api/wifi/saved',base_url=base,headers={**headers,'Origin':'https://evil.invalid'}).status_code==403
     assert client.get('/api/wifi/saved',base_url='http://evil.invalid',headers=headers).status_code==403

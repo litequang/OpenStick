@@ -51,6 +51,18 @@
       </div>
       <button id="setup-submit" class="setup-primary-action" type="submit">Lưu &amp; kết nối Wi-Fi →</button>
     </form>
+    <section id="saved-wifi" class="setup-saved-networks" aria-labelledby="saved-wifi-title">
+      <div class="setup-saved-heading">
+        <div>
+          <h3 id="saved-wifi-title">Wi-Fi đã lưu <span id="saved-wifi-count" class="pill" hidden></span></h3>
+          <p>Chọn mạng cũ để kết nối lại mà không nhập mật khẩu.</p>
+        </div>
+        <button id="saved-wifi-refresh" type="button" class="secondary">↻ Làm mới</button>
+      </div>
+      <div id="saved-wifi-list" class="setup-saved-list" aria-live="polite">Đang tải danh sách…</div>
+      <p id="saved-wifi-notice" class="setup-feedback" role="status" aria-live="polite"></p>
+      <p class="setup-field-help">Kết nối sẽ thử Internet và hoàn tác khi thất bại. Chỉ có thể quên mạng không dùng. Khi USB đang phát Wi-Fi cài đặt hoặc hotspot SIM, không thể chuyển sang Wi-Fi nhận mạng cùng lúc.</p>
+    </section>
     <details class="setup-help-details">
       <summary>Sau khi đổi mạng, truy cập lại thế nào?</summary>
       <p>Chờ USB khởi động lại và nối điện thoại vào cùng Wi-Fi. Sau đó mở <a href="http://openstick.local:8765/setup">openstick.local:8765/setup</a>. Nếu không mạng nào kết nối được, Wi-Fi cài đặt sẽ phát lại sau khoảng 1–3 phút.</p>
@@ -150,4 +162,6 @@
 </section>
 
 <script src="/static/setup.js"></script>
+<script>const savedWifiActionToken={{ token|tojson }};</script>
+<script src="/static/saved_wifi.js"></script>
 </main></body></html>

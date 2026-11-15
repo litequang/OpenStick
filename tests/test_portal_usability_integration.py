@@ -21,18 +21,28 @@ class Saved:
         return {"profiles": []}
 
 
-def test_management_preserves_saved_wifi_widget_and_does_not_show_passwords():
+def test_saved_wifi_controls_live_next_to_connection_and_management_links_to_them():
     internet = Saved()
     app = create_hosting_app(backend=Wifi(), usb_portal=True, modem_backend=object(),
-                             network_backend=internet, token="fixture-test")
+                             network_backend=internet, setup_backend=object(), token="fixture-test")
     with app.test_client() as client:
         page = client.get("/manage", base_url=BASE)
         assert page.status_code == 200
-        for item in ['id="saved-wifi"', 'id="saved-wifi-list"',
-                     'id="saved-wifi-refresh"', '/static/manage.js',
-                     '/internet#saved-wifi', 'href="#saved-wifi"']:
+        for item in ['id="saved-wifi"', '/setup#saved-wifi',
+                     'href="/setup"', 'href="/internet"']:
             assert item in page.text
-        assert "savedWifiToken" in page.text
+        assert '/static/manage.js' not in page.text
+        assert 'id="saved-wifi-list"' not in page.text
+        setup = client.get('/setup', base_url=BASE)
+        assert setup.status_code == 200
+        for item in ['id="setup-connect"', 'id="saved-wifi"', 'id="saved-wifi-list"',
+                     'id="saved-wifi-refresh"', '/static/saved_wifi.js', 'savedWifiActionToken']:
+            assert item in setup.text
+        assert setup.text.index('id="setup-connect"') < setup.text.index('id="saved-wifi"')
+        internet_page = client.get('/internet', base_url=BASE)
+        assert internet_page.status_code == 200
+        assert '/setup#saved-wifi' in internet_page.text
+        assert 'id="saved-profiles"' not in internet_page.text
         assert client.get("/api/wifi/saved", base_url=BASE).status_code == 403
         assert 'id="lan-password"' not in page.text
 
@@ -66,6 +76,10 @@ def test_layout_css_preserves_saved_wifi_styles_and_responsive_updates():
     assert "/api/wifi/saved" in source
     assert "textContent=profile.ssid" in source
     assert "profile.password" not in source
+    actions = (ROOT / 'static' / 'saved_wifi.js').read_text(encoding='utf-8')
+    assert "textContent = profile.ssid" in actions
+    assert "'X-OpenStick-Token': savedWifiActionToken" in actions
+    assert 'innerHTML' not in actions
 
 
 def test_navigation_breadcrumb_and_accessible_current_state():
@@ -80,3 +94,5 @@ def test_navigation_breadcrumb_and_accessible_current_state():
         assert 'id="portal-content" tabindex="-1"' in content
         assert 'href="#portal-content"' in content
     assert 'aria-current="page"' in render("manage")
+    assert 'href="/setup"' in render('wifi')
+    assert 'aria-current="page"' in render('wifi')

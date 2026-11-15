@@ -18,7 +18,7 @@
   {% for key,label,glyph in [('modem','Modem','modem'),('sim','Nhà mạng','sim'),('network','Mạng & sóng','signal'),('wifi','Wi-Fi','wifi')] %}
     <details class="status-chip" id="chip-{{ key }}"{% if key == 'network' %} data-bars="unknown"{% endif %}>
       <summary id="chip-{{ key }}-summary" aria-label="Chi tiết {{ label }}">{{ icon(glyph) }}<span id="chip-{{ key }}-label">{{ 'Mạng' if key == 'network' else label }}</span></summary>
-      <div class="status-popover"><h3>{{ label }}</h3><div id="{{ key }}-status">Đang đọc trạng thái…</div>{% if key == 'network' %}<p id="signal-status">Đang đọc mức sóng…</p><a href="/modem/network">Cài đặt mạng SIM →</a>{% elif key == 'sim' %}<a href="/modem/network">Cài đặt SIM →</a>{% elif key == 'wifi' %}<p><a id="wifi-settings-link" href="/">Cài đặt Wi-Fi →</a></p>{% elif key == 'modem' %}<p id="modem-readiness">Đang kiểm tra…</p><a href="/modem/network">Cài đặt mạng SIM →</a>{% endif %}</div>
+      <div class="status-popover"><h3>{{ label }}</h3><div id="{{ key }}-status">Đang đọc trạng thái…</div>{% if key == 'network' %}<p id="signal-status">Đang đọc mức sóng…</p><a href="/modem/network">Cài đặt mạng SIM →</a>{% elif key == 'sim' %}<a href="/modem/network">Cài đặt SIM →</a>{% elif key == 'wifi' %}<p><a id="wifi-settings-link" href="/setup">Cài đặt Wi-Fi →</a></p>{% elif key == 'modem' %}<p id="modem-readiness">Đang kiểm tra…</p><a href="/modem/network">Cài đặt mạng SIM →</a>{% endif %}</div>
     </details>
   {% endfor %}
   </div>
@@ -29,7 +29,7 @@
 {% endif %}
 <div id="portal-content" tabindex="-1"></div>
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính">
-{% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi','/','wifi'),('manage','Quản lý','/manage','manage')] %}
+{% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi','/setup','wifi'),('manage','Quản lý','/manage','manage')] %}
   <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% endif %}"{% if (key == 'manage' and page == 'manage') or (key == 'wifi' and page == 'wifi') or (key not in ['manage','wifi'] and page == key) %} aria-current="page"{% elif key == 'manage' and page in ['network','internet','hotspot','setup','website','leds'] %} data-section-active="true"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>
 {% endfor %}
 </nav>

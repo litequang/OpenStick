@@ -13,7 +13,7 @@ def register_network_routes(app, backend, token):
 
     @app.get('/internet')
     def internet_page():
-        return render_template('internet.html', token=token, page='wifi')
+        return render_template('internet.html', token=token, page='internet')
 
     @app.get('/api/wifi/saved')
     def saved_wifi():

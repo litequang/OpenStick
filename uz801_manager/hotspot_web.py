@@ -16,7 +16,7 @@ def register_hotspot_routes(app, backend, token):
 
     @app.get('/hotspot')
     def hotspot_page():
-        return render_template('hotspot.html', token=token, page='wifi')
+        return render_template('hotspot.html', token=token, page='hotspot')
 
     @app.get('/api/hotspot/state')
     def hotspot_current():
