@@ -43,6 +43,12 @@ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../uz801_ma
  assert.equal(vm.runInContext('networkDraft.sim_hotspot.blue.mode',context),'on');
  assert.equal(vm.runInContext('networkDraft.sim_hotspot.green.on_ms',context),250);
  assert.equal(elements['led-style-current-name'].textContent,'Ocean Beacon');
+ elements['led-theme-select'].value='cyber';
+ elements['led-theme-apply'].onclick();
+ assert.equal(posts.length,2,'theme pack selection must not apply to hardware');
+ assert.equal(vm.runInContext('networkDraft.sim_hotspot.red.mode',context),'blink');
+ assert.equal(vm.runInContext('networkDraft.wifi_station.blue.mode',context),'on');
+ assert.equal(vm.runInContext('networkDraft.setup_hotspot.green.mode',context),'blink');
  elements['led-style-filter'].value='recommended';elements['led-style-filter'].onchange();
  const recipes=()=>vm.runInContext('networkControls',context);
  assert.equal(elements['led-network-state'].value,'sim_hotspot');
