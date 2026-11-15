@@ -56,7 +56,7 @@
   {% if key != 'website' or portal_has_website %}
   <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% elif key == 'sim' %} portal-nav-sim{% elif key == 'website' %} portal-nav-website{% endif %}"
      data-nav="{{ key }}"
-     {% if (key == 'sim' and page == 'network') or (key == 'website' and page == 'website') or (key not in ['sim','website'] and page == key) %}aria-current="page"{% elif (key == 'sim' and page in ['hotspot','internet']) or (key == 'manage' and page in ['network','internet','hotspot','website','leds']) %}data-section-active="true"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>
+     {% if (key == 'sim' and page == 'network') or (key == 'website' and page == 'website') or (key not in ['sim','website'] and page == key) %}aria-current="page"{% elif (key == 'sim' and page in ['hotspot','internet']) or (key == 'manage' and page in ['network','internet','hotspot','setup','website','leds']) %}data-section-active="true"{% endif %}><span class="app-bottom-nav-icon">{{ icon(glyph) }}</span><span>{{ label }}</span></a>
   {% endif %}
 {% endfor %}
 </nav>
