@@ -1,42 +1,77 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Quản lý</title></head><body><main>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Quản lý</title></head><body><main class="manage-page">
 {% include 'portal_chrome.html' %}
-<div class="page-title"><div><p class="ux-eyebrow">THIẾT LẬP THIẾT BỊ</p><h1>Quản lý</h1></div></div>
-<p class="manage-intro">Chọn nhóm theo việc cần làm. Mở màn cài đặt không tự thay đổi Wi-Fi, SIM hay website.</p>
-{% if stable_lan_url %}<section class="manage-group"><h2>Địa chỉ quản trị cố định</h2><p><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a></p><p class="muted">Dùng chung trên PC nối cáp USB, điện thoại cùng Wi-Fi hoặc nối hotspot của USB, kể cả khi IP thay đổi. Qua Wi-Fi cần đăng nhập bằng mật khẩu quản trị đã đặt.</p></section>{% endif %}
-<section class="manage-group" aria-labelledby="manage-connectivity">
-<h2 id="manage-connectivity">Wi-Fi</h2>
-<p class="metric-note">Mọi thao tác nhận mạng, mạng đã lưu và Wi-Fi USB phát được quản lý cùng một màn.</p>
-<div class="manage-grid">
-{% if features.setup %}<a class="manage-link" href="/setup"><strong>Kết nối &amp; phát Wi-Fi</strong><span>Quét mạng, kết nối, quản lý Wi-Fi đã lưu và đổi tên/mật khẩu Wi-Fi USB phát.</span></a>{% else %}<a class="manage-link" href="/"><strong>Trạng thái Wi-Fi</strong><span>Xem kết nối và thông tin mạng đang dùng.</span></a>{% endif %}
+<header class="manage-heading">
+  <div><p class="ux-eyebrow">THIẾT LẬP THIẾT BỊ</p><h1>Quản lý</h1>
+    <p class="manage-intro">Tập trung cài đặt theo từng khu vực. Chọn mục để mở; thiết bị chỉ thay đổi khi bạn xác nhận thao tác.</p>
+  </div>
+  <span class="manage-heading-tag">UZ801 · V3.2</span>
+</header>
+
+<nav class="manage-topnav" aria-label="Khu vực cài đặt">
+  <a href="#manage-wifi">Wi-Fi</a><a href="#manage-sim">SIM &amp; Internet</a>
+  <a href="#manage-device">Thiết bị &amp; dịch vụ</a>{% if can_manage_lan or lan_session %}<a href="#manage-access">Truy cập</a>{% endif %}
+</nav>
+
+<div class="manage-layout">
+  <aside class="manage-sidebar">
+    <p class="manage-sidebar-title">TRUY CẬP NHANH</p>
+    <a href="{% if features.setup %}/setup{% else %}/{% endif %}"><span class="manage-side-icon">⌁</span><span><strong>Wi-Fi</strong><small>Kết nối · mạng đã lưu · Wi-Fi USB</small></span><b>›</b></a>
+    <a href="/modem/network"><span class="manage-side-icon">▥</span><span><strong>Mạng SIM</strong><small>Nhà mạng · chế độ sóng</small></span><b>›</b></a>
+    {% if features.hotspot %}<a href="/hotspot"><span class="manage-side-icon">◉</span><span><strong>Chia sẻ SIM</strong><small>APN · phát Wi-Fi</small></span><b>›</b></a>{% endif %}
+    {% if features.network %}<a href="/internet"><span class="manage-side-icon">⇄</span><span><strong>Nguồn Internet</strong><small>Ưu tiên · chuyển mạng</small></span><b>›</b></a>{% endif %}
+    <div class="manage-sidebar-rule"></div>
+    {% if features.website %}<a href="/website"><span class="manage-side-icon">▤</span><span><strong>Website</strong><small>Tệp · xuất bản</small></span><b>›</b></a>{% endif %}
+    {% if features.leds %}<a href="/settings/leds"><span class="manage-side-icon">✳</span><span><strong>Đèn thông báo</strong><small>Màu · nhịp · trạng thái</small></span><b>›</b></a>{% endif %}
+    <a href="/overview"><span class="manage-side-icon">⌂</span><span><strong>Sức khỏe thiết bị</strong><small>Hệ thống · kết nối · dịch vụ</small></span><b>›</b></a>
+    {% if can_manage_lan or lan_session %}<a href="#lan-access"><span class="manage-side-icon">⌑</span><span><strong>Truy cập quản trị</strong><small>Mật khẩu LAN</small></span><b>›</b></a>{% endif %}
+    {% if stable_lan_url %}<div class="manage-address"><span>ĐỊA CHỈ QUẢN TRỊ</span><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a><small>Dùng chung trên PC, Wi-Fi và hotspot USB.</small></div>{% endif %}
+  </aside>
+
+  <div class="manage-content">
+    <section class="manage-section" id="manage-wifi" aria-labelledby="manage-wifi-title">
+      <div class="manage-section-head"><span class="manage-section-number">01</span><div><p>KHÔNG DÂY</p><h2 id="manage-wifi-title">Wi-Fi</h2></div></div>
+      <a class="manage-feature-link" href="{% if features.setup %}/setup{% else %}/{% endif %}">
+        <span class="manage-feature-icon">⌁</span><span><strong>{% if features.setup %}Kết nối &amp; phát Wi-Fi{% else %}Trạng thái Wi-Fi{% endif %}</strong><small>Quét mạng, kết nối, xem Wi-Fi đã lưu và chỉnh tên/mật khẩu Wi-Fi USB phát. Cùng một cấu hình cho Wi-Fi cài đặt và chia sẻ SIM.</small></span><b>Đi tới <i>→</i></b>
+      </a>
+      <p class="manage-footnote">Mạng đã lưu nằm ngay trong màn Kết nối Wi-Fi. <a href="/setup#saved-wifi">Mở danh sách Wi-Fi đã lưu →</a></p>
+    </section>
+
+    <section class="manage-section" id="manage-sim" aria-labelledby="manage-sim-title">
+      <div class="manage-section-head"><span class="manage-section-number">02</span><div><p>KẾT NỐI DI ĐỘNG</p><h2 id="manage-sim-title">SIM &amp; Internet</h2></div></div>
+      <div class="manage-action-list">
+        <a href="/modem/network"><span class="manage-feature-icon">▥</span><span><strong>Mạng SIM</strong><small>Nhà mạng, cường độ sóng và lựa chọn 3G/4G.</small></span><b>→</b></a>
+        {% if features.hotspot %}<a href="/hotspot"><span class="manage-feature-icon">◉</span><span><strong>Chia sẻ Internet qua Wi-Fi</strong><small>Cấu hình APN, trạng thái SIM và bật/tắt điểm phát.</small></span><b>→</b></a>{% endif %}
+        {% if features.network %}<a href="/internet"><span class="manage-feature-icon">⇄</span><span><strong>Ưu tiên nguồn Internet</strong><small>Chọn Wi-Fi/SIM, nguồn dự phòng và tắt dữ liệu di động.</small></span><b>→</b></a>{% endif %}
+      </div>
+    </section>
+
+    <section class="manage-section" id="manage-device" aria-labelledby="manage-device-title">
+      <div class="manage-section-head"><span class="manage-section-number">03</span><div><p>VẬN HÀNH</p><h2 id="manage-device-title">Thiết bị &amp; dịch vụ</h2></div></div>
+      <div class="manage-action-list">
+        {% if features.website %}<a href="/website"><span class="manage-feature-icon">▤</span><span><strong>Quản lý website</strong><small>Danh sách tệp, chỉnh sửa, tải lên và xuất bản.</small></span><b>→</b></a>{% endif %}
+        {% if features.leds %}<a href="/settings/leds"><span class="manage-feature-icon">✳</span><span><strong>Đèn thông báo</strong><small>Phối màu và nhịp theo trạng thái USB.</small></span><b>→</b></a>{% endif %}
+        <a href="/overview"><span class="manage-feature-icon">⌂</span><span><strong>Thông tin &amp; sức khỏe</strong><small>RAM, nhiệt độ, eMMC, kết nối và dịch vụ.</small></span><b>→</b></a>
+      </div>
+    </section>
+
+    {% if can_manage_lan %}
+    <section class="manage-section manage-security-section" id="manage-access" aria-labelledby="manage-access-title">
+      <div class="manage-section-head"><span class="manage-section-number">04</span><div><p>BẢO MẬT</p><h2 id="manage-access-title">Truy cập quản trị</h2></div></div>
+      <div class="manage-security-box" id="lan-access">
+        <div><strong>Đăng nhập qua Wi-Fi</strong><p>Đổi mật khẩu quản trị LAN tại đây. Cần kết nối USB để thay đổi thiết lập bảo mật.</p></div>
+        <details class="ux-advanced" id="lan-manage"><summary>Thiết lập mật khẩu</summary>
+          <script>const token={{ token|tojson }};</script>
+          {% include 'lan_settings.html' %}
+        </details>
+      </div>
+    </section>
+    {% elif lan_session %}
+    <section class="manage-section manage-security-section" id="manage-access" aria-labelledby="manage-access-title">
+      <div class="manage-section-head"><span class="manage-section-number">04</span><div><p>BẢO MẬT</p><h2 id="manage-access-title">Truy cập quản trị</h2></div></div>
+      <div class="manage-security-box" id="lan-access"><p>Đang đăng nhập qua Wi-Fi nội bộ. Kết nối USB với PC để đổi mật khẩu hoặc tắt truy cập này.</p></div>
+    </section>
+    {% endif %}
+    <p class="manage-disclaimer">Thao tác đổi mạng, bật dữ liệu SIM hoặc xóa cấu hình sẽ yêu cầu xác nhận tại màn chức năng.</p>
+  </div>
 </div>
-<p id="saved-wifi" class="manage-legacy-link">Tìm Wi-Fi đã lưu? <a href="/setup#saved-wifi">Mở danh sách và thao tác →</a></p>
-</section>
-<section class="manage-group" aria-labelledby="manage-cellular">
-<h2 id="manage-cellular">SIM &amp; Internet</h2>
-<div class="manage-grid">
-<a class="manage-link" href="/modem/network"><strong>Mạng SIM</strong><span>Nhà mạng, cường độ sóng và tùy chọn 3G/4G.</span></a>
-{% if features.hotspot %}<a class="manage-link" href="/hotspot"><strong>Chia sẻ SIM qua Wi-Fi</strong><span>APN, bật/tắt Internet SIM và giữ kết nối sau khi xác nhận.</span></a>{% endif %}
-{% if features.network %}<a class="manage-link" href="/internet"><strong>Ưu tiên nguồn Internet</strong><span>Chuyển Wi-Fi/SIM, nguồn dự phòng và tắt dữ liệu di động.</span></a>{% endif %}
-</div></section>
-<section class="manage-group" aria-labelledby="manage-services">
-<h2 id="manage-services">Thiết bị &amp; dịch vụ</h2>
-<div class="manage-grid">
-{% if features.website %}<a class="manage-link" href="/website"><strong>Quản lý website</strong><span>Danh sách file, chỉnh sửa, tải lên và xuất bản website tĩnh.</span></a>{% endif %}
-{% if features.leds %}<a class="manage-link" href="/settings/leds"><strong>Đèn thông báo</strong><span>Bật/tắt từng màu, chọn nhịp nháy hoặc theo hoạt động Wi-Fi.</span></a>{% endif %}
-<a class="manage-link" href="/overview"><strong>Thông tin &amp; sức khỏe</strong><span>RAM, nhiệt độ, eMMC, swap, trạng thái kết nối và dịch vụ.</span></a>
-</div></section>
-{% if can_manage_lan %}
-<section class="manage-group ux-security-group" id="lan-access">
-<h2>Truy cập quản trị qua Wi-Fi</h2>
-<p class="metric-note">Chỉ cấu hình bằng kết nối USB. Đây là mật khẩu quản trị, khác mật khẩu Wi-Fi của router và mật khẩu hotspot.</p>
-<details class="ux-advanced" id="lan-manage"><summary>Thiết lập hoặc đổi mật khẩu quản trị LAN</summary>
-<script>const token={{ token|tojson }};</script>
-{% include 'lan_settings.html' %}
-</details></section>
-{% elif lan_session %}
-<section class="manage-group ux-security-group" id="lan-access"><h2>Truy cập quản trị qua Wi-Fi</h2>
-<p>Bạn đang đăng nhập qua Wi-Fi nội bộ. Để đổi mật khẩu hoặc tắt truy cập này, kết nối USB với PC rồi mở màn Quản lý.</p></section>
-{% endif %}
-<p class="overview-foot">Mọi chức năng có thể thay đổi kết nối, phát sinh cước hoặc xóa dữ liệu vẫn yêu cầu xác nhận tại màn thao tác.</p>
-</main>
-</body></html>
+</main></body></html>
