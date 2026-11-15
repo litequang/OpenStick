@@ -168,7 +168,8 @@ def test_led_page_only_submits_after_explicit_save(leds, tmp_path):
     if not node:pytest.skip('Node.js is needed for the synthetic UI fixture')
     app = create_hosting_app(backend=object(), led_backend=leds, usb_portal=True, token='fixture')
     page = tmp_path / 'leds.html';page.write_text(app.test_client().get('/settings/leds', base_url=BASE).text, encoding='utf-8')
-    run = subprocess.run([node, str(Path(__file__).with_name('leds_ui_fixture.cjs')), str(page)], capture_output=True, text=True, timeout=10)
+    run = subprocess.run([node, str(Path(__file__).with_name('leds_ui_fixture.cjs')), str(page)],
+                         capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)
     assert run.returncode == 0, run.stdout + run.stderr
 
 
