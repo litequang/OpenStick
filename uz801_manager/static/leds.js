@@ -22,6 +22,14 @@ const ledPresetStyles=[
   {id:'alert',name:'Alert Crimson',group:'signal',recommended:true,description:'Đỏ nhấp nháy rõ, hợp cho mất kết nối.',red:['blink',250,250],green:['off',500,500],blue:['off',500,500]},
   {id:'silent',name:'Silent Night',group:'signal',recommended:true,description:'Tắt cả ba đèn khi cần yên tĩnh.',red:['off',500,500],green:['off',500,500],blue:['off',500,500]}
 ];
+/* A theme pack is a draft-only mapping; the existing backend still saves
+   the exact allowlisted per-state on/off/blink rules after explicit consent. */
+const ledThemePacks={
+  signature:{setup_hotspot:'sunrise',sim_hotspot:'ocean',wifi_station:'emerald',cellular_data:'link',offline:'alert',unknown:'starlight'},
+  aurora:{setup_hotspot:'starlight',sim_hotspot:'aurora',wifi_station:'ice',cellular_data:'ocean',offline:'sunrise',unknown:'silent'},
+  cyber:{setup_hotspot:'triad',sim_hotspot:'cyber',wifi_station:'violet',cellular_data:'ice',offline:'alert',unknown:'starlight'},
+  night:{setup_hotspot:'silent',sim_hotspot:'silent',wifi_station:'silent',cellular_data:'silent',offline:'silent',unknown:'silent'}
+};
 function ledPresetRule(style){
   const reading=key=>({mode:style[key][0],on_ms:style[key][1],off_ms:style[key][2]});
   return {red:reading('red'),green:reading('green'),blue:reading('blue')};
@@ -161,6 +169,18 @@ function drawNetworkRule(){
 }
 ledEl('led-network-state').onchange=()=>{captureNetwork();networkSelected=ledEl('led-network-state').value;drawNetworkRule();drawLedStyleGallery();ledEl('led-notice').textContent='Đang sửa lựa chọn; đèn chưa thay đổi. Bấm Lưu quy tắc để áp dụng.'};
 ledEl('led-style-filter').onchange=drawLedStyleGallery;
+ledEl('led-theme-apply').onclick=()=>{
+  if(ledBusy||!networkReady)return;
+  const pack=ledThemePacks[ledEl('led-theme-select').value];if(!pack)return;
+  captureNetwork();
+  for(const [state,id] of Object.entries(pack)){
+    const style=ledPresetStyles.find(candidate=>candidate.id===id);
+    if(!style)return;
+    networkDraft[state]=ledPresetRule(style);
+  }
+  drawNetworkRule();drawLedStyleGallery();
+  ledEl('led-notice').textContent='Đã điền bộ style cho cả 6 trạng thái. Chưa áp dụng lên LED thật; bấm Lưu quy tắc để kích hoạt.';
+};
 ledEl('led-network-off').onclick=()=>{if(ledBusy)return;for(const control of networkControls){control.select.value='off';control.update()}captureNetwork();drawLedStyleGallery();ledEl('led-notice').textContent='Đã chọn tắt cả ba đèn cho trạng thái này; chưa lưu.'};
 async function saveNetwork(enabled){
   if(ledBusy||!networkReady)return;
