@@ -2,8 +2,9 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(process.argv[2],'utf8');
 class Element{
- constructor(){this.children=[];this.style={};this.value='';this.disabled=false;this.hidden=false;this.textContent='';}
+ constructor(){this.children=[];this.style={};this.value='';this.disabled=false;this.hidden=false;this.textContent='';this.attributes={};}
  append(...nodes){this.children.push(...nodes)}replaceChildren(...nodes){this.children=nodes}
+ setAttribute(name,value){this.attributes[name]=String(value)}
  set innerHTML(_){throw Error('Use textContent')}
 }
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()]));
@@ -31,12 +32,25 @@ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../uz801_ma
  await elements['led-form'].onsubmit({preventDefault(){}});assert.equal(posts.length,2);
  await elements['led-refresh'].onclick();assert.equal(posts.length,2);assert.equal(gets.length,2);
  assert.match(elements['led-notice'].textContent,/Đã đọc/);
+ const gallery=()=>elements['led-style-gallery'].children;
+ assert(gallery().length>=6,'recommended style gallery missing');
+ assert.equal(vm.runInContext('ledPresetStyles.length',context),12);
+ elements['led-style-filter'].value='all';elements['led-style-filter'].onchange();
+ assert.equal(gallery().length,12);
+ const ocean=gallery().find(item=>item.children[1]?.textContent==='Ocean Beacon');
+ assert(ocean,'Ocean Beacon preset missing');ocean.onclick();
+ assert.equal(posts.length,2,'choosing a preset must not write LEDs');
+ assert.equal(vm.runInContext('networkDraft.sim_hotspot.blue.mode',context),'on');
+ assert.equal(vm.runInContext('networkDraft.sim_hotspot.green.on_ms',context),250);
+ assert.equal(elements['led-style-current-name'].textContent,'Ocean Beacon');
+ elements['led-style-filter'].value='recommended';elements['led-style-filter'].onchange();
  const recipes=()=>vm.runInContext('networkControls',context);
  assert.equal(elements['led-network-state'].value,'sim_hotspot');
  recipes().find(c=>c.id==='red').select.value='on';
  const green=recipes().find(c=>c.id==='green');green.select.value='blink';green.update();green.inputs.on_ms.value='200';green.inputs.off_ms.value='800';
  recipes().find(c=>c.id==='blue').select.value='on';
  elements['led-network-state'].value='wifi_station';elements['led-network-state'].onchange();
+ assert.equal(posts.length,2,'switching status after choosing a style must not POST');
  recipes().find(c=>c.id==='green').select.value='on';
  elements['led-network-state'].value='sim_hotspot';elements['led-network-state'].onchange();
  assert.equal(recipes().find(c=>c.id==='green').inputs.on_ms.value,200);assert.equal(posts.length,2);
