@@ -25,12 +25,12 @@
   </div>
 </header>
 {% if lan_session %}<div class="access-banner"><span>Đã đăng nhập qua Wi-Fi</span><form action="/logout" method="post"><input type="hidden" name="csrf" value="{{ logout_csrf }}"><button class="secondary" style="min-height:32px;padding:4px 10px;font-size:12px">Đăng xuất</button></form></div>{% endif %}
-{% if page in ['network', 'internet', 'setup', 'hotspot', 'website', 'leds'] %}
+{% if page in ['setup', 'website', 'leds'] %}
 <div class="portal-breadcrumb"><a href="/manage">← Quản lý</a><span aria-hidden="true">/</span><span>{{ {'network':'Mạng SIM', 'internet':'Nguồn Internet', 'setup':'Wi-Fi cài đặt', 'hotspot':'Phát Wi-Fi từ SIM', 'website':'Website', 'leds':'Đèn thông báo'}[page] }}</span></div>
 {% endif %}
 {% if page in ['network', 'internet', 'hotspot'] %}
 <div class="portal-group-context">
-  <a class="portal-group-parent" href="/manage#manage-sim">SIM &amp; Internet</a>
+  <a class="portal-group-parent" href="/manage">← Quản lý</a>
   <nav class="portal-group-tabs" aria-label="Cài đặt SIM và Internet">
     <a href="/modem/network"{% if page == 'network' %} aria-current="page"{% endif %}>Mạng SIM</a>
     <a href="/hotspot"{% if page == 'hotspot' %} aria-current="page"{% endif %}>Chia sẻ SIM</a>
