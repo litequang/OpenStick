@@ -20,6 +20,11 @@ Old `/internet#saved-wifi` and `/manage#saved-wifi` links now lead to the saved
 network list in `/setup`. The global Wi-Fi navigation opens `/setup` so the
 connection flow and saved network list stay together.
 
+SIM subpages (`/modem/network`, `/hotspot`, `/internet`) retain a local
+“SIM & Internet” navigation bar with all three sibling destinations and the
+current page selected. The Wi-Fi setup screen likewise keeps quick links to
+connection, saved networks and the shared USB access point settings.
+
 ## Implementation and verification
 
 The saved network view uses the existing token-protected network policy

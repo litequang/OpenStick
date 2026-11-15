@@ -27,6 +27,26 @@
 {% if page in ['network', 'internet', 'setup', 'hotspot', 'website', 'leds'] %}
 <div class="portal-breadcrumb"><a href="/manage">← Quản lý</a><span aria-hidden="true">/</span><span>{{ {'network':'Mạng SIM', 'internet':'Nguồn Internet', 'setup':'Wi-Fi cài đặt', 'hotspot':'Phát Wi-Fi từ SIM', 'website':'Website', 'leds':'Đèn thông báo'}[page] }}</span></div>
 {% endif %}
+{% if page in ['network', 'internet', 'hotspot'] %}
+<div class="portal-group-context">
+  <a class="portal-group-parent" href="/manage#manage-sim">SIM &amp; Internet</a>
+  <nav class="portal-group-tabs" aria-label="Cài đặt SIM và Internet">
+    <a href="/modem/network"{% if page == 'network' %} aria-current="page"{% endif %}>Mạng SIM</a>
+    <a href="/hotspot"{% if page == 'hotspot' %} aria-current="page"{% endif %}>Chia sẻ SIM</a>
+    <a href="/internet"{% if page == 'internet' %} aria-current="page"{% endif %}>Nguồn Internet</a>
+  </nav>
+</div>
+{% endif %}
+{% if page == 'wifi' %}
+<div class="portal-group-context">
+  <a class="portal-group-parent" href="/manage#manage-wifi">Wi-Fi</a>
+  <nav class="portal-group-tabs" aria-label="Cài đặt Wi-Fi">
+    <a href="/setup" aria-current="page">Kết nối Wi-Fi</a>
+    <a href="/setup#saved-wifi">Wi-Fi đã lưu</a>
+    <a href="/setup#usb-ap-settings">Wi-Fi USB phát</a>
+  </nav>
+</div>
+{% endif %}
 <div id="portal-content" tabindex="-1"></div>
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính">
 {% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi','/setup','wifi'),('manage','Quản lý','/manage','manage')] %}
