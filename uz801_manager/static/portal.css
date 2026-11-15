@@ -112,3 +112,26 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,s
  .app-bottom-nav-item{font-size:9px}
  .portal-brand{font-size:15px}
 }
+
+/* LED styles are honest three-channel binary previews, not PWM gradients. */
+.led-style-filter{display:block;width:100%;max-width:300px;min-height:44px;padding:9px 12px;margin:6px 0 14px;border:1px solid #435570;border-radius:10px}
+.led-style-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.led-style-gallery .led-style-card{display:flex;align-items:flex-start;flex-direction:column;gap:8px;min-height:127px;padding:14px!important;border:1px solid #3a4a5c!important;border-radius:14px!important;background:#202b39!important;color:#e8f1ff!important;box-shadow:none!important;text-align:left;font-weight:400;white-space:normal}
+.led-style-card strong{font-size:14px;color:#f3f7ff}
+.led-style-card>span:last-child{font-size:12px;line-height:1.45;color:#bbcadc}
+.led-style-gallery .led-style-card[aria-pressed=true]{border-color:#8dc4ff!important;background:#263d56!important;box-shadow:inset 0 0 0 1px #77b3ff!important}
+.led-style-gallery .led-style-card:hover{border-color:#88bdf7!important;background:#26374b!important}
+.led-style-gallery .led-style-card:focus-visible{outline:2px solid #a7ceff;outline-offset:3px}
+.led-style-colors{display:flex;align-items:center;gap:10px;min-height:22px}
+.led-style-dot{display:block;width:17px;height:17px;border-radius:50%;background:currentColor;box-shadow:0 0 9px 2px currentColor;opacity:1}
+.led-style-red{color:#ff5266}.led-style-green{color:#44f0a1}.led-style-blue{color:#6099ff}
+.led-style-dot.led-style-off{opacity:.12;box-shadow:none}
+.led-style-dot.led-style-blink{animation:led-style-blink 1s step-end infinite}
+@keyframes led-style-blink{0%,49%{opacity:1}50%,100%{opacity:.17}}
+.led-style-current{border:1px solid #3d5676;border-radius:13px;background:#1b2a3b;padding:13px 16px}
+.led-style-current-label{display:block;font-size:11px;color:#9fb4ca;text-transform:uppercase;letter-spacing:.04em}
+.led-style-current strong{display:block;margin:2px 0;font-size:16px;color:#f2f7ff}
+.led-style-current .metric-note{margin:4px 0 0}
+@media(max-width:430px){.led-style-gallery{gap:8px}.led-style-gallery .led-style-card{min-height:138px;padding:11px!important}.led-style-card>span:last-child{font-size:11px}.led-style-dot{width:15px;height:15px}}
+@media(max-width:335px){.led-style-gallery{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.led-style-dot.led-style-blink{animation:none;opacity:.72}}
