@@ -35,6 +35,22 @@ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../uz801_ma
  const gallery=()=>elements['led-style-gallery'].children;
  assert(gallery().length>=6,'recommended style gallery missing');
  assert.equal(vm.runInContext('ledPresetStyles.length',context),12);
+ const presets=JSON.parse(vm.runInContext('JSON.stringify(ledPresetStyles.map(p=>({id:p.id,rules:ledPresetRule(p)})))',context));
+ assert.equal(new Set(presets.map(p=>p.id)).size,12);
+ for(const preset of presets){
+  assert.deepEqual(Object.keys(preset.rules).sort(),['blue','green','red']);
+  for(const rule of Object.values(preset.rules)){
+   assert(['on','off','blink'].includes(rule.mode));
+   assert(Number.isInteger(rule.on_ms)&&rule.on_ms>=100&&rule.on_ms<=5000);
+   assert(Number.isInteger(rule.off_ms)&&rule.off_ms>=100&&rule.off_ms<=5000);
+  }
+ }
+ const packs=JSON.parse(vm.runInContext('JSON.stringify(ledThemePacks)',context));
+ assert.equal(Object.keys(packs).length,4);
+ for(const pack of Object.values(packs)){
+  assert.equal(Object.keys(pack).length,6);
+  assert(Object.values(pack).every(style=>presets.some(p=>p.id===style)));
+ }
  elements['led-style-filter'].value='all';elements['led-style-filter'].onchange();
  assert.equal(gallery().length,12);
  const ocean=gallery().find(item=>item.children[1]?.textContent==='Ocean Beacon');
