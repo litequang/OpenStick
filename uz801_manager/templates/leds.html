@@ -6,7 +6,18 @@
 <form id="led-network-form"><fieldset id="led-network-fields" disabled style="border:0;padding:0;min-width:0">
 <section><h2><span class="ux-step">1</span> Chọn trạng thái</h2><p id="led-network-current" class="metric-note"></p>
 <label for="led-network-state">Trạng thái muốn chỉnh</label><select id="led-network-state" style="width:100%"><option value="sim_hotspot">Phát hotspot từ SIM</option><option value="wifi_station">USB đang nhận Wi-Fi</option><option value="setup_hotspot">Phát hotspot cài đặt</option><option value="cellular_data">Kết nối dữ liệu SIM, không dùng Wi-Fi</option><option value="offline">Chưa có kết nối</option><option value="unknown">Chưa đọc được trạng thái mạng</option></select>
-<p class="metric-note">Chuyển lựa chọn chỉ để sửa cấu hình; không đổi mạng hoặc bật dữ liệu SIM.</p></section>
+<p class="metric-note">Chuyển lựa chọn chỉ để sửa cấu hình; không đổi mạng hoặc bật dữ liệu SIM.</p>
+<details class="ux-advanced" id="led-theme-picker"><summary>Chọn nhanh style cho tất cả 6 trạng thái</summary>
+<label for="led-theme-select">Bộ phong cách gợi ý</label>
+<select id="led-theme-select" class="led-style-filter">
+<option value="signature">OpenStick Signature — dễ hiểu</option>
+<option value="aurora">Aurora Calm — nhẹ nhàng</option>
+<option value="cyber">Cyberpunk — nổi bật</option>
+<option value="night">Silent Night — tắt toàn bộ LED</option>
+</select>
+<button id="led-theme-apply" class="secondary" type="button">Điền bộ style cho 6 trạng thái</button>
+<p class="ux-form-note">Thao tác này chỉ cập nhật bản nháp của 6 trạng thái, không lưu hoặc đổi LED thật. Bộ Silent Night sẽ tắt cả đèn cảnh báo.</p>
+</details></section>
 <section><h2><span class="ux-step">2</span> Chọn style ánh sáng</h2>
 <p class="metric-note">Chọn mẫu gợi ý, xem trước ba LED rồi bấm Lưu quy tắc ở dưới. Chọn mẫu không gửi lệnh tới USB. Hiệu ứng mô phỏng trên màn hình có thể khác nhịp thực tế của driver.</p>
 <label for="led-style-filter">Nhóm style</label><select id="led-style-filter" class="led-style-filter"><option value="recommended">Đề xuất</option><option value="all">Tất cả 12 style</option><option value="calm">Nhẹ nhàng</option><option value="vivid">Nổi bật</option><option value="signal">Trạng thái &amp; cảnh báo</option></select>
