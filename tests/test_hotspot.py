@@ -8,6 +8,7 @@ import pytest
 
 from uz801_manager.hosting import create_hosting_app
 from uz801_manager.hotspot import AP_UUID, CELL_UUID, Hotspot, Network, validate_hotspot
+from uz801_manager.setup_ap import SETUP_UUID, SetupAP
 
 WIFI = '07ca019c-485b-4f06-b99d-171c167e18bb'
 
@@ -61,6 +62,161 @@ def configure(backend):
 
 
 def start(backend):return backend.call('start', confirm=True, cellular_consent=True, switch_wifi=True)
+
+
+def setup_mode(backend, network):
+    setup = SetupAP(directory=backend.directory, profiles=backend.profiles,
+                    network=network, lock_factory=nullcontext, modem_lock_factory=nullcontext,
+                    lan_ready=lambda: True)
+    setup.provision()
+    network.current['wlan0'] = SETUP_UUID
+    return backend.read('setup-ap.json')
+
+
+def test_setup_wifi_auto_switches_to_same_ssid_psk_and_restores_setup_on_stop(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    saved = setup_mode(backend, network)
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    assert not backend.call('status')['configured']
+    assert backend.call('status')['setup_active']
+    assert backend.call('status')['setup_ssid'] == saved['ssid']
+    trial = start(backend)
+    assert trial['hotspot_active'] and trial['pending'] and trial['ssid'] == saved['ssid']
+    assert network.current['wwan0qmi0'] == CELL_UUID
+    profile = (backend.profiles / 'openstick-hotspot.nmconnection').read_text()
+    setup_profile = (backend.profiles / 'openstick-setup.nmconnection').read_text()
+    import configparser
+    ap = configparser.ConfigParser();ap.read_string(profile)
+    original = configparser.ConfigParser();original.read_string(setup_profile)
+    assert ap.get('wifi', 'ssid') == original.get('wifi', 'ssid')
+    assert ap.get('wifi-security', 'psk') == original.get('wifi-security', 'psk')
+    assert ap.get('wifi', 'cloned-mac-address') == 'permanent'
+    assert ap.get('ipv4', 'method') == 'shared'
+    assert ap.get('ipv4', 'address1') == '192.168.8.1/24'
+    assert network.calls.index(('probe', 'wwan4', 'wwan0qmi0')) < network.calls.index(('setup_services', False))
+    assert network.calls.index(('setup_services', False)) < network.calls.index(('up', AP_UUID))
+    assert not backend.call('status')['setup_active']
+    kept = backend.call('keep', attempt=trial['attempt'], confirm=True)
+    assert kept['enabled'] and not kept['pending']
+    stopped = backend.call('stop', confirm=True)
+    assert stopped['wifi_restored'] and stopped['setup_active']
+    assert ('setup_services', True) in network.calls
+    assert network.current['wwan0qmi0'] is None
+    assert not (backend.directory / 'hotspot-setup-origin.json').exists()
+    assert not backend.call('status')['configured']
+    # A later request can reuse the setup Wi-Fi, with no extra setup action.
+    assert start(backend)['hotspot_active']
+
+
+def test_setup_switch_keep_stop_restores_existing_custom_ap_and_apn(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    backend.call('configure', ssid='Private old hotspot', password='fixture-old-password',
+                 channel=1, apn='fixture.operator', confirm=True)
+    paths = [backend.directory / 'hotspot.json', backend.profiles / 'openstick-hotspot.nmconnection',
+             backend.profiles / 'openstick-cellular.nmconnection']
+    originals = {path: path.read_bytes() for path in paths}
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    trial = start(backend)
+    assert backend.call('keep', attempt=trial['attempt'], confirm=True)['enabled']
+    assert (backend.directory / 'hotspot-setup-origin.json').exists()
+    assert backend.call('stop', confirm=True)['setup_active']
+    assert all(path.read_bytes() == original for path, original in originals.items())
+    assert not (backend.directory / 'hotspot-setup-origin.json').exists()
+    assert network.auto[AP_UUID] is False and network.auto[CELL_UUID] is False
+
+
+def test_setup_switch_preserves_existing_manual_cellular_apn_without_hotspot_config(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    cellular = backend.profiles / 'openstick-cellular.nmconnection'
+    cellular.write_text(f'[connection]\nuuid={CELL_UUID}\ntype=gsm\n[gsm]\nauto-config=false\napn=fixture.provider\n')
+    original = cellular.read_bytes()
+    trial = start(backend)
+    assert trial['apn'] == 'fixture.provider'
+    assert cellular.read_bytes() == original
+    backend.call('keep', attempt=trial['attempt'], confirm=True)
+    backend.call('stop', confirm=True)
+    assert cellular.read_bytes() == original
+
+
+def test_corrupt_setup_profile_cannot_switch_sim_or_erase_prior_config(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    profile = backend.profiles / 'openstick-setup.nmconnection'
+    profile.write_text(profile.read_text().replace('mode=ap', 'mode=infrastructure'))
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    with pytest.raises(RuntimeError, match='CELLULAR_CONNECT_FAILED'):
+        start(backend)
+    assert ('up', CELL_UUID) not in network.calls
+    assert network.current['wlan0'] == SETUP_UUID
+    assert not backend.read('hotspot-pending.json')
+    assert not backend.read('hotspot.json')
+
+
+def test_setup_partial_profile_load_failure_restores_missing_nm_entries(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    original_load, original_nm = network.load, network.nm
+
+    def reject_first_ap_load(path):
+        if path.name == 'openstick-hotspot.nmconnection':
+            raise RuntimeError('profile failed before NetworkManager loaded it')
+        return original_load(path)
+
+    def reject_delete_missing(*args):
+        if args[:2] == ('connection', 'delete'):
+            raise RuntimeError('NM profile not found')
+        if args == ('-t', '-f', 'UUID', 'connection', 'show'):
+            return ''
+        return original_nm(*args)
+
+    network.load = reject_first_ap_load
+    network.nm = reject_delete_missing
+    with pytest.raises(RuntimeError, match='^CELLULAR_CONNECT_FAILED$'):
+        start(backend)
+    assert network.current['wlan0'] == SETUP_UUID
+    assert ('up', CELL_UUID) not in network.calls
+    assert not backend.read('hotspot-pending.json')
+    assert not (backend.profiles / 'openstick-hotspot.nmconnection').exists()
+    assert not (backend.profiles / 'openstick-cellular.nmconnection').exists()
+    assert not backend.read('hotspot.json')
+
+
+@pytest.mark.parametrize('failure', ['internet', 'ap', 'expiry', 'restart'])
+def test_setup_switch_failure_recovers_old_config_and_setup_dhcp(setup_hotspot, failure):
+    backend, network, clock = setup_hotspot
+    setup_mode(backend, network)
+    configure(backend)  # Existing separate SIM Wi-Fi settings must survive a failed trial.
+    paths = [backend.directory / 'hotspot.json', backend.profiles / 'openstick-hotspot.nmconnection',
+             backend.profiles / 'openstick-cellular.nmconnection']
+    originals = {p: p.read_bytes() for p in paths}
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    if failure == 'internet':network.healthy = False
+    if failure == 'ap':network.fail_ap = True
+    if failure in ('internet', 'ap'):
+        with pytest.raises(RuntimeError):start(backend)
+    else:
+        trial = start(backend)
+        assert trial['hotspot_active']
+        if failure == 'expiry':clock[0] += 286
+        else:backend.boot = lambda: 'rebooted-boot'
+        backend.recover_pending()
+    assert all(p.read_bytes() == original for p, original in originals.items())
+    assert not backend.read('hotspot-pending.json')
+    assert network.current == {'wlan0': SETUP_UUID, 'wwan0qmi0': None}
+    assert network.calls[-1] == ('setup_services', True)
+
+
+def test_setup_pending_change_blocks_sim_start_without_data(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    backend.write('setup-pending.json', {'action': 'connect'})
+    before = network.calls[:]
+    with pytest.raises(RuntimeError, match='SETUP_ACTIVE'):start(backend)
+    assert network.calls == before
 
 
 def test_no_configuration_or_status_probe_activates_data_or_creates_files(setup_hotspot):
@@ -338,3 +494,36 @@ def test_status_refresh_does_not_erase_last_hotspot_action_failure(setup_hotspot
     assert other.get('/api/hotspot/state',base_url=base,headers=headers).json['last_operation']==first['last_operation']
     stored=(backend.directory/'hotspot-last-operation.json').read_text()
     assert 'private' not in stored and 'ssid' not in stored and 'checkpoint' not in stored
+
+
+def test_reconnected_portal_reads_real_pending_trial_without_repeating_start(setup_hotspot):
+    backend, network, _ = setup_hotspot
+    setup_mode(backend, network)
+    backend.setup_services = lambda enabled: network.calls.append(('setup_services', enabled))
+    trial = start(backend)
+    backend.record_operation('start', None)
+    # Model an entirely new listener process on USB after the phone reconnects.
+    replacement = Hotspot(backend.directory, backend.profiles, network=network,
+                          lock_factory=nullcontext, clock=backend.clock, boot=backend.boot)
+    app = create_hosting_app(backend=object(), usb_portal=True, hotspot_backend=replacement, token='fixture')
+    client = app.test_client()
+    response = client.get('/api/hotspot/state', base_url='http://172.16.42.1',
+                          headers={'X-OpenStick-Token': 'fixture'})
+    assert response.status_code == 200
+    state = response.json
+    assert not state['busy'] and state['error'] is None
+    assert state['result']['hotspot_active'] and state['result']['pending']
+    assert state['result']['attempt'] == trial['attempt']
+    assert state['last_operation']['action'] == 'start'
+    assert state['last_operation']['error'] is None
+    assert network.current['wwan0qmi0'] == CELL_UUID
+
+
+def test_other_portal_reports_busy_if_hotspot_transition_holds_network_lock(setup_hotspot):
+    backend, _, _ = setup_hotspot
+    backend.call = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('NETWORK_BUSY'))
+    app = create_hosting_app(backend=object(), usb_portal=True, hotspot_backend=backend, token='fixture')
+    result = app.test_client().get('/api/hotspot/state', base_url='http://172.16.42.1',
+                                   headers={'X-OpenStick-Token': 'fixture'}).json
+    assert result['busy'] is True and result['error'] is None
+    assert result['result'] == {}

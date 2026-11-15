@@ -26,7 +26,18 @@ def register_hotspot_routes(app, backend, token):
             except Exception:pass
         with lock:
             candidates = [v for v in (latest, state['last_operation']) if v]
-            return jsonify({**state, 'last_operation': max(candidates, key=lambda v: v['at']) if candidates else None})
+            snapshot = {**state, 'last_operation': max(candidates, key=lambda v: v['at']) if candidates else None}
+        if not snapshot['busy'] and not snapshot['result'] and not snapshot['error']:
+            # The Wi-Fi and USB listeners have separate Flask processes. During
+            # an AP handoff the client may reconnect through the other listener,
+            # whose in-memory result is empty. Read real status without starting
+            # SIM data instead of claiming the previous POST succeeded.
+            try:snapshot['result'] = backend.call('status')
+            except RuntimeError as error:
+                if str(error) == 'NETWORK_BUSY':snapshot['busy'] = True
+                else:snapshot['error'] = str(error) if str(error) in ERRORS else 'HOTSPOT_OPERATION_FAILED'
+            except Exception:snapshot['error'] = 'HOTSPOT_OPERATION_FAILED'
+        return jsonify(snapshot)
 
     @app.post('/api/hotspot')
     def hotspot_action():

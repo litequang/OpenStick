@@ -1,5 +1,65 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-15: setup AP → SIM Internet sharing without changing Wi-Fi credentials
+
+Installed the smart hotspot handoff in the actual UZ801 V3.2 USB portal. The
+owner's existing setup AP stays up until a consented `/hotspot` Start operation
+has verified SIM-bound Internet access; the portal then uses the setup AP's
+SSID, key and radio configuration for the SIM-backed AP, preserving
+`192.168.8.1:8765` and the `openstick.local:8765` management URL. Wi-Fi may
+briefly disconnect as the AP changes mode. The user must reconnect and Keep
+the session within five minutes, or the NetworkManager checkpoint/worker tries
+to recover the setup AP. Stop also restores the previous private SIM hotspot
+configuration and setup-AP services. No simultaneous station/AP is attempted.
+
+The change also makes read-only state available after reconnection to another
+portal listener, without interpreting an interrupted Start POST as success or
+automatically resending it. It keeps the explicit SIM charge warning/consent.
+The source suite passed **448 tests, 1 Windows symlink privilege skip**, plus
+JS syntax and diff checks. Hardware deployment backed up the previous three
+files to `/var/lib/openstick/deploy-backups/home-20261114/` as
+`before-smart-hotspot-1794703089.tar.gz`, installed only `hotspot.py`,
+`hotspot_web.py`, `templates/hotspot.html` in `/opt/openstick/uz801_manager`,
+and restarted only `openstick-hotspot`, `openstick-wifi`, `openstick-lan`.
+Each restarted service was healthy; `/hotspot`, `/overview`, `/setup` returned
+HTTP 200; WLAN still used the setup UUID and no trial was pending. No reboot,
+Wi-Fi mode change or SIM data activation was used for this deployment check.
+**The complete phone → SIM Internet → Keep → Stop flow is NOT yet verified.**
+
+See [smart hotspot report](SMART_SIM_HOTSPOT_2026_11_15.md) for installed
+hashes, recovery boundaries, rollback and the owner test sequence. Continue
+to preserve website, Tunnel, credentials, saved Wi-Fi and radio choice.
+
+## 2026-11-15: keep status strip and Overview readable across page navigation
+
+Installed the display-only session cache on the real USB. Every page restores
+the most recently measured header Wi-Fi, carrier and signal readouts before its
+first asynchronous `/api/header` fetch. Overview likewise restores measured
+system, Wi-Fi, SIM and service readouts before refreshing in the background.
+Both still update periodically, preserve the last reading on transient errors,
+and mark restored data as stale until the next successful sample. Initial
+visits without a cached sample may still show waiting placeholders.
+
+Cache entries live in the browser's `sessionStorage`, expire after eight hours,
+are scoped by the LAN session where present, and include only explicitly
+selected display fields. No raw modem payload, subscriber ID, Wi-Fi password,
+session credential or CSRF token is persisted in the cache. Signing out clears
+the relevant display entries. This does not convert document navigation to
+client-side routing; a live browser/mobile visual acceptance check remains.
+
+Source verification: **436 pytest passed / 1 Windows symlink permission skip**;
+the synthetic full-page navigation test checks that values are already restored
+while both API requests are pending. The USB initially had no pending hotspot
+or setup trial; both installed source files matched their expected baseline
+hashes. Deployment updated **only** `static/portal_nav.js` and
+`templates/overview.html` under `/opt/openstick/uz801_manager`, with a network
+lock and no reboot or network-mode change. `openstick-wifi` and `openstick-lan`
+restarted successfully; real USB HTTP subsequently served the expected JS
+content and `/overview` after a brief service-start delay. Backup:
+`/var/lib/openstick/deploy-backups/home-20261114/before-dashboard-cache-1794680646.tar.gz`.
+Restore that archive at `/opt/openstick` and restart the two portal services to
+roll back. Phone visual inspection remains for the owner.
+
 ## Latest update: state-first LED mixes and stable telemetry
 
 `272777e` is installed on the actual USB. The LED page now follows the owner's

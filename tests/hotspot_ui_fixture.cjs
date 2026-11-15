@@ -1,10 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(process.argv[2],'utf8');
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],{value:'',checked:false,hidden:false}]));
-const calls=[];let confirmed=false,lastOperation=null,error=null,nextError=null,result={configured:true,ssid:'Fixture USB',channel:6,apn:'',ap_supported:true,enabled:false,hotspot_active:false,cellular_connected:false,pending:false,verification:'UNVERIFIED'};
+const calls=[];let confirmed=false,lastOperation=null,error=null,nextError=null,dropBeforeStart=false,dropAfterStart=false,result={configured:true,ssid:'Fixture USB',channel:6,apn:'',ap_supported:true,enabled:false,hotspot_active:false,cellular_connected:false,pending:false,verification:'UNVERIFIED'};
 const context={console,Date,setTimeout,setInterval:()=>0,location:{},confirm:()=>confirmed,
  document:{hidden:false,getElementById:id=>elements[id],querySelectorAll:()=>[]},
- fetch:async(url,options={})=>{if(options.method==='POST'){assert.equal(url,'/api/hotspot');const data=JSON.parse(options.body);calls.push(data);error=nextError;nextError=null;if(data.action!=='status')lastOperation={action:data.action,error,at:Date.now()/1000};if(data.action==='configure_apn'&&!error)result={...result,apn:data.apn};if(data.action==='start'&&!error)result={...result,pending:true,hotspot_active:true,attempt:'a'.repeat(32),seconds_remaining:280};return {ok:true,status:202};}assert.equal(url,'/api/hotspot/state');return {ok:true,json:async()=>({busy:false,error,result,last_operation:lastOperation})};}};
+ fetch:async(url,options={})=>{if(options.method==='POST'){assert.equal(url,'/api/hotspot');const data=JSON.parse(options.body);if(data.action==='start'&&dropBeforeStart){dropBeforeStart=false;throw Error('connection lost before send')}calls.push(data);error=nextError;nextError=null;if(data.action!=='status')lastOperation={action:data.action,error,at:Date.now()/1000};if(data.action==='configure_apn'&&!error)result={...result,apn:data.apn};if(data.action==='start'&&!error)result={...result,pending:true,hotspot_active:true,attempt:'a'.repeat(32),seconds_remaining:280};if(data.action==='start'&&dropAfterStart){dropAfterStart=false;throw Error('response lost after send')}return {ok:true,status:202};}assert.equal(url,'/api/hotspot/state');return {ok:true,json:async()=>({busy:false,error,result,last_operation:lastOperation})};}};
 vm.createContext(context);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
 const tick=()=>new Promise(r=>setImmediate(r));
 (async()=>{await tick();assert.deepEqual(calls.map(v=>v.action),['status']);assert(elements['hotspot-start'].disabled);
@@ -36,5 +36,20 @@ const tick=()=>new Promise(r=>setImmediate(r));
  assert.match(elements['hotspot-countdown'].textContent,/chưa thể xác nhận/);
  result={...result,hotspot_active:true};await context.hotspotCall('status');
  assert(!elements['hotspot-keep'].disabled);
+ result={...result,configured:false,setup_active:true,setup_ssid:'OpenStick setup',pending:false,hotspot_active:false,cellular_connected:false,enabled:false};
+ await context.hotspotCall('status');assert(elements['hotspot-start'].disabled);
+ elements['hotspot-consent'].checked=true;elements['hotspot-consent'].onchange();assert(!elements['hotspot-start'].disabled);
+ const startsBefore=calls.filter(v=>v.action==='start').length;
+ dropAfterStart=true;elements['hotspot-start'].onclick();await tick();
+ assert.equal(calls.filter(v=>v.action==='start').length,startsBefore+1);
+ assert(!elements['hotspot-pending'].hidden);
+ assert.match(elements['hotspot-notice'].textContent,/Đã bật thử hotspot/);
+ result={...result,pending:false,hotspot_active:false,cellular_connected:false};
+ await context.hotspotCall('status');
+ elements['hotspot-consent'].checked=true;elements['hotspot-consent'].onchange();
+ dropBeforeStart=true;elements['hotspot-start'].onclick();await tick();
+ assert.equal(calls.filter(v=>v.action==='start').length,startsBefore+1,'never replay a lost start POST');
+ assert.match(elements['hotspot-notice'].textContent,/Chưa xác định được lệnh bật/);
+ assert(elements['hotspot-pending'].hidden);
  console.log('Hotspot explicit consent fixture: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});

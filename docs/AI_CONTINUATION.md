@@ -1,5 +1,24 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**15/11/2026 — hotspot SIM thông minh đã cài lên USB:** Khi setup AP đang
+phát, `/hotspot` có thể chuyển sang dùng Internet SIM với cùng SSID/mật khẩu,
+địa chỉ `192.168.8.1:8765` và `openstick.local:8765`; người dùng vẫn phải
+đồng ý dùng dữ liệu SIM, kết nối lại và xác nhận giữ trong 5 phút. Đã cài
+`hotspot.py`, `hotspot_web.py`, `templates/hotspot.html` trên USB thật; ba
+dịch vụ và HTTP `/hotspot`, `/overview`, `/setup` hoạt động, setup AP vẫn active,
+không có pending trial, không bật SIM để thử. Source đã qua **448 pytest PASS,
+1 SKIP Windows**. Chưa có kiểm chứng điện thoại + dữ liệu SIM đầu cuối cho luồng
+mới; chủ máy cần thực hiện thủ công. Đọc
+`docs/SMART_SIM_HOTSPOT_2026_11_15.md` và đầu `docs/SESSION_HANDOFF.md` trước
+khi sửa/triển khai thêm. Tuyệt đối không nhầm HTTP 200 với phát SIM thành công.
+
+**15/11/2026 — điều hướng giữa các trang:** Status strip và Tổng quan đã lưu
+snapshot hiển thị trong phiên trình duyệt, phục hồi trước khi cập nhật ngầm.
+Hai tệp giao diện đã triển khai trên USB thật, kiểm tra HTTP thành công;
+436 test PASS, một SKIP do Windows. Xem đầu `docs/SESSION_HANDOFF.md`
+để biết đường dẫn backup/rollback và giới hạn kiểm chứng giao diện Android.
+Đây vẫn là điều hướng tải trang HTML, không phải SPA.
+
 **Bản mới nhất `272777e`:** đã cài LED theo trạng thái: chọn trạng thái rồi
 phối ba màu tắt/sáng/nháy với thời gian riêng. Worker LED được supervise, đọc
 metadata mỗi khoảng 3 giây, không đổi mạng hay probe SIM. Cấu hình cũ/baseline
