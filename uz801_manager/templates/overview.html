@@ -2,6 +2,13 @@
 {% include 'portal_chrome.html' %}
 <div class="page-title"><h1>Tổng quan</h1><button id="overview-refresh" class="secondary">Làm mới</button></div>
 <p class="ux-page-intro">Tình trạng hiện tại của USB. Các thông số tự làm mới mỗi 15 giây khi mở màn.</p>
+{% if portal_has_quick %}
+<section class="quick-panel quick-panel--compact" aria-labelledby="overview-quick-title">
+  <div class="quick-panel-heading"><h2 id="overview-quick-title">Cài đặt nhanh</h2><button id="quick-refresh" class="secondary" type="button" aria-label="Đọc lại trạng thái cài đặt nhanh">Đọc lại</button></div>
+  {% with quick_compact=true %}{% include 'quick_controls.html' %}{% endwith %}
+  <p class="quick-panel-help">Nhận hoặc phát Wi-Fi tại một thời điểm. Mỗi thay đổi đều có xác nhận. <a href="/quick">Chi tiết &amp; giới hạn →</a></p>
+</section>
+{% endif %}
 <p id="overview-status" class="overview-foot" role="status">Đang đọc thông số từ USB…</p>
 <div class="metric-grid">
 {% for key,label in [('ram','Bộ nhớ RAM'),('storage','Lưu trữ hệ thống'),('signal','Sóng di động'),('temperature','Nhiệt độ'),('sms','Yêu cầu SMS đã gửi'),('emmc','Chip nhớ eMMC'),('writes','Ghi xuống eMMC'),('swap','Swap')] %}

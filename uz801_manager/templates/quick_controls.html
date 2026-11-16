@@ -1,0 +1,18 @@
+{% from 'portal_chrome.html' import icon %}
+<p id="quick-notice" class="notice" role="status" aria-live="polite">Đang đọc trạng thái…</p>
+<div class="quick-grid" aria-label="Điều khiển kết nối">
+  <button class="quick-tile" id="quick-airplane" disabled><span aria-hidden="true">✈</span><strong>Chế độ máy bay</strong><small>Đang đọc…</small></button>
+  <button class="quick-tile" id="quick-data" disabled><span aria-hidden="true">⇅</span><strong>Dữ liệu SIM</strong><small>Đang đọc…</small></button>
+  <a class="quick-tile" href="/setup"><span class="quick-icon" aria-hidden="true">{{ icon('wifi-receive') }}</span><strong>Nhận Wi-Fi</strong><small id="quick-wifi">Đang đọc…</small></a>
+  <button class="quick-tile" id="quick-ap" disabled><span class="quick-icon" aria-hidden="true">{{ icon('wifi-broadcast') }}</span><strong>Phát Wi-Fi</strong><small>Đang đọc…</small></button>
+  <button class="quick-tile" id="quick-usb" disabled><span aria-hidden="true">↔</span><strong>USB tethering</strong><small>Đang đọc…</small></button>
+</div>
+<details id="quick-usb-help" class="quick-usb-help"><summary>Kết nối máy tính qua USB</summary>
+  <p>Bấm USB tethering, xác nhận lưu và khởi động lại USB một lần. PC tự nhận IP, gateway và DNS khi USB trở lại. Không cần ứng dụng Windows hay lệnh gia hạn IP. Chỉ mở trang không khởi động lại.</p>
+  <p>Chế độ được lưu trên USB, dùng tiếp khi cắm sang máy khác có driver USB NCM. Nếu reboot tự động không thành công, có thể rút USB 10 giây rồi cắm lại bình thường. Xem <a href="https://github.com/litequang/OpenStick/blob/codex/uz801-v32-postmarketos/docs/USB_TETHERING.md" target="_blank" rel="noopener noreferrer">hướng dẫn</a>.</p>
+</details>
+<dialog id="quick-dialog" aria-labelledby="quick-dialog-title" aria-describedby="quick-dialog-copy">
+  <h2 id="quick-dialog-title">Xác nhận thay đổi</h2><p id="quick-dialog-copy"></p>
+  <form method="dialog"><div class="settings-actions"><button value="cancel" class="secondary">Hủy</button><button value="apply" id="quick-apply">Xác nhận</button></div></form>
+</dialog>
+<script src="/static/quick.js"></script>

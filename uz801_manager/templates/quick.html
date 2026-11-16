@@ -1,20 +1,9 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Cài đặt nhanh</title></head><body><main>
 {% include 'portal_chrome.html' %}
 <div class="page-title"><div><p class="ux-eyebrow">QUICK SETTINGS · BẢN THỬ NGHIỆM</p><h1>Cài đặt nhanh</h1></div><button id="quick-refresh" class="secondary" type="button">Đọc lại</button></div>
-<p>Chọn một ô để xem và xác nhận tác động. Chỉ mở trang không đổi kết nối. Các thao tác radio/data mới chưa được kiểm thử trên USB thật. Điều khiển radio/data ở đây tắt chính sách tự chuyển mạng; muốn dùng lại, cấu hình riêng tại Nguồn Internet.</p>
-<p id="quick-notice" class="notice" role="status" aria-live="polite">Đang đọc trạng thái…</p>
-<div class="quick-grid" aria-label="Điều khiển kết nối">
-  <button class="quick-tile" id="quick-airplane" disabled><span aria-hidden="true">✈</span><strong>Chế độ máy bay</strong><small>Đang đọc…</small></button>
-  <button class="quick-tile" id="quick-data" disabled><span aria-hidden="true">⇅</span><strong>Dữ liệu SIM</strong><small>Đang đọc…</small></button>
-  <a class="quick-tile" href="/setup"><span aria-hidden="true">⌁</span><strong>Wi-Fi</strong><small id="quick-wifi">Đang đọc…</small></a>
-  <button class="quick-tile" id="quick-ap" disabled><span aria-hidden="true">◎</span><strong>Wi-Fi nội bộ</strong><small>Đang đọc…</small></button>
-  <a class="quick-tile" href="/hotspot"><span aria-hidden="true">▥</span><strong>SIM → Wi-Fi</strong><small>Bật thử và xác nhận 5 phút</small></a>
-  <button class="quick-tile" id="quick-usb" disabled><span aria-hidden="true">↔</span><strong>USB tethering</strong><small>Chưa mở: cần bảo toàn gadget/UDC</small></button>
-</div>
+<p>Chọn một ô để xem và xác nhận tác động. Chỉ mở trang không đổi kết nối. Bản đang kiểm chứng: dữ liệu SIM từng kết nối được nhưng còn lỗi kết nối lại; USB tethering đã thử qua Wi-Fi. Điều khiển radio/data ở đây tắt chính sách tự chuyển mạng; muốn dùng lại, cấu hình riêng tại Nguồn Internet.</p>
+{% include 'quick_controls.html' %}
+<p>Nhận Wi-Fi để lấy Internet từ Wi-Fi nhà. Phát Wi-Fi để điện thoại kết nối vào USB; bật thêm <strong>Dữ liệu SIM</strong> để chia sẻ Internet. Tắt data vẫn giữ Wi-Fi quản trị. USB chỉ nhận hoặc phát Wi-Fi tại một thời điểm.</p>
 <section><h2>Trạng thái &amp; giới hạn</h2><p id="quick-details" style="white-space:pre-line"></p><p>Tắt chế độ máy bay chỉ cho phép modem đăng ký lại mạng; <strong>không tự bật dữ liệu SIM</strong>. Data đã kết nối không đồng nghĩa đã kiểm chứng Internet.</p><p>WPA3 đang bị chặn do PMF. Hidden SSID, giới hạn client và AP isolation chưa được kiểm thử trên driver nên chưa có công tắc áp dụng.</p><a href="/manage">Các cài đặt khác →</a></section>
-<dialog id="quick-dialog" aria-labelledby="quick-dialog-title" aria-describedby="quick-dialog-copy">
-  <h2 id="quick-dialog-title">Xác nhận thay đổi</h2><p id="quick-dialog-copy"></p>
-  <form method="dialog"><div class="settings-actions"><button value="cancel" class="secondary">Hủy</button><button value="apply" id="quick-apply">Xác nhận</button></div></form>
-</dialog>
-<script src="/static/quick.js"></script>
+
 </main></body></html>

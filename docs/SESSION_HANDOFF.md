@@ -1,5 +1,49 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16 latest: installed Quick Settings, SIM and USB sharing tested
+
+This supersedes the historical source-only/no-SIM checkpoint below. Owner
+authorized real network changes and SIM data, then chose saved USB tethering
+plus one normal reboot per toggle instead of any PC companion. No Windows
+assistant was installed. Five shared tiles appear on Overview and `/quick`;
+AP/data are independent and there is no separate SIM-sharing tile. AP-off
+does not restore station Wi-Fi. Data-off keeps the AP, IPv4, credentials and
+DHCP process; actual second-cycle continuity check passed.
+
+Real SIM DNS/HTTPS bound to the cellular interface passed. Two data off/on
+cycles, AP on/off and a mobile-disable/enable cycle passed; mobile enable alone
+left data off, explicit data-on then passed 204. Owner confirmed phone AP
+Internet and management with phone mobile data disabled. SMS/USSD were excluded
+by the owner's latest choice. Saved/current RAT remains [8,0]; no APN guess.
+
+USB sharing via both station Wi-Fi and SIM passed Windows source-bound HTTPS
+204 and USB DNS. Final UI on/off now saves a durable intent and reboots once;
+both actual reboot tests automatically added/removed Windows gateway/DNS,
+without ipconfig renew, adapter reset or PC software. A boot worker and the
+vendor-supported `/etc/unudhcpd.conf` hook select the owned DHCP/DNS service.
+No vendor-dispatcher edit, gadget change or SIM activation at boot. Website
+HTTP 200, Tunnel/portal services and Wi-Fi Internet returned. Only USB profile
+connection.timestamp changed on reboot; functional settings were preserved.
+
+Do not call the original ModemManager InProgress / “Bearer already being
+disconnected” fault conclusively fixed. It was observed and one MM-only service
+restart was performed with no active data; later radio recovery worked for
+the owner. Recent cycles passed, but no upstream/root-cause patch is claimed.
+DATA_CONNECT_FAILED is now explicit and fail closed, never a silent retry,
+APN/RAT change or automatic modem reset. AP/data/tethering were enabled at the
+successful test checkpoint; the owner continues testing. Read fresh state.
+
+519 pytest passed, one Windows symlink-privilege skip, exit 0. Eight Chrome
+demo layouts, HTTP without randomUUID, consent/Escape and cross-reboot token
+renewal passed. Real Chrome handled the earlier actions; host virtual-memory
+exhaustion crashed Chrome before the airplane-off POST. Finished that action
+and explicit data-on through the same token/UUID API, not visual acceptance.
+
+See [hardware report](QUICK_SETTINGS_HARDWARE_VALIDATION_2026_11_16.md) and
+[usage/boot design](USB_TETHERING.md) for backup locations, boundaries and
+unverified cases. No main merge/release/firmware change. Keep unrelated
+untracked `docs/HYBRID_COMPATIBILITY_MATRIX.md` and `hosting_launcher.py` untouched.
+
 ## 2026-11-16: Quick Settings source only — NOT deployed
 
 Owner first requested read-only audit, then explicitly asked to develop the

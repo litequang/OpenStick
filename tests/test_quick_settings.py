@@ -68,7 +68,13 @@ def quick(tmp_path, monkeypatch):
     if __import__('os').name == 'nt': monkeypatch.setattr(journal, '_sync_directory', lambda: None)
     backend = QuickSettings(tmp_path, network=network, radio=radio, lock_factory=nullcontext,
                             modem_lock_factory=nullcontext, hotspot=hotspot, setup=setup, journal=journal,
-                            identity_matches=lambda:True)
+                            identity_matches=lambda:True,
+                            forwarding=lambda allowed:network.calls.append(('forward_ap',allowed)))
+    setup.network = network
+    network.local_services = lambda enabled:network.calls.append(('local_services', enabled))
+    hotspot._setup_snapshot = lambda:{}
+    hotspot._adopt_setup_ap = lambda:network.calls.append(('prepare_ap_profile',))
+    hotspot._restore_setup_snapshot = lambda value:network.calls.append(('restore_ap_profile',))
     return backend, network, radio, setup
 
 
@@ -120,13 +126,14 @@ def test_airplane_on_veto_persists_and_wifi_station_is_untouched(quick):
     assert not any(call[:2] == ('nm', ('radio', 'wifi', 'off')) for call in network.calls)
 
 
-def test_data_off_from_sim_ap_restores_local_ap_without_old_wifi_or_radio_toggle(quick):
+def test_data_off_keeps_ap_and_dhcp_without_old_wifi_or_radio_toggle(quick):
     backend, network, radio, _ = quick
     provision(backend); network.active_profiles.update(wlan0=AP_UUID, cell=CELL_UUID)
     result = invoke(backend, 'data_off')
-    assert result['wifi_role'] == 'local_ap' and not result['mobile_data_connected']
+    assert result['wifi_role'] == 'sim_ap' and not result['mobile_data_connected']
     assert radio.calls == [] and ('up', 'saved-station') not in network.calls
-    assert network.calls.index(('down', CELL_UUID)) < network.calls.index(('down', AP_UUID)) < network.calls.index(('local_ap',))
+    assert network.calls.index(('forward_ap', False)) < network.calls.index(('down', CELL_UUID))
+    assert ('down', AP_UUID) not in network.calls and ('local_ap',) not in network.calls
     assert not data_allowed(backend.directory)
 
 
@@ -176,7 +183,7 @@ def test_missing_sim_and_airplane_block_data_on_before_activation(quick):
 def test_failed_data_activation_is_fail_closed_and_receipt_is_replay_safe(quick):
     backend, network, _, _ = quick
     provision(backend); network.fail_cell = True; identity = str(uuid.uuid4())
-    with pytest.raises(RuntimeError, match='QUICK_OPERATION_FAILED'): invoke(backend, 'data_on', identity, cellular_consent=True)
+    with pytest.raises(RuntimeError, match='DATA_CONNECT_FAILED'): invoke(backend, 'data_on', identity, cellular_consent=True)
     calls = list(network.calls)
     assert not data_allowed(backend.directory)
     with pytest.raises(RuntimeError, match='ALREADY_ATTEMPTED'): invoke(backend, 'data_on', identity, cellular_consent=True)
@@ -249,12 +256,60 @@ def test_boot_recovery_only_applies_saved_airplane_off_never_data_on(quick):
     assert radio.calls == [False] and ('up', CELL_UUID) not in network.calls
 
 
-def test_mismatched_staged_ap_identity_cannot_be_reported_as_same_wifi(quick):
+def test_data_off_keeps_current_ap_identity_even_if_staged_config_differs(quick):
     backend, network, _, _ = quick
     provision(backend);backend.identity_matches=lambda:False
     network.active_profiles.update(wlan0=AP_UUID,cell=CELL_UUID)
-    with pytest.raises(RuntimeError,match='DATA_OFF_AP_FAILED'): invoke(backend,'data_off')
-    assert not network.active('cell') and ('local_ap',) not in network.calls
+    invoke(backend,'data_off')
+    assert not network.active('cell') and network.active('wlan0')==AP_UUID
+    assert ('local_ap',) not in network.calls and ('down', AP_UUID) not in network.calls
+
+
+@pytest.mark.parametrize('data_first',[False,True])
+def test_ap_and_data_are_independent_in_either_order(quick,data_first):
+    backend,network,_,_=quick;provision(backend)
+    if data_first:invoke(backend,'data_on',cellular_consent=True)
+    invoke(backend,'local_ap_on')
+    assert network.active('wlan0')==AP_UUID
+    assert bool(network.active('cell'))==data_first
+    if not data_first:invoke(backend,'data_on',cellular_consent=True)
+    assert network.active('cell')==CELL_UUID and network.active('wlan0')==AP_UUID
+    calls=list(network.calls)
+    invoke(backend,'data_off')
+    assert network.active('wlan0')==AP_UUID and not network.active('cell')
+    assert ('down',AP_UUID) not in network.calls[len(calls):]
+
+
+def test_ap_off_keeps_mobile_data_connected(quick):
+    backend,network,_,_=quick;provision(backend)
+    invoke(backend,'data_on',cellular_consent=True);invoke(backend,'local_ap_on')
+    invoke(backend,'local_ap_off')
+    assert network.active('cell')==CELL_UUID
+    assert network.active('wlan0') is None
+    assert ('nm',('device','set','wlan0','autoconnect','no')) in network.calls
+
+
+def test_data_cutoff_still_disconnects_if_ap_forwarding_guard_fails(quick):
+    backend,network,_,_=quick;provision(backend)
+    network.active_profiles.update(wlan0=AP_UUID,cell=CELL_UUID)
+    backend.ap_forwarding=lambda allowed:(_ for _ in ()).throw(RuntimeError('guard failure'))
+    with pytest.raises(RuntimeError,match='QUICK_OPERATION_FAILED'):invoke(backend,'data_off')
+    assert not network.active('cell') and not data_allowed(backend.directory)
+
+
+def test_usb_sharing_needs_its_own_consent_and_does_not_activate_cellular(quick):
+    backend,network,radio,_=quick
+    calls=[]
+    class Tether:
+        def status(self):return {'available':True,'enabled':bool(calls and calls[-1]=='on')}
+        def request(self,enabled,operation):calls.append('on' if enabled else 'off')
+    backend.tethering=Tether()
+    with pytest.raises(ValueError,match='CONSENT_REQUIRED'):
+        invoke(backend,'usb_tether_on',cellular_consent=False)
+    invoke(backend,'usb_tether_on',cellular_consent=True)
+    invoke(backend,'usb_tether_off')
+    assert calls==['on','off'] and not network.calls and not radio.calls
+    assert load_intent(backend.directory) is None
 
 
 def test_legacy_modem_enable_is_vetoed_before_opening_bus(monkeypatch):
@@ -312,6 +367,10 @@ def test_private_api_guards_and_read_only_open(quick):
     with app.test_client() as client:
         base = 'http://172.16.42.1'; headers = {'X-OpenStick-Token': 'fixture'}
         assert client.get('/quick', base_url=base).status_code == 200
+        overview = client.get('/overview', base_url=base)
+        assert overview.status_code == 200
+        assert overview.data.count(b'id="quick-ap"') == 1
+        assert b'quick-panel--compact' in overview.data
         assert client.get('/api/quick', base_url=base).status_code == 403
         assert client.get('/api/quick', base_url=base, headers=headers).status_code == 200
         assert client.get('/api/quick', base_url='http://bad.invalid', headers=headers).status_code == 403

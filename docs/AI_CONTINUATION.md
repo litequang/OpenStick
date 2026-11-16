@@ -1,5 +1,30 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — MỚI NHẤT: Quick Settings đã cài và thử trên USB có SIM.**
+Các ghi chú “source only / chưa cài / không có SIM” bên dưới là lịch sử.
+Đọc [báo cáo phần cứng](QUICK_SETTINGS_HARDWARE_VALIDATION_2026_11_16.md)
+và [USB tethering](USB_TETHERING.md) trước khi tiếp tục. Tổng quan và `/quick`
+dùng năm ô, không có “Chia sẻ SIM” riêng. Data/AP độc lập; data-off giữ AP/DHCP;
+AP-off không tự nối station. Đã sửa UUID trên HTTP, DHCP setup chiếm loopback
+và cú pháp nft. Chủ xác nhận điện thoại nhận IP, quản trị và Internet SIM.
+PC USB qua Wi-Fi và SIM đều đạt DNS/HTTPS bound 204. Hai chu kỳ data off/on
+và kết nối sau một chu kỳ máy bay đạt; không tự data-on khi airplane-off.
+
+Chủ từ chối cài tiện ích PC, chọn lưu chế độ tethering + một reboot USB.
+Đã cài worker/hook DHCP, thử off/on bằng reboot thật: Windows tự nhận/bỏ
+gateway/DNS, không renew thủ công, reset adapter hoặc phần mềm PC. Không đổi
+dispatcher vendor, gadget/VID/PID; chế độ lưu trên USB. Bật sau reboot không
+tự kích hoạt SIM. Website/Tunnel/LAN/SSH/radio giữ nguyên; profile USB chỉ đổi
+timestamp do upstream ghi khi boot. Checkpoint sau test: AP/data SIM/tethering
+đã bật thành công; sau đó chủ tiếp tục thao tác, nên đọc lại trước mọi thay đổi.
+
+**Chưa gọi lỗi MM kẹt “Bearer already being disconnected” đã sửa triệt để.**
+Đã có bằng chứng DBus lỗi InProgress trước đó; restart MM một lần không phải
+bản vá gốc. Nguồn mới báo DATA_CONNECT_FAILED và fail closed, không tự retry,
+đổi APN/RAT hoặc reset radio. Các lượt mới không tái hiện. Không gửi SMS/USSD
+theo lựa chọn mới của chủ. 519 pytest PASS / 1 Windows skip; Chrome demo 8
+layout và đổi token qua reboot PASS; phân biệt demo với nghiệm thu thật.
+
 **16/11/2026 — Quick Settings: audit thật, mã Phase 1 CHƯA CÀI USB.**
 Chủ xác nhận hiện không lắp SIM; MM báo SIM missing không phải kết luận modem
 hỏng. Nguồn mới có `/quick`, radio/data intent, receipt, veto watchdog/legacy

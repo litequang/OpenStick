@@ -1,0 +1,10 @@
+#!/sbin/openrc-run
+name="OpenStick USB Internet DHCP and DNS"
+supervisor=supervise-daemon
+command=/usr/sbin/dnsmasq
+command_args="--keep-in-foreground --conf-file=/dev/null --interface=usb0 --except-interface=lo --bind-dynamic --listen-address=172.16.42.1 --port=53 --no-resolv --no-hosts --server=127.0.0.1 --host-record=openstick.local,172.16.42.1 --dhcp-authoritative --dhcp-range=172.16.42.2,172.16.42.2,255.255.255.0,2m --dhcp-option=3,172.16.42.1 --dhcp-option=6,172.16.42.1 --dhcp-leasefile=/run/openstick/usb.leases --pid-file=/run/openstick/usb-dhcp.pid --quiet-dhcp --log-facility=/dev/null"
+respawn_delay=5
+respawn_max=0
+depend() {
+    need networkmanager nftables
+}

@@ -9,28 +9,31 @@ import xml.etree.ElementTree as ET
 from .hotspot import AP_UUID, CELL_UUID, Hotspot, Network, network_lock
 from .modem_device import OperationJournal, modem_lock, system_bus
 from .network_policy import NetworkPolicy
-from .quick_intent import load_intent, radio_allowed, save_intent
+from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .setup_ap import SETUP_UUID, SetupAP, SetupNetwork
 
-ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off')
+ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off')
 ERRORS = {'INPUT_INVALID', 'CONFIRM_REQUIRED', 'CONSENT_REQUIRED', 'ALREADY_ATTEMPTED',
           'NETWORK_BUSY', 'MODEM_BUSY', 'MODEM_UNAVAILABLE', 'SIM_NOT_READY', 'AIRPLANE_ACTIVE',
           'PENDING_NETWORK_TRIAL', 'CELLULAR_ALREADY_ACTIVE', 'CELLULAR_NOT_CONFIGURED',
           'DATA_DISCONNECT_FAILED', 'LOCAL_AP_UNAVAILABLE', 'RADIO_RESULT_UNKNOWN',
           'QUICK_OPERATION_FAILED', 'DATA_OFF_AP_FAILED'}
+ERRORS |= {'USB_NO_INTERNET', 'USB_DHCP_CONFLICT', 'USB_DHCP_RESTORE_FAILED',
+           'USB_TETHERING_NOT_INSTALLED', 'USB_PROFILE_UNSUPPORTED', 'USB_TETHERING_FIREWALL_FAILED',
+           'USB_REBOOT_PENDING', 'DATA_CONNECT_FAILED'}
 
 
 def validate_quick(value):
     if not isinstance(value, dict) or value.get('action') not in ACTIONS:
         raise ValueError('INPUT_INVALID')
-    expected = {'action', 'operation', 'confirm'} | ({'cellular_consent'} if value['action'] == 'data_on' else set())
+    expected = {'action', 'operation', 'confirm'} | ({'cellular_consent'} if value['action'] in ('data_on', 'usb_tether_on') else set())
     if set(value) != expected or not isinstance(value['operation'], str):
         raise ValueError('INPUT_INVALID')
     if str(uuid.UUID(value['operation'])) != value['operation']:
         raise ValueError('INPUT_INVALID')
     if value['confirm'] is not True:
         raise ValueError('CONFIRM_REQUIRED')
-    if value['action'] == 'data_on' and value['cellular_consent'] is not True:
+    if value['action'] in ('data_on', 'usb_tether_on') and value['cellular_consent'] is not True:
         raise ValueError('CONSENT_REQUIRED')
     return value['action']
 
@@ -99,7 +102,7 @@ class RadioControl:
 class QuickSettings:
     def __init__(self, directory='/var/lib/openstick', *, network=None, radio=None,
                  lock_factory=network_lock, modem_lock_factory=modem_lock,
-                 hotspot=None, setup=None, journal=None, identity_matches=None):
+                 hotspot=None, setup=None, journal=None, identity_matches=None, forwarding=None, tethering=None):
         self.directory = Path(directory)
         self.network = network or Network()
         self.radio = radio or RadioControl()
@@ -110,6 +113,48 @@ class QuickSettings:
                                       lock_factory=nullcontext, modem_lock_factory=nullcontext)
         self.journal = journal or OperationJournal(self.directory / 'quick-operations')
         self.identity_matches = identity_matches or self._matching_ap_identity
+        self.ap_forwarding = forwarding or self._ap_forwarding
+        from .usb_tethering import UsbTethering
+        self.tethering = tethering or UsbTethering(directory, network=self.network)
+
+    def _ap_forwarding(self, allowed):
+        """Only our AP guard; never alter the base firewall or USB gadget."""
+        exists = self.network.run(['nft', 'list', 'table', 'inet', 'openstick_quick_ap'],
+            capture_output=True, timeout=8).returncode == 0
+        if allowed:
+            if exists:self.network.command(['nft', 'delete', 'table', 'inet', 'openstick_quick_ap'])
+        elif not exists:
+            rules = ('table inet openstick_quick_ap {\n chain forward {\n type filter hook forward '
+                     'priority -6; policy accept;\n iifname "wlan0" drop;\n oifname "wlan0" drop;\n }\n}\n')
+            result = self.network.run(['nft', '-f', '-'], input=rules, text=True, capture_output=True, timeout=8)
+            if result.returncode:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+
+    def _start_shared_ap(self, control):
+        """One AP with stable DHCP/gateway, independent of cellular connectivity."""
+        previous = self.network.active('wlan0')
+        connected = self.network.active(control) == CELL_UUID and bool(self.network.cellular_interface(control))
+        self.ap_forwarding(connected and radio_allowed(self.directory) and data_allowed(self.directory))
+        if previous == AP_UUID:return
+        config = self._read('setup-ap.json')
+        if not config.get('ssid') or not self.setup.lan_ready():raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+        if previous and previous != SETUP_UUID:
+            config['previous_wifi'] = previous
+            self.setup.write('setup-ap.json', config)
+        snapshot = self.hotspot._setup_snapshot()
+        try:
+            self.hotspot._adopt_setup_ap()  # Preserves the existing cellular profile.
+            if previous == SETUP_UUID:self.setup.network.local_services(False)
+            self.network.up(AP_UUID)
+            if self.network.active('wlan0') != AP_UUID:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+        except Exception:
+            self.hotspot._restore_setup_snapshot({'setup_handoff': snapshot})
+            if previous == SETUP_UUID:
+                self.network.up(SETUP_UUID)
+                self.setup.network.local_services(True)
+            elif previous:
+                self.ap_forwarding(True)
+                self.network.up(previous)
+            raise RuntimeError('LOCAL_AP_UNAVAILABLE') from None
 
     def _matching_ap_identity(self):
         """Staged credentials must match the SIM AP before promising continuity."""
@@ -140,14 +185,14 @@ class QuickSettings:
         wifi = self.network.active('wlan0')
         controls = self.network.devices()
         cell = self.network.active(controls[0]) if len(controls) == 1 else None
-        pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json'))
+        pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or self.tethering.status().get('reboot_pending'))
         return {'intent': intent, 'radio': radio,
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
                 'mobile_data_connected': bool(cell == CELL_UUID and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
                 'pending_network_trial': pending, 'internet_verified': False,
                 'hardware_validation': 'NOT_TESTED',
-                'usb_tethering': {'available': False, 'reason': 'USB_DISPATCHER_REBINDS_UDC'},
+                'usb_tethering': self.tethering.status(),
                 'advanced_ap': {'wpa3': 'BLOCKED_PMF', 'hidden': 'NOT_HARDWARE_VERIFIED',
                                 'client_limit': 'NOT_HARDWARE_VERIFIED', 'isolation': 'NOT_HARDWARE_VERIFIED'}}
 
@@ -180,9 +225,13 @@ class QuickSettings:
         if config.get('ssid') or self.network.active(self._controls()) == CELL_UUID:
             self.network.autoconnect(CELL_UUID, False)
 
-    def _off_data(self, *, recover_ap=True):
+    def _off_data(self, *, recover_ap=True, keep_ap=False):
         control = self._controls()
         was_ap = self.network.active('wlan0') == AP_UUID
+        gate_failed = False
+        if was_ap:
+            try:self.ap_forwarding(False)
+            except Exception:gate_failed = True
         identity_matches = self.identity_matches() if was_ap and recover_ap else True
         automation_failed = False
         try:self._stop_automation()
@@ -191,8 +240,8 @@ class QuickSettings:
             self.network.down(CELL_UUID)
         if self.network.active(control):
             raise RuntimeError('DATA_DISCONNECT_FAILED')
-        if automation_failed:raise RuntimeError('QUICK_OPERATION_FAILED')
-        if was_ap:
+        if automation_failed or gate_failed:raise RuntimeError('QUICK_OPERATION_FAILED')
+        if was_ap and not keep_ap:
             # Never call Hotspot.stop(): it can reconnect the old station Wi-Fi.
             self.network.down(AP_UUID)
             if recover_ap:
@@ -220,15 +269,17 @@ class QuickSettings:
         validate_quick({'action': action, **values})
         with self.lock_factory(), self.modem_lock_factory():
             radio, control = self._preflight()
+            if self.tethering.status().get('reboot_pending'):
+                raise RuntimeError('USB_REBOOT_PENDING')
             receipt = self.journal.begin(values['operation'], action)
             try:
                 old = load_intent(self.directory)
                 airplane = bool(old and old['airplane'])
-                if action in ('airplane_on', 'airplane_off', 'data_off', 'local_ap_on'):
+                if action in ('airplane_on', 'airplane_off', 'data_off'):
                     airplane = action == 'airplane_on' or airplane and action != 'airplane_off'
                     save_intent(self.directory, airplane=airplane, data_allowed=False)
                     try:
-                        self._off_data(recover_ap=action != 'local_ap_on')
+                        self._off_data(keep_ap=action == 'data_off')
                     finally:
                         # Airplane-on must still suppress WWAN if AP recovery failed.
                         if action == 'airplane_on':
@@ -237,8 +288,11 @@ class QuickSettings:
                     if action == 'airplane_off':
                         self.network.nm('radio', 'wwan', 'on')
                         self.radio.enable(True)  # Missing SIM remains waiting, never a bearer.
-                    if action == 'local_ap_on' and self.network.active('wlan0') != SETUP_UUID:
-                        self.setup.start()
+                elif action == 'local_ap_on':
+                    connected = self.network.active(control) == CELL_UUID and bool(self.network.cellular_interface(control))
+                    if old is None:save_intent(self.directory, airplane=False, data_allowed=connected)
+                    self._stop_automation()
+                    self._start_shared_ap(control)
                 elif action == 'data_on':
                     if not radio_allowed(self.directory):
                         raise RuntimeError('AIRPLANE_ACTIVE')
@@ -246,26 +300,44 @@ class QuickSettings:
                         raise RuntimeError('SIM_NOT_READY')
                     if not self._read('hotspot.json').get('ssid'):
                         raise RuntimeError('CELLULAR_NOT_CONFIGURED')
-                    # Existing SIM-hotspot flow must still obtain its own trial/Keep.
+                    # Data and AP are independent; the legacy trial/Keep route is unchanged.
                     self._stop_automation()
                     save_intent(self.directory, airplane=False, data_allowed=True)
                     try:
+                        if self.network.active('wlan0') == SETUP_UUID:self._start_shared_ap(control)
                         self.network.autoconnect(CELL_UUID, False)
-                        self.network.up(CELL_UUID)
+                        try:self.network.up(CELL_UUID)
+                        except RuntimeError:raise RuntimeError('DATA_CONNECT_FAILED') from None
                         if not self.network.cellular_interface(control):
                             raise RuntimeError('QUICK_OPERATION_FAILED')
+                        if self.network.active('wlan0') == AP_UUID:self.ap_forwarding(True)
+                        self.tethering.update_uplinks()
                     except Exception:
                         save_intent(self.directory, airplane=False, data_allowed=False)
+                        if self.network.active('wlan0') == AP_UUID:self.ap_forwarding(False)
                         if self.network.active(control) == CELL_UUID:
                             self.network.down(CELL_UUID)
                         raise
                 elif action == 'local_ap_off':
-                    if self.network.active('wlan0') != SETUP_UUID:
+                    active = self.network.active('wlan0')
+                    if active not in (SETUP_UUID, AP_UUID):
                         raise RuntimeError('LOCAL_AP_UNAVAILABLE')
                     config = self._read('setup-ap.json')
                     config['enabled'] = False
                     self.setup.write('setup-ap.json', config)
-                    self.setup.stop()
+                    self.network.nm('device', 'set', 'wlan0', 'autoconnect', 'no')
+                    if active == SETUP_UUID:
+                        self.setup.network.local_services(False)
+                        self.network.down(SETUP_UUID)
+                        self.ap_forwarding(True)
+                    else:
+                        self.network.autoconnect(AP_UUID, False)
+                        self.network.down(AP_UUID)
+                        self.ap_forwarding(True)
+                elif action == 'usb_tether_on':
+                    self.tethering.request(True, values['operation'])
+                elif action == 'usb_tether_off':
+                    self.tethering.request(False, values['operation'])
                 self.journal.finish(receipt, 'COMPLETED')
                 return self.status()
             except Exception as error:
@@ -280,4 +352,7 @@ class QuickSettings:
             value = json.loads((self.directory / 'quick-operations' / (identity + '.json')).read_text())
         except (OSError, ValueError):
             return {'state': 'NOT_FOUND'}
-        return {key: value[key] for key in ('kind', 'state', 'failure') if key in value}
+        result = {key: value[key] for key in ('kind', 'state', 'failure') if key in value}
+        if result.get('kind') in ('usb_tether_on', 'usb_tether_off') and result.get('state') == 'COMPLETED':
+            result['usb_tethering'] = self.tethering.status()
+        return result

@@ -353,3 +353,12 @@ def test_validation_rejects_invalid_or_extra_fields(value):
 @pytest.mark.skipif(shutil.which('node') is None, reason='Node unavailable')
 def test_phone_setup_selection_does_not_submit_until_save():
     subprocess.run(['node', 'tests/setup_ui_fixture.cjs'], check=True, timeout=15)
+def test_setup_dnsmasq_excludes_nm_loopback_resolver():
+    import re
+    import shlex
+    from pathlib import Path
+    service = (Path(__file__).parents[1] / 'scripts/openrc/openstick-setup-dhcp').read_text()
+    options = shlex.split(re.search(r'^command_args="(.*)"$', service, re.M)[1])
+    assert '--except-interface=lo' in options
+    assert '--interface=wlan0' in options
+    assert '--bind-dynamic' in options

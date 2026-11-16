@@ -1,4 +1,23 @@
-# Quick Settings — mã nguồn thử nghiệm, chưa cài USB
+# Quick Settings — mã nguồn và triển khai
+
+**Cập nhật 16/11/2026:** Phần source-only bên dưới là checkpoint lịch sử,
+không còn mô tả USB hiện tại. Chủ đã cho phép cài và thử có SIM. Nguồn mới
+đã được cài; xem [nghiệm thu thật](QUICK_SETTINGS_HARDWARE_VALIDATION_2026_11_16.md).
+
+Luồng hiện tại có **năm ô chung trên Tổng quan và `/quick`**. Phát Wi-Fi là
+một AP: thêm data SIM thì có Internet, tắt data vẫn giữ AP/DHCP; AP-off không
+tự nối Wi-Fi nhà. USB tethering không dùng NM shared/rebind để đổi chế độ
+live, cũng không cần ứng dụng PC. Nó lưu lựa chọn rồi reboot bình thường một
+lần theo xác nhận; boot mới chọn DHCP/DNS/NAT riêng và PC nhận lease mới.
+Xem [thiết kế và cách dùng](USB_TETHERING.md). Không tự bật SIM khi boot hoặc
+khi tắt máy bay. Tất cả hành động vẫn cần xác nhận/receipt/khóa.
+
+519 pytest PASS / 1 Windows skip; tám layout demo và token đổi qua reboot
+PASS. DNS/HTTPS thực qua SIM, phone AP Internet, PC qua USB (Wi-Fi/SIM) và hai
+toggle tethering qua reboot đã có bằng chứng riêng. Lỗi MM disconnect kẹt
+trước đó **chưa được kết luận sửa triệt để**, dù các chu kỳ mới đã qua.
+
+## Checkpoint lịch sử trước khi chủ cho phép triển khai
 
 Ngày 16/11/2026. Sau Phase 0, chủ yêu cầu tiếp tục làm chức năng và lắp SIM
 để thử sau. Đã triển khai nguồn/preview/test; **USB thật vẫn chạy baseline
