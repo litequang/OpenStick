@@ -18,6 +18,7 @@ import uuid
 from .modem_device import ModemManager, modem_lock
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .cellular_profile import FIELDS as CELLULAR_FIELDS, validate_cellular
+from .apn_profiles import ApnProfiles, ERRORS as APN_ERRORS, valid_id
 
 AP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/hotspot'))
 CELL_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/cellular'))
@@ -31,6 +32,7 @@ HOTSPOT_ERRORS = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'NETWORK_BUSY', 'MODEM
                   'CELLULAR_NO_INTERNET', 'CELLULAR_CONNECT_FAILED', 'AP_START_FAILED', 'ROLLBACK_FAILED',
                   'HOTSPOT_START_FAILED', 'HOTSPOT_CONFIRM_EXPIRED', 'POLICY_ACTIVE', 'SETUP_ACTIVE',
                   'HOTSPOT_OPERATION_FAILED'}
+HOTSPOT_ERRORS |= APN_ERRORS
 
 
 def validate_hotspot(value):
@@ -39,11 +41,16 @@ def validate_hotspot(value):
     fields = {'status': set(), 'configure': {'ssid', 'password', 'channel', 'apn', 'confirm'},
               'configure_apn': {'apn', 'confirm'},
               'configure_cellular': CELLULAR_FIELDS | {'confirm'},
+              'apn_save': CELLULAR_FIELDS | {'profile_id', 'confirm'},
+              'apn_apply': {'profile_id', 'confirm'}, 'apn_delete': {'profile_id', 'confirm'},
               'start': {'confirm', 'cellular_consent', 'switch_wifi'},
               'keep': {'attempt', 'confirm'}, 'stop': {'confirm'}}
     if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
     if action != 'status' and value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
-    if action == 'configure_cellular':validate_cellular(value)
+    if action in ('configure_cellular', 'apn_save'):validate_cellular(value)
+    if action.startswith('apn_'):
+        if not valid_id(value['profile_id'], draft=action == 'apn_save'):raise ValueError('INPUT_INVALID')
+        if action == 'apn_save' and not value['name'].strip():raise ValueError('INPUT_INVALID')
     if action in ('configure', 'configure_apn'):
         if (not isinstance(value['apn'], str) or len(value['apn']) > 100
                 or (value['apn'] and not re.fullmatch('[a-z0-9][a-z0-9.-]*', value['apn']))):
@@ -321,10 +328,14 @@ class Hotspot:
         active = self.network.active('wlan0')
         ap = active == AP_UUID
         setup = self.read('setup-ap.json')
-        setup_active = active == SETUP_UUID and setup.get('enabled') is True
+        setup_active = active == SETUP_UUID
         unified = bool(setup.get('ssid') and setup.get('password'))
         return {'configured': unified or bool(config.get('ssid')),
                 'cellular_settings': self.cellular_settings(),
+                'apn_apply_blocked': bool(ap or pending or config.get('enabled')
+                    or self.read('network-policy.json').get('enabled')
+                    or self.read('setup-pending.json')
+                    or control and self.network.active(control)),
                 'ssid': setup.get('ssid') if unified else config.get('ssid'),
                 'channel': setup.get('channel', 6) if unified else config.get('channel'),
                 'apn': config.get('apn', ''), 'enabled': config.get('enabled', False),
@@ -339,14 +350,14 @@ class Hotspot:
     def last_operation(self):
         value = self.read('hotspot-last-operation.json')
         if (isinstance(value, dict) and set(value) == {'action', 'error', 'at'}
-                and value['action'] in ('configure', 'configure_apn', 'configure_cellular', 'start', 'keep', 'stop')
+                and value['action'] in ('configure', 'configure_apn', 'configure_cellular', 'apn_save', 'apn_apply', 'apn_delete', 'start', 'keep', 'stop')
                 and (value['error'] is None or isinstance(value['error'], str) and value['error'] in HOTSPOT_ERRORS)
                 and type(value['at']) in (int, float)):
             return value
         return None
 
     def record_operation(self, action, error):
-        if action not in ('configure', 'configure_apn', 'configure_cellular', 'start', 'keep', 'stop') or (error is not None and error not in HOTSPOT_ERRORS):
+        if action not in ('configure', 'configure_apn', 'configure_cellular', 'apn_save', 'apn_apply', 'apn_delete', 'start', 'keep', 'stop') or (error is not None and error not in HOTSPOT_ERRORS):
             raise ValueError('INPUT_INVALID')
         value = {'action': action, 'error': error, 'at': time.time()}
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -363,9 +374,13 @@ class Hotspot:
         validate_hotspot({'action': action, **values})
         with self.lock_factory():
             if action == 'status':return self.status()
+            if action == 'apn_save':return ApnProfiles(self).save(values)
+            if action == 'apn_delete':return ApnProfiles(self).delete(values['profile_id'])
             from .setup_ap import SETUP_UUID
             if self.read('setup-pending.json'):
                 raise RuntimeError('SETUP_ACTIVE')
+            if action == 'apn_apply':
+                with self.modem_lock_factory():return ApnProfiles(self).apply(values['profile_id'])
             if action == 'configure':return self.configure(values)
             if action == 'configure_apn':return self.configure_apn(values['apn'])
             if action == 'configure_cellular':
@@ -387,6 +402,9 @@ class Hotspot:
                 if action == 'keep':return self.keep(values['attempt'])
                 if action == 'stop':return self.stop()
         raise RuntimeError('INPUT_INVALID')
+
+    def apn_state(self):
+        with self.lock_factory():return ApnProfiles(self).state()
 
     def cellular_settings(self):
         from .cellular_profile import parse_profile, summary

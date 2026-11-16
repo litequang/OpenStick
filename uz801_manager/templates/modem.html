@@ -8,7 +8,7 @@
 <div class="page-title"><h1>{{ title }}</h1><button id="refresh" class="secondary">Làm mới</button></div>
 <p class="muted">Bấm các biểu tượng trên header để xem chi tiết modem, SIM, mạng và sóng.</p>
 {% if page == 'network' %}
-<button id="enable" hidden disabled>Bật modem để đăng ký mạng</button>
+{% if not portal_has_quick %}<button id="enable" hidden disabled>Bật modem để đăng ký mạng</button>{% else %}<p><a href="/overview">Cho phép di động / Chế độ máy bay tại Cài đặt nhanh →</a></p>{% endif %}
 <p class="ux-callout">SIM đang dùng để đăng ký mạng, gửi SMS và USSD. <strong>Đổi chế độ 3G/4G không bật dữ liệu Internet SIM.</strong> <a href="/sim/apn">APN tùy chỉnh →</a> · <a href="/internet">Nguồn Internet →</a></p>
 <section><h2>Chọn chế độ mạng SIM</h2><p>Chỉ 4G sẽ không tự chuyển xuống 3G vì sóng mạnh hơn. Ngoài vùng phủ 4G, kết nối di động có thể mất; Wi-Fi vẫn hoạt động.</p>
 <form id="mode"><fieldset id="mode-fields" disabled><label for="radio-mode">Chế độ modem công bố hỗ trợ</label><select id="radio-mode" required><option value="">Đang đọc chế độ…</option></select>
@@ -16,7 +16,7 @@
 {% endif %}
 
 {% if page == 'ussd' %}
-<section><h2>Phiên USSD</h2><div id="ussd-state" class="notice" role="status">Đang đọc trạng thái phiên…</div><p><button id="ussd-account" disabled>Tra tài khoản · *101#</button><small>Gửi mã ngay khi bấm. Chức năng của mã phụ thuộc nhà mạng.</small></p><form id="ussd"><fieldset id="ussd-fields" disabled>
+<section><h2>Phiên USSD</h2><div id="ussd-state" class="notice" role="status">Đang đọc trạng thái phiên…</div><form id="ussd"><fieldset id="ussd-fields" disabled>
 <label for="ussd-code">Mã USSD</label><input id="ussd-code" placeholder="Ví dụ: *101#" maxlength="32" autocomplete="off" required>
 <label class="check"><input id="ussd-confirm" type="checkbox" required>Tôi đồng ý gửi mã này tới nhà mạng; một số mã có thể đăng ký dịch vụ hoặc phát sinh cước.</label>
 <button type="submit" id="ussd-start">Gửi mã USSD</button></fieldset></form>
@@ -25,7 +25,7 @@
 <form id="reply"><fieldset id="reply-fields" disabled><label for="ussd-reply">Trả lời phiên đang yêu cầu</label><input id="ussd-reply" maxlength="70" autocomplete="off" required>
 <label class="check"><input id="reply-confirm" type="checkbox" required>Tôi đồng ý gửi câu trả lời này tới nhà mạng.</label><button type="submit">Gửi trả lời</button></fieldset></form>
 <button id="ussd-cancel" disabled>Hủy phiên USSD</button><p><small>Nếu phiên vẫn đang chờ, hủy phiên trước khi thử mã khác. Ứng dụng không tự gửi lại hoặc tự đổi 3G/4G.</small></p></section>
-<details class="ux-advanced"><summary>Khắc phục USSD: chuyển 3G / 4G (nâng cao)</summary><section><h2>Mạng dùng cho USSD</h2><p>Nếu chế độ Chỉ 4G báo không có mạng cho USSD, chọn <a href="/modem/network">Tự động 3G/4G, ưu tiên 4G trong Mạng SIM</a>. Khi mạng hỗ trợ, modem có thể chuyển xuống 3G để phục vụ USSD rồi trở lại 4G. Chọn công nghệ mạng không bật dữ liệu Internet từ SIM.</p><details><summary>Chuyển thủ công 3G / 4G</summary><button id="ussd-3g" disabled>Dùng 3G cho USSD</button><button id="ussd-4g" class="secondary" disabled>Trở lại 4G</button><p id="ussd-radio-result" class="notice" role="status">Lựa chọn thủ công được lưu trên USB. Chuyển mạng cần đăng ký lại; không tự gửi mã USSD sau khi chuyển.</p></details></section></details>
+<details class="ux-advanced"><summary>Mạng phục vụ USSD</summary><p>USSD phụ thuộc modem và nhà mạng, không thể kết luận Chỉ 4G luôn hoạt động hoặc luôn lỗi. Đổi chế độ sóng tại <a href="/modem/network">Mạng SIM</a>; lựa chọn được lưu và có thể làm gián đoạn đăng ký mạng. Ứng dụng không tự đổi chế độ hoặc gửi lại USSD.</p></details>
 {% endif %}
 </main><script>
 const token={{ token|tojson }},byId=id=>document.getElementById(id);let busy=false,cap=null;
@@ -52,9 +52,6 @@ byId('mode').onsubmit=async e=>{e.preventDefault();if(!byId('mode-confirm').chec
 {% endif %}
 
 {% if page == 'ussd' %}
-byId('ussd-account').onclick=()=>{if(busy||!cap?.can_ussd||cap.ussd_state!==1)return;byId('ussd-code').value='*101#';byId('ussd-confirm').checked=false;return ussd('ussd_start',{code:'*101#'})};
-async function changeUssdRadio(pair){if(busy||!window.confirm('Kết thúc phiên USSD hiện tại (nếu có) và lưu chế độ '+modeLabel(pair)+'? Modem sẽ đăng ký mạng lại. Không tự gửi mã USSD.'))return;const output=byId('ussd-radio-result');output.textContent='Đang chuyển chế độ mạng…';try{if([2,3].includes(cap?.ussd_state))await job('ussd_cancel',{operation:operationId(),confirm:true});await job('mode',{allowed:pair[0],preferred:pair[1],confirm:true});output.textContent='Đã lưu '+modeLabel(pair)+'. Đợi modem đăng ký mạng, rồi bấm gửi mã USSD nếu cần.';await refresh()}catch(e){output.textContent=explain(e);await refresh()}}
-byId('ussd-3g').onclick=()=>changeUssdRadio([4,0]);byId('ussd-4g').onclick=()=>changeUssdRadio([8,0]);
 async function ussd(action,values){byId('ussd-result').textContent=action==='ussd_cancel'?'Đang yêu cầu hủy phiên…':'Đang chờ phản hồi USSD từ modem/nhà mạng (có thể mất gần 2 phút)…';try{const r=await job(action,{...values,operation:operationId(),confirm:true});byId('ussd-result').textContent=ussdResultText(r);byId('ussd-confirm').checked=false;byId('reply-confirm').checked=false;await refresh()}catch(e){byId('ussd-result').textContent=explain(e);await refresh()}}
 byId('ussd').onsubmit=e=>{e.preventDefault();if(byId('ussd-confirm').checked){byId('ussd-confirm').checked=false;ussd('ussd_start',{code:byId('ussd-code').value})}};byId('reply').onsubmit=e=>{e.preventDefault();if(byId('reply-confirm').checked){byId('reply-confirm').checked=false;ussd('ussd_reply',{text:byId('ussd-reply').value})}};byId('ussd-cancel').onclick=()=>ussd('ussd_cancel',{});
 {% endif %}

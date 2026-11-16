@@ -17,10 +17,12 @@ def validate_setup(value):
     if not isinstance(value, dict):raise ValueError('INPUT_INVALID')
     action = value.get('action')
     fields = {'enable': {'confirm'}, 'disable': {'confirm'}, 'start': {'confirm'},
+              'set_fallback': {'enabled', 'confirm'},
               'stop': {'confirm'}, 'scan': {'confirm'}, 'connect': {'ssid', 'password', 'confirm'},
               'configure_ap': {'ssid', 'password', 'channel', 'confirm'}}
     if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
     if value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
+    if action == 'set_fallback' and type(value['enabled']) is not bool:raise ValueError('INPUT_INVALID')
     if action == 'connect':
         ssid, password = value['ssid'], value['password']
         if (not isinstance(ssid, str) or not 1 <= len(ssid.encode()) <= 32
@@ -204,6 +206,12 @@ class SetupAP(Hotspot):
         with self.lock_factory():
             if self.read('setup-pending.json'):raise RuntimeError('NETWORK_BUSY')
             if action == 'configure_ap':return self.configure_ap(values)
+            if action == 'set_fallback':
+                if values['enabled']:self.provision()
+                else:
+                    config = self.read('setup-ap.json');config['enabled'] = False
+                    self.write('setup-ap.json', config)
+                return self.status()
             if action == 'enable':
                 self.provision()
                 return self.status()

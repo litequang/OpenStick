@@ -304,6 +304,92 @@ def advanced_apn(**changes):
                 password_action='replace',auth='pap_chap',ip_family='ipv4',roaming=False,confirm=True,**changes)
 
 
+def test_multiple_apns_save_edit_delete_without_modem_or_live_config_changes(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    before={p:p.read_bytes() for p in backend.profiles.glob('*')};network.calls.clear()
+    first=backend.call('apn_save',profile_id='',**advanced_apn())['saved_profile_id']
+    other=advanced_apn();other.update(name='Fixture travel',apn='fixture.travel',password='other-secret')
+    second=backend.call('apn_save',profile_id='',**other)['saved_profile_id']
+    public=backend.apn_state()
+    assert len(public['profiles'])==2 and 'fixture-secret' not in json.dumps(public) and 'other-secret' not in json.dumps(public)
+    keep=advanced_apn();keep.update(name='Fixture renamed',password_action='keep',password='')
+    backend.call('apn_save',profile_id=first,**keep)
+    raw=json.loads((backend.directory/'apn-profiles.json').read_text())
+    assert next(p for p in raw['profiles'] if p['id']==first)['password']=='fixture-secret'
+    backend.call('apn_delete',profile_id=second,confirm=True)
+    assert len(backend.apn_state()['profiles'])==1
+    assert not network.calls and all(p.read_bytes()==data for p,data in before.items())
+
+
+def test_saving_presets_works_while_data_ap_and_policy_active_but_apply_is_blocked(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    network.current.update(wlan0=AP_UUID,wwan0qmi0=CELL_UUID)
+    backend.write('network-policy.json',{'enabled':True});network.calls.clear()
+    saved=backend.call('apn_save',profile_id='',**advanced_apn())['saved_profile_id']
+    with pytest.raises(RuntimeError,match='HOTSPOT_ACTIVE'):
+        backend.call('apn_apply',profile_id=saved,confirm=True)
+    assert not network.calls
+
+
+def test_applying_preset_is_explicit_save_only_and_active_preset_cannot_be_deleted(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    saved=backend.call('apn_save',profile_id='',**advanced_apn())['saved_profile_id']
+    network.calls.clear()
+    result=backend.call('apn_apply',profile_id=saved,confirm=True)
+    assert result['profiles'][0]['active'] and 'fixture-secret' not in json.dumps(result)
+    assert all(c[0]=='load' for c in network.calls) and len(network.calls)==1
+    with pytest.raises(RuntimeError,match='APN_PROFILE_ACTIVE'):
+        backend.call('apn_delete',profile_id=saved,confirm=True)
+    values=advanced_apn();values.update(name='Other SIM',apn='fixture.other')
+    other=backend.call('apn_save',profile_id='',**values)['saved_profile_id']
+    backend.call('apn_apply',profile_id=other,confirm=True)
+    backend.call('apn_delete',profile_id=saved,confirm=True)
+    assert backend.apn_state()['profiles'][0]['active']
+
+
+def test_copy_current_preserves_private_password_and_editing_applied_preset_does_not_apply_it(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    backend.call('configure_cellular',**advanced_apn())
+    values=advanced_apn();values.update(password='',password_action='keep')
+    saved=backend.call('apn_save',profile_id='current',**values)['saved_profile_id']
+    assert backend.apn_state()['profiles'][0]['active']
+    before=(backend.profiles/'openstick-cellular.nmconnection').read_bytes();network.calls.clear()
+    values['apn']='fixture.next'
+    backend.call('apn_save',profile_id=saved,**values)
+    assert not backend.apn_state()['profiles'][0]['active']
+    assert not network.calls and before==(backend.profiles/'openstick-cellular.nmconnection').read_bytes()
+
+
+def test_duplicate_names_bad_registry_and_missing_ids_fail_without_overwriting(setup_hotspot):
+    import uuid
+    backend,network,_=setup_hotspot
+    backend.call('apn_save',profile_id='',**advanced_apn())
+    path=backend.directory/'apn-profiles.json';before=path.read_bytes()
+    with pytest.raises(RuntimeError,match='APN_PROFILE_NAME_EXISTS'):
+        backend.call('apn_save',profile_id='',**advanced_apn())
+    with pytest.raises(RuntimeError,match='APN_PROFILE_NOT_FOUND'):
+        backend.call('apn_delete',profile_id=str(uuid.uuid4()),confirm=True)
+    assert path.read_bytes()==before and not network.calls
+    path.write_text('{corrupt')
+    with pytest.raises(RuntimeError,match='APN_PROFILES_UNAVAILABLE'):
+        backend.call('apn_save',profile_id='',**advanced_apn())
+    assert path.read_text()=='{corrupt'
+
+
+def test_apn_presets_are_limited_and_require_confirmation(setup_hotspot):
+    backend,network,_=setup_hotspot
+    for index in range(20):
+        values=advanced_apn();values['name']=f'Fixture {index}'
+        backend.call('apn_save',profile_id='',**values)
+    extra=advanced_apn();extra['name']='Too many'
+    with pytest.raises(RuntimeError,match='APN_PROFILE_LIMIT'):
+        backend.call('apn_save',profile_id='',**extra)
+    extra['confirm']=False
+    with pytest.raises(ValueError,match='CONFIRM_REQUIRED'):
+        backend.call('apn_save',profile_id='',**extra)
+    assert not network.calls
+
+
 def test_advanced_apn_saves_only_and_never_returns_password(setup_hotspot):
     import configparser
     backend,network,_=setup_hotspot;configure(backend)

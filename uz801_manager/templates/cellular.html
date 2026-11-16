@@ -1,10 +1,14 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — APN tùy chỉnh</title></head><body><main>
 {% include 'portal_chrome.html' %}
 <div class="page-title"><h1>APN tùy chỉnh</h1><a href="/modem/network">← Mạng SIM</a></div>
-<section><h2>Kết nối Internet của SIM</h2>
-<p>Thiết lập cho kết nối dữ liệu SIM hiện tại. <strong>Chỉ lưu cấu hình</strong>; không bật dữ liệu, đổi chế độ 3G/4G hoặc khởi động lại USB. Tắt dữ liệu SIM và tự quản lý mạng trước khi lưu; nếu đang phát Wi-Fi, tắt phát trước.</p>
+<section><h2>Các cấu hình APN đã lưu</h2>
+<p>Tạo cấu hình có tên riêng cho từng SIM hoặc gói cước. <strong>Lưu vào danh sách không thay APN đang dùng</strong>, không bật dữ liệu và không cần lắp SIM. Khi đổi SIM, chọn cấu hình phù hợp rồi bấm Áp dụng; không tự nhận diện SIM hay tự chọn cấu hình.</p>
+<label for="cellular-profiles">Chọn cấu hình để xem hoặc chỉnh sửa</label><select id="cellular-profiles" disabled><option value="">Đang đọc…</option></select>
+<p><button id="cellular-new" type="button" disabled>Tạo APN mới</button> <button id="cellular-apply" type="button" disabled>Áp dụng cấu hình</button> <button id="cellular-delete" type="button" class="secondary" disabled>Xóa khỏi danh sách</button> <button id="cellular-refresh" type="button" class="secondary">Đọc lại</button></p>
+<p id="cellular-active" class="notice" role="status"></p><p id="cellular-apply-reason" class="metric-note"></p>
+</section><section><h2 id="cellular-editor-title">Chỉnh sửa APN</h2>
 <form id="cellular-form"><fieldset id="cellular-fields" disabled>
-<label for="cellular-name">Tên cấu hình</label><input id="cellular-name" maxlength="80" placeholder="Ví dụ: Internet SIM chính" autocomplete="off">
+<label for="cellular-name">Tên cấu hình</label><input id="cellular-name" maxlength="80" placeholder="Ví dụ: SIM công việc, SIM du lịch" autocomplete="off" required>
 <label for="cellular-mode">APN</label><select id="cellular-mode"><option value="auto">Tự nhận theo nhà mạng</option><option value="manual">APN tùy chỉnh</option></select>
 <div id="cellular-manual" hidden>
 <label for="cellular-apn">Địa chỉ APN</label><input id="cellular-apn" maxlength="100" pattern="[a-z0-9][a-z0-9.\-]*" autocapitalize="none" autocomplete="off" spellcheck="false">
@@ -18,7 +22,7 @@
 <p class="metric-note">IPv6 phụ thuộc modem và nhà mạng. Chia sẻ Internet qua USB/hotspot hiện dùng IPv4; chọn chỉ IPv6 có thể khiến thiết bị được chia sẻ không có Internet.</p>
 <label class="checkline"><input id="cellular-roaming" type="checkbox"> Cho phép dữ liệu khi chuyển vùng (có thể phát sinh cước)</label>
 <p class="metric-note">Không cần điền MCC/MNC, IMEI, PIN SIM hay cấu hình MMS để chạy web và Tunnel. Các trường proxy/MMS của điện thoại không được áp dụng cho đường Internet này.</p>
-<button id="cellular-save">Lưu APN</button></fieldset></form>
+<button id="cellular-save">Lưu vào danh sách</button></fieldset></form>
 <p id="cellular-result" role="status" aria-live="polite">Đang đọc cấu hình…</p>
 <p><a href="/quick">Bật dữ liệu SIM trong Cài đặt nhanh →</a></p></section>
 <script src="/static/cellular.js"></script></main></body></html>

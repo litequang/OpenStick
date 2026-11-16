@@ -16,6 +16,9 @@ jobs:
       - run: node --check uz801_manager/static/app.js
       - run: node --check uz801_manager/static/quick.js
       - run: node --check uz801_manager/static/cellular.js
+      - run: node --check uz801_manager/static/hotspot_page.js
+      - run: node --check uz801_manager/static/setup.js
+      - run: node --check uz801_manager/static/internet.js
       - run: python -m uz801_manager --self-test
       - run: python -m PyInstaller --noconfirm --onefile --name UZ801-OpenStick-Manager --collect-data uz801_manager launcher.py
       - run: .\dist\UZ801-OpenStick-Manager.exe --self-test

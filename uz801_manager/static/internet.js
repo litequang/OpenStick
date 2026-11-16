@@ -3,7 +3,6 @@ const policyErrors={HOTSPOT_ACTIVE:'Đang ở vai trò hotspot. Dừng hotspot t
 async function policyJob(action,values={}){
   if(policyBusy)throw Error('NETWORK_BUSY');policyBusy=true;
   policyId('policy-fields').disabled=true;policyId('policy-refresh').disabled=true;
-  policyId('data-off').disabled=true;
   try{
     const response=await fetch('/api/internet',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':policyToken},body:JSON.stringify({action,...values})});
     if(response.status===401){location.href='/login';throw Error('SESSION_EXPIRED')}
@@ -11,7 +10,7 @@ async function policyJob(action,values={}){
     const end=Date.now()+290000;
     while(Date.now()<end){const poll=await fetch('/api/internet/state',{headers:{'X-OpenStick-Token':policyToken}});if(!poll.ok)throw Error();const s=await poll.json();if(!s.busy){if(s.error)throw Error(s.error);return s.result}await new Promise(resolve=>setTimeout(resolve,800))}
     throw Error('RESULT_UNKNOWN');
-  }finally{policyBusy=false;policyId('policy-fields').disabled=!policyLoaded;policyId('policy-refresh').disabled=false;policyId('data-off').disabled=false}
+  }finally{policyBusy=false;policyId('policy-fields').disabled=!policyLoaded;policyId('policy-refresh').disabled=false}
 }
 function policyExplain(error){policyId('policy-notice').textContent=policyErrors[error.message]||'Chưa nhận được kết quả. Kiểm tra trạng thái qua USB trước khi thử lại.'}
 function renderPolicy(result){
@@ -26,7 +25,6 @@ policyId('internet-mode').onchange=policyModeHelp;
 let policyDirty=false;
 policyId('policy-form').addEventListener('input',()=>{policyDirty=true});
 policyId('policy-refresh').onclick=()=>{if(policyDirty&&!confirm('Đọc lại cấu hình sẽ bỏ các thay đổi chưa áp dụng. Tiếp tục?'))return;policyDirty=false;refreshPolicy()};
-policyId('data-off').onclick=async()=>{if(!window.confirm('Tắt dữ liệu SIM và tự chuyển sang SIM? Kết nối Internet đang dùng SIM sẽ ngắt; SMS và Wi-Fi vẫn giữ.'))return;try{renderPolicy(await policyJob('data_off',{confirm:true}));policyId('policy-notice').textContent='Đã tắt dữ liệu SIM do OpenStick quản lý. SIM tiếp tục hoạt động cho SMS / USSD.'}catch(e){policyExplain(e)}};
 policyId('policy-form').onsubmit=async event=>{event.preventDefault();if(!policyId('policy-confirm').checked)return;const values={mode:policyId('internet-mode').value,enabled:policyId('policy-enabled').checked,auto_wifi:policyId('policy-auto-wifi').checked,cellular_consent:policyId('policy-cellular').checked,confirm:true};if(values.enabled&&values.mode!=='wifi_only'&&!values.cellular_consent){policyId('policy-notice').textContent='Cần tích cho phép dữ liệu SIM khi bật chính sách có SIM.';return}policyId('policy-confirm').checked=false;try{renderPolicy(await policyJob('configure',values));policyId('policy-notice').textContent='Đã lưu và áp dụng chính sách.'}catch(e){policyExplain(e)}};
 const drawPolicy=renderPolicy;renderPolicy=result=>{drawPolicy(result);policyDirty=false;policyModeHelp()};
 refreshPolicy();

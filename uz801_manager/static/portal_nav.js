@@ -87,7 +87,7 @@ function renderHeader(c){
  set('chip-network-label',technology);state('network',bars!=null?'ready':'warning');
  summary('network','Mạng '+technology+', '+(bars==null?'chưa có mức sóng mới':bars+'/4 vạch, '+shownSignal+'%'+(validSignal?'':' (lần đo gần nhất)'))+'. Bấm xem chi tiết.');
  set('modem-status','Modem: '+(c.state||'chưa xác định')+'\n'+(c.registered?'Đã đăng ký mạng.':'Chưa đăng ký mạng.'));
- set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Vào Mạng SIM để bật.':'Đang chờ SIM hoặc đăng ký mạng.');
+ set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Mở Cài đặt nhanh để cho phép di động.':'Đang chờ SIM hoặc đăng ký mạng.');
  set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+carrier+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
  set('network-status','Nhà mạng: '+carrier+'\nMạng đang dùng: '+(measuredTechnology?portalTechnology(c.access_technologies):portalLastSignal?.technology||portalTechnology(c.access_technologies))+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
  set('signal-status',validSignal?bars+'/4 vạch · '+c.signal_percent+'% — chất lượng do modem báo.\nSố liệu gần đây.':shownSignal!=null?bars+'/4 vạch · '+shownSignal+'% — lần đo gần nhất; chưa có cập nhật mới.':!c.sim_present?'Không có SIM để đo sóng.':c.sim_locked?'SIM đang khóa, chưa có mức sóng khả dụng.':!c.registered?'Chưa đăng ký mạng; chưa có mức sóng kết nối.':'Chưa có số liệu mức sóng hợp lệ.');
@@ -104,7 +104,7 @@ function renderWifiHeader(w){
  const lines=[ap?'Chế độ: phát Wi-Fi từ USB':connected?'Chế độ: kết nối Wi-Fi':'Wi-Fi chưa kết nối / không phát hotspot'];
  if(ap||connected){lines.push('Tên mạng: '+(w.ssid||'chưa xác định'));if(ap)lines.push('Kênh: '+(w.channel||'chưa xác định'));else lines.push('Mức sóng: '+(w.signal_percent==null?'chưa có số liệu':w.signal_percent+'%')+(w.signal_dbm==null?'':' ('+w.signal_dbm+' dBm)'));lines.push('IPv4: '+((w.ipv4||[]).join(', ')||'chưa có'));if(!ap)lines.push('Gateway: '+(w.gateway||'chưa có'));lines.push('Kết nối Wi-Fi không xác nhận Internet đang hoạt động.')}
  if(w.setup_active)lines.push('Hotspot cài đặt: không cần SIM, không chia sẻ Internet.');
- detail.textContent=lines.join('\n');if(link){link.href=w.setup_active?'/setup':ap?'/hotspot':'/';link.textContent=ap?'Quản lý hotspot →':'Cài đặt Wi-Fi →'}
+ detail.textContent=lines.join('\n');if(link){link.href=ap?'/setup#usb-ap-settings':'/setup';link.textContent=ap?'Cấu hình Wi-Fi phát →':'Cài đặt Wi-Fi →'}
 }
 function setupHeaderStatus(){
  const header=document.querySelector('.portal-header'),token=header?.dataset.statusToken;if(!token)return;

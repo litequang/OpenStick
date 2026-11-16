@@ -1,5 +1,14 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — mới hơn: nhiều APN và dọn các nút mạng cũ.**
+Đọc [UI_ACTION_AUDIT_2026_11_16.md](UI_ACTION_AUDIT_2026_11_16.md).
+APN có danh sách tối đa 20 tên riêng: lưu/sửa không áp dụng, Apply riêng và
+không bật data; không nhận diện SIM. Bỏ luồng gộp SIM→AP, data-off riêng,
+start/stop setup AP cũ và đổi RAT/gửi nhanh trong USSD. Chỉ giữ UI xử lý
+hotspot trial nếu pending. Fallback on/off chỉ lưu, không dừng AP. Luồng
+setup Save → một reboot giữ nguyên. Các ghi chú "chỉ một APN" sau đây là cũ.
+Không tự kiểm thử SMS/USSD hoặc APN nhà mạng. Lỗi MM và cold DHCP vẫn mở.
+
 **16/11/2026 — MỚI NHẤT: đã cài popup Quick Wi-Fi, APN nâng cao và root → Tổng quan.**
 Đọc [bàn giao mới](QUICK_WIFI_APN_2026_11_16.md). Tổng quan ngoài cùng bên phải.
 Đã sửa cache quét rỗng sau AP; hai lượt AP → saved station thật đạt, Wi-Fi có

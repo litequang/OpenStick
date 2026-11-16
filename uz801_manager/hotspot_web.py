@@ -27,8 +27,14 @@ def register_hotspot_routes(app, backend, token):
         try:
             value = backend.call('status')
             return jsonify(settings=value.get('cellular_settings', {'available': False}),
-                           blocked=bool(value.get('hotspot_active') or value.get('pending')
+                           **(backend.apn_state() if hasattr(backend, 'apn_state') else {'profiles':[]}),
+                           blocked=bool(value.get('apn_apply_blocked') or value.get('hotspot_active') or value.get('pending')
                                         or value.get('cellular_connected') or value.get('enabled')))
+        except Exception:return jsonify(error='STATUS_UNAVAILABLE'), 503
+
+    @app.get('/api/hotspot/summary')
+    def hotspot_summary():
+        try:return jsonify(backend.call('status'))
         except Exception:return jsonify(error='STATUS_UNAVAILABLE'), 503
 
     @app.get('/api/hotspot/state')

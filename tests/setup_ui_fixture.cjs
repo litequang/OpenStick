@@ -14,10 +14,7 @@ const context={Date,console,setTimeout,URL,TextEncoder,location:{},confirm:()=>a
  if(url==='/api/state')return {ok:true,json:async()=>({busy:false,result:{connected:true}})};
  if(opts.method==='POST'){
   const post=JSON.parse(opts.body);posts.push(post);
-  if(post.action==='enable')state.enabled=true;
-  if(post.action==='disable')state.enabled=false;
-  if(post.action==='start')state.setup_active=true;
-  if(post.action==='stop')state.setup_active=false;
+  if(post.action==='set_fallback')state.enabled=post.enabled;
  }return {ok:true,json:async()=>state}}
 };
 vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/setup.js','utf8'),context);
@@ -28,7 +25,7 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/
  assert.equal(elements['setup-auto-state'].dataset.active,'true');
  assert.equal(elements['setup-ap-state'].dataset.active,'true');
  assert.equal(elements['setup-enable'].hidden,true);assert.equal(elements['setup-disable'].hidden,false);
- assert.equal(elements['setup-start'].hidden,true);assert.equal(elements['setup-stop'].hidden,false);
+ assert(!elements['setup-start']);assert(!elements['setup-stop']);
  elements['setup-password-toggle'].onclick();assert.equal(elements['setup-password'].type,'text');
  assert.equal(elements['setup-password-toggle'].attrs['aria-pressed'],'true');
  elements['setup-password-toggle'].onclick();assert.equal(elements['setup-password'].type,'password');
@@ -44,17 +41,13 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/
  elements['setup-scan'].onclick();await new Promise(r=>setImmediate(r));
  assert.equal(posts[1].action,'scan');assert.equal(posts[1].confirm,true);
  elements['setup-disable'].onclick();await new Promise(r=>setImmediate(r));
- assert.equal(posts[2].action,'disable');assert.equal(elements['setup-auto-state'].dataset.active,'false');
+ assert.equal(posts[2].action,'set_fallback');assert.equal(posts[2].enabled,false);assert.equal(elements['setup-auto-state'].dataset.active,'false');
  assert.equal(elements['setup-enable'].hidden,false);assert.equal(elements['setup-disable'].hidden,true);
- elements['setup-stop'].onclick();await new Promise(r=>setImmediate(r));
- assert.equal(posts[3].action,'stop');assert.equal(elements['setup-ap-state'].dataset.active,'false');
- assert.equal(elements['setup-start'].hidden,false);assert.equal(elements['setup-stop'].hidden,true);
+ assert.equal(elements['setup-ap-state'].dataset.active,'true','saving fallback must keep the AP running');
  elements['setup-enable'].onclick();await new Promise(r=>setImmediate(r));
- assert.equal(posts[4].action,'enable');assert.equal(elements['setup-auto-state'].dataset.active,'true');
+ assert.equal(posts[3].action,'set_fallback');assert.equal(posts[3].enabled,true);assert.equal(elements['setup-auto-state'].dataset.active,'true');
  assert.equal(elements['setup-enable'].hidden,true);assert.equal(elements['setup-disable'].hidden,false);
- elements['setup-start'].onclick();await new Promise(r=>setImmediate(r));
- assert.equal(posts[5].action,'start');assert.equal(elements['setup-ap-state'].dataset.active,'true');
- assert.equal(elements['setup-start'].hidden,true);assert.equal(elements['setup-stop'].hidden,false);
+ assert(!posts.some(p=>p.action==='start'||p.action==='stop'));
  await elements['setup-reveal'].onclick();assert.equal(elements['setup-credentials'].hidden,false);
  await elements['setup-reveal'].onclick();assert.equal(elements['setup-credentials'].hidden,true);
  assert.equal(elements['setup-credentials'].textContent,'');assert.equal(credentialsReads,1);

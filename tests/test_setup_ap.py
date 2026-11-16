@@ -58,6 +58,16 @@ def setup(tmp_path):
     return backend, network, clock
 
 
+def test_fallback_setting_does_not_stop_ap_restore_wifi_or_queue_reboot(setup):
+    backend,network,_=setup;network.wifi=SETUP_UUID
+    before=(backend.profiles/'openstick-setup.nmconnection').read_bytes();network.events.clear()
+    state=backend.call('set_fallback',enabled=False,confirm=True)
+    assert not state['enabled'] and state['setup_active']
+    assert network.wifi==SETUP_UUID and not network.events
+    assert not (backend.directory/'setup-pending.json').exists()
+    assert (backend.profiles/'openstick-setup.nmconnection').read_bytes()==before
+
+
 def test_provision_is_stable_private_and_never_activates_network(setup):
     backend, network, _ = setup
     first = backend.status(credentials=True)

@@ -1,5 +1,19 @@
 # Handoff — 2026-11-14, home machine
 
+## Latest: named APN presets and conflicting legacy button cleanup
+
+See [action audit](UI_ACTION_AUDIT_2026_11_16.md). Named APN save/edit/delete
+is private metadata only; Apply separately updates the owned GSM keyfile,
+under old active-data/AP/policy guards, never activates it. No SIM matching.
+Registry is root-only, never exported with passwords. Do not overwrite it.
+Legacy combined activation/APN form/data-off and setup start/restore-old-Wi-Fi
+buttons removed. Pending trial keep/rollback remains conditional. USSD sends
+through the confirmed form only, RAT selection lives in SIM settings.
+Fallback setting has a new save-only action; existing setup reboot handoff
+and original Windows backup UI are preserved. No network changes/reboot are
+authorized merely by opening these pages. 580 tests pass / one Windows skip;
+fixture browser checks passed. Multiple carrier/SIM data tests remain unverified.
+
 ## 2026-11-16 latest: Quick Wi-Fi, advanced APN and Overview entry installed
 
 See [current report](QUICK_WIFI_APN_2026_11_16.md), including the new cold-replug

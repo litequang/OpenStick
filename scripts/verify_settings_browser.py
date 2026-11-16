@@ -102,13 +102,10 @@ def main():
             expect(page.locator('#policy-cellular')).to_be_disabled()
 
             page.goto(BASE + '/hotspot')
-            expect(page.locator('#hotspot-start-reason')).to_contain_text('Cấu hình')
-            expect(page.locator('#hotspot-start')).to_be_disabled()
-            page.locator('#hotspot-apn-mode').select_option('manual')
-            page.locator('#hotspot-apn').fill('fictional.apn')
-            page.wait_for_timeout(10500)
-            expect(page.locator('#hotspot-apn')).to_have_value('fictional.apn')
-            expect(page.locator('#hotspot-apn-mode')).to_have_value('manual')
+            expect(page.locator('#hotspot-start')).to_have_count(0)
+            expect(page.locator('#hotspot-apn-settings')).to_have_count(0)
+            expect(page.locator('#hotspot-pending')).to_be_hidden()
+            expect(page.locator('a[href="/sim/apn"]')).to_have_count(1)
 
             page.goto(BASE + '/manage#lan-manage')
             page.locator('#lan-manage').evaluate('(el)=>el.open=true')

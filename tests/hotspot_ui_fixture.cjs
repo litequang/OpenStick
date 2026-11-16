@@ -1,55 +1,28 @@
+// Old combined activation is gone. Only an existing trial can be kept/rolled back.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const html=fs.readFileSync(process.argv[2],'utf8');
-const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],{value:'',checked:false,hidden:false}]));
-const calls=[];let confirmed=false,lastOperation=null,error=null,nextError=null,dropBeforeStart=false,dropAfterStart=false,result={configured:true,ssid:'Fixture USB',channel:6,apn:'',ap_supported:true,enabled:false,hotspot_active:false,cellular_connected:false,pending:false,verification:'UNVERIFIED'};
-const context={console,Date,setTimeout,setInterval:()=>0,location:{},confirm:()=>confirmed,
- document:{hidden:false,getElementById:id=>elements[id],querySelectorAll:()=>[]},
- fetch:async(url,options={})=>{if(options.method==='POST'){assert.equal(url,'/api/hotspot');const data=JSON.parse(options.body);if(data.action==='start'&&dropBeforeStart){dropBeforeStart=false;throw Error('connection lost before send')}calls.push(data);error=nextError;nextError=null;if(data.action!=='status')lastOperation={action:data.action,error,at:Date.now()/1000};if(data.action==='configure_apn'&&!error)result={...result,apn:data.apn};if(data.action==='start'&&!error)result={...result,pending:true,hotspot_active:true,attempt:'a'.repeat(32),seconds_remaining:280};if(data.action==='start'&&dropAfterStart){dropAfterStart=false;throw Error('response lost after send')}return {ok:true,status:202};}assert.equal(url,'/api/hotspot/state');return {ok:true,json:async()=>({busy:false,error,result,last_operation:lastOperation})};}};
-vm.createContext(context);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
-const tick=()=>new Promise(r=>setImmediate(r));
-(async()=>{await tick();assert.deepEqual(calls.map(v=>v.action),['status']);assert(elements['hotspot-start'].disabled);
- elements['hotspot-start'].onclick();await tick();assert.equal(calls.length,1);
- elements['hotspot-consent'].checked=true;elements['hotspot-consent'].onchange();assert(!elements['hotspot-start'].disabled);
- elements['hotspot-start'].onclick();await tick();assert.equal(calls.length,1);
- assert.equal(elements['hotspot-password'],undefined);assert.equal(elements['hotspot-settings'],undefined);
- assert(!calls.some(v=>v.action==='configure'||v.action==='start'));
- elements['hotspot-apn-mode'].value='manual';elements['hotspot-apn-mode'].onchange();
- assert(!elements['hotspot-apn'].disabled);assert(elements['hotspot-apn'].required);
- elements['hotspot-apn'].value='fixture.apn';elements['hotspot-apn-settings'].onsubmit({preventDefault(){}});await tick();
- assert.deepEqual(calls.at(-1),{action:'configure_apn',apn:'fixture.apn',confirm:true});
- assert(!calls.some(v=>v.action==='start'));assert.match(elements['hotspot-apn-current'].textContent,/fixture.apn/);
- elements['hotspot-apn-mode'].value='auto';elements['hotspot-apn-mode'].onchange();
- assert(elements['hotspot-apn'].disabled);elements['hotspot-apn-settings'].onsubmit({preventDefault(){}});await tick();
- assert.equal(calls.at(-1).apn,'');
- confirmed=true;elements['hotspot-start'].onclick();await tick();const start=calls.find(v=>v.action==='start');
- assert(start.confirm&&start.cellular_consent&&start.switch_wifi);assert.equal(elements['hotspot-pending'].hidden,false);
- assert(!calls.some(v=>v.action==='keep'));assert.equal(elements['hotspot-consent'].checked,false);
- assert.match(elements['hotspot-notice'].textContent,/Đã bật thử hotspot/);
- nextError='CELLULAR_CONNECT_FAILED';
- await context.hotspotCall('start',{confirm:true,cellular_consent:true,switch_wifi:true});
- assert.match(elements['hotspot-notice'].textContent,/APN/);
- await context.hotspotCall('status');
- assert.match(elements['hotspot-notice'].textContent,/APN/);
- assert.match(elements['hotspot-notice'].textContent,/gần nhất/);
- result={...result,pending:true,hotspot_active:false,cellular_connected:true,seconds_remaining:100};
- await context.hotspotCall('status');assert(elements['hotspot-keep'].disabled);
- assert.match(elements['hotspot-countdown'].textContent,/chưa thể xác nhận/);
- result={...result,hotspot_active:true};await context.hotspotCall('status');
- assert(!elements['hotspot-keep'].disabled);
- result={...result,configured:false,setup_active:true,setup_ssid:'OpenStick setup',pending:false,hotspot_active:false,cellular_connected:false,enabled:false};
- await context.hotspotCall('status');assert(elements['hotspot-start'].disabled);
- elements['hotspot-consent'].checked=true;elements['hotspot-consent'].onchange();assert(!elements['hotspot-start'].disabled);
- const startsBefore=calls.filter(v=>v.action==='start').length;
- dropAfterStart=true;elements['hotspot-start'].onclick();await tick();
- assert.equal(calls.filter(v=>v.action==='start').length,startsBefore+1);
- assert(!elements['hotspot-pending'].hidden);
- assert.match(elements['hotspot-notice'].textContent,/Đã bật thử hotspot/);
- result={...result,pending:false,hotspot_active:false,cellular_connected:false};
- await context.hotspotCall('status');
- elements['hotspot-consent'].checked=true;elements['hotspot-consent'].onchange();
- dropBeforeStart=true;elements['hotspot-start'].onclick();await tick();
- assert.equal(calls.filter(v=>v.action==='start').length,startsBefore+1,'never replay a lost start POST');
- assert.match(elements['hotspot-notice'].textContent,/Chưa xác định được lệnh bật/);
+assert(!html.includes('id="hotspot-start"'));assert(!html.includes('id="hotspot-apn-settings"'));
+const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],{disabled:false,hidden:false,textContent:''}]));
+let state={pending:false,hotspot_active:false,cellular_connected:false,enabled:false},interval,confirmed=false;
+const writes=[],tick=()=>new Promise(r=>setImmediate(r));
+const context={console,Date,setTimeout,setInterval:fn=>{interval=fn},location:{},window:{confirm:()=>confirmed},
+ document:{hidden:false,getElementById:id=>elements[id],querySelector:()=>({dataset:{statusToken:'fixture'}})},
+ fetch:async(url,options={})=>{
+  if(options.method==='POST'){const value=JSON.parse(options.body);writes.push(value);state={...state,pending:false};return {ok:true};}
+  if(url==='/api/hotspot/state')return {ok:true,json:async()=>({busy:false,last_operation:{action:writes.at(-1)?.action},result:state})};
+  assert.equal(url,'/api/hotspot/summary');return {ok:true,status:200,json:async()=>state};
+ }};
+vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/hotspot_page.js','utf8'),context);
+(async()=>{
+ await tick();assert.equal(writes.length,0);assert(elements['hotspot-pending'].hidden);assert(elements['hotspot-keep'].disabled);
+ state={...state,pending:true,hotspot_active:true,cellular_connected:true,seconds_remaining:60,attempt:'fixture-attempt'};
+ interval();await tick();assert(!elements['hotspot-pending'].hidden);assert(!elements['hotspot-keep'].disabled);
+ await elements['hotspot-keep'].onclick();assert.equal(writes.length,0);
+ confirmed=true;await elements['hotspot-keep'].onclick();assert.equal(writes.length,1);
+ assert.deepEqual(writes[0],{action:'keep',confirm:true,attempt:'fixture-attempt'});
  assert(elements['hotspot-pending'].hidden);
- console.log('Hotspot explicit consent fixture: PASS');
+ state={...state,pending:true};interval();await tick();await elements['hotspot-rollback'].onclick();
+ assert.deepEqual(writes[1],{action:'stop',confirm:true});
+ assert(!writes.some(v=>v.action==='start'||v.action==='configure_apn'));
+ console.log('Hotspot read-only page and legacy trial consent PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});
