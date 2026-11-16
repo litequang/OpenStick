@@ -96,3 +96,50 @@ def test_navigation_breadcrumb_and_accessible_current_state():
     assert 'aria-current="page"' in render("manage")
     assert 'href="/setup"' in render('wifi')
     assert 'aria-current="page"' in render('wifi')
+
+
+def test_adaptive_bottom_dock_and_unified_settings_hub():
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(loader=FileSystemLoader(ROOT / 'templates'), autoescape=True)
+    chrome = env.get_template('portal_chrome.html')
+    desktop = chrome.render(token='fixture', page='website', portal_has_website=True)
+    for name in ['sms', 'ussd', 'overview', 'wifi', 'sim', 'website', 'manage']:
+        assert f'data-nav="{name}"' in desktop
+    assert desktop.count('class="app-bottom-nav-item') == 7
+    assert 'data-has-website="true"' in desktop
+    assert 'data-current-section="website"' in desktop
+    missing_site = chrome.render(token='fixture', page='manage', portal_has_website=False)
+    assert 'data-nav="website"' not in missing_site
+    assert missing_site.count('class="app-bottom-nav-item') == 6
+    assert 'data-has-website="false"' in missing_site
+    child = chrome.render(token='fixture', page='hotspot', portal_has_website=True)
+    assert 'data-current-section="sim"' in child
+    assert 'data-nav="sim"' in child
+    assert 'data-section-active="true"' in child
+    css = (ROOT / 'static' / 'portal.css').read_text(encoding='utf-8')
+    for required in ['@media(min-width:390px)', '@media(min-width:700px)',
+                     'grid-template-columns:repeat(6,minmax(0,1fr))',
+                     'grid-template-columns:repeat(7,minmax(0,1fr))',
+                     '.portal-nav-sim', '.portal-nav-website']:
+        assert required in css
+    app = create_hosting_app(backend=Wifi(), modem_backend=object(), usb_portal=True, token='fixture')
+    with app.test_client() as client:
+        management = client.get('/manage', base_url=BASE)
+        assert management.status_code == 200
+        html = management.text
+        assert 'class="manage-sidebar"' not in html
+        assert 'class="manage-topnav"' not in html
+        for name in ['manage-wifi', 'manage-sim', 'manage-device', 'saved-wifi']:
+            assert f'id="{name}"' in html
+        for href in ['/', '/modem/network', '/overview']:
+            assert f'href="{href}"' in html
+
+
+def test_management_website_shortcut_only_when_backend_is_available():
+    app = create_hosting_app(backend=Wifi(), modem_backend=object(), usb_portal=True,
+                             token='fixture')
+    client = app.test_client()
+    page = client.get('/overview', base_url=BASE)
+    assert page.status_code == 200
+    assert 'data-has-website="false"' in page.text
+    assert 'data-nav="website"' not in page.text
