@@ -81,8 +81,9 @@ This was reproduced on the physical USB from the PC's actual Wi-Fi interface:
 Each successful reply had RCODE 0 and the matching transaction ID. Source-bound
 LAN HTTP with both the numeric and named Host returned the login redirect.
 The owner independently confirmed numeric-IP access from the phone before
-the fix. Phone acceptance using the name after this change is still pending.
-This demonstrates a real firewall defect; it does not prove that every
+the fix, then confirmed `http://openstick.local:8765/setup` opened from the
+phone after the fix and Wi-Fi reconnection. This demonstrates a real firewall
+defect; it does not prove that every
 Android/browser DNS failure has the same cause.
 
 Only the persistent mDNS file and one live multicast accept rule were added;

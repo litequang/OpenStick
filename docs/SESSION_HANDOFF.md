@@ -23,9 +23,10 @@ without flushing firewall state or restarting services. No radio, SIM data,
 credentials, Wi-Fi profile, website, Tunnel or reboot change was made.
 
 Focused LAN/auth/firewall regression tests: 11 passed, exit 0. Full suite:
-468 passed, one Windows symlink-privilege skip, exit 0 (17.12 seconds). Phone name
-acceptance after this fix is pending; the owner was asked to reconnect phone
-Wi-Fi to clear the previous negative DNS result. A client that uses only
+468 passed, one Windows symlink-privilege skip, exit 0 (17.12 seconds). After
+reconnecting phone Wi-Fi, the owner confirmed that
+`http://openstick.local:8765/setup` opens by name on the LAN. Source fix:
+`9cfc64648ba35df0d2d6974f21f2d57b7d724be4`. A client that uses only
 ordinary router DNS remains a separate case; the current router rejected the
 local name request. See [local management addressing](LOCAL_MANAGEMENT_ADDRESS.md).
 

@@ -5,8 +5,9 @@ Wi-Fi với TTL 1/64 bị chặn, TTL 255 trả đúng IP. Quy tắc cũ yêu c�
 cho cả query; đã thêm đúng ngoại lệ multicast `224.0.0.251`/UDP5353 trên
 `wlan0`, giữ quy tắc unicast cũ và không flush firewall. Sau sửa cả ba TTL
 đều nhận đúng địa chỉ WLAN, RCODE 0 và transaction ID. Không restart dịch vụ,
-đổi Wi-Fi, bật SIM hay reboot. Chủ đã xác nhận IP mở được; tên trên điện thoại
-sau bản sửa còn chờ nghiệm thu. Client chỉ dùng DNS router vẫn là trường hợp
+đổi Wi-Fi, bật SIM hay reboot. Chủ đã xác nhận IP mở được, rồi xác nhận tên
+`openstick.local:8765/setup` mở được trên điện thoại sau sửa và nối lại Wi-Fi.
+Client chỉ dùng DNS router vẫn là trường hợp
 riêng. Đọc đầu `docs/SESSION_HANDOFF.md` và `docs/LOCAL_MANAGEMENT_ADDRESS.md`.
 
 **16/11/2026 — Đã cài giao diện quản lý/navigation V2 commit `fddda78`
