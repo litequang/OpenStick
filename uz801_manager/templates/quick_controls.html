@@ -6,12 +6,9 @@
   <button class="quick-tile" id="quick-receive" disabled><span class="quick-icon" aria-hidden="true">{{ icon('wifi-receive') }}</span><strong>Nhận Wi-Fi</strong><small id="quick-wifi">Đang đọc…</small></button>
   <button class="quick-tile" id="quick-ap" disabled><span class="quick-icon" aria-hidden="true">{{ icon('wifi-broadcast') }}</span><strong>Phát Wi-Fi</strong><small>Đang đọc…</small></button>
   <button class="quick-tile" id="quick-usb" disabled><span aria-hidden="true">↔</span><strong>USB tethering</strong><small>Đang đọc…</small></button>
+  {% if (portal_settings_features|default({})).get('network') %}<button class="quick-tile" id="quick-mode" disabled><span class="quick-icon" aria-hidden="true">{{ icon('sim-signal') }}</span><strong>Chế độ mạng SIM</strong><small>Đang đọc…</small></button>{% endif %}
 </div>
-<nav class="quick-shortcuts" aria-label="Menu nhanh cài đặt">
-  {% for feature,label,href in [('wifi','Wi-Fi đã lưu','/setup#saved-wifi'),('wifi','Tên & mật khẩu Wi-Fi phát','/setup#usb-ap-settings')] %}
-  {% if (portal_settings_features|default({})).get(feature) %}<a href="{{ href }}">{{ label }}<span aria-hidden="true"> ↗</span></a>{% endif %}
-  {% endfor %}
-</nav>
+
 <details id="quick-usb-help" class="quick-usb-help"><summary>Kết nối máy tính qua USB</summary>
   <p>Bấm USB tethering, xác nhận lưu và khởi động lại USB một lần. PC tự nhận IP, gateway và DNS khi USB trở lại. Không cần ứng dụng Windows hay lệnh gia hạn IP. Chỉ mở trang không khởi động lại.</p>
   <p>Chế độ được lưu trên USB, dùng tiếp khi cắm sang máy khác có driver USB NCM. Nếu reboot tự động không thành công, có thể rút USB 10 giây rồi cắm lại bình thường. Xem <a href="https://github.com/litequang/OpenStick/blob/codex/uz801-v32-postmarketos/docs/USB_TETHERING.md" target="_blank" rel="noopener noreferrer">hướng dẫn</a>.</p>

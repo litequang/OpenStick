@@ -1,4 +1,4 @@
-/* Read-only on load. Every mutation needs a fresh UUID and explicit dialog. */
+/* Read-only on load. Network mode cycles on explicit click; other changes use dialogs. */
 (() => {
   const el = id => document.getElementById(id);
   const headers = {'Content-Type':'application/json', 'X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
@@ -54,6 +54,7 @@
   }
   function draw(s) {
     current = s;
+    drawMode();
     const airplane = s.intent?.airplane === true, blocked = busy || s.pending_network_trial || s.foreign_cellular_active;
     tile('quick-airplane', airplane?(compact?'Đã yêu cầu tắt':'Đã yêu cầu tắt di động'):(compact?'Cho phép di động':'Di động được cho phép'), airplane, blocked);
     tile('quick-data', s.mobile_data_connected?(compact?'Bật · Internet chưa đo':'Đã kết nối · Internet chưa xác minh'):!s.radio.sim_ready?(compact?'Chưa có SIM':'Chưa có SIM sẵn sàng'):'Đang tắt', s.mobile_data_connected, blocked || (!s.mobile_data_connected && (airplane || !s.radio.registered || !s.radio.sim_ready)));
@@ -64,12 +65,54 @@
     const modemState=({'-1':'Chưa sẵn sàng',0:'Chưa xác định',1:'Đang khởi tạo',2:'SIM đang khóa',3:'Đã tắt',4:'Đang tắt',5:'Đang bật',6:'Đã bật',7:'Đang tìm mạng',8:'Đã đăng ký mạng',9:'Đang ngắt dữ liệu',10:'Đang kết nối dữ liệu',11:'Đã kết nối dữ liệu'})[s.radio.state] || 'Chưa xác định';
     if (el('quick-details')) el('quick-details').textContent = `SIM: ${s.radio.sim_ready?'sẵn sàng':'chưa sẵn sàng'}\nModem: ${modemState}\n${s.pending_network_trial?'Đang có lượt thử mạng.':'Không có lượt thử mạng.'}\nCác chức năng mới: đang kiểm chứng phần cứng.`;
   }
+  let modeStatus = null;
+  const modeName = ([a,p]) => a===8?'Chỉ 4G':a===4?'Chỉ 3G':a!==12?'Chế độ khác':p===8?'3G/4G · ưu tiên 4G':p===4?'3G/4G · ưu tiên 3G':'3G/4G tự động';
+  const modeChoices = c => [[8,0],[4,0],[12,0],[12,8],[12,4]].filter(pair => (c.supported_modes||[]).some(m=>m[0]===pair[0]&&m[1]===pair[1]));
+  function drawMode() {
+    const node=el('quick-mode');if(!node)return;
+    const c=modeStatus, modes=c?modeChoices(c):[];
+    node.disabled=busy||!c?.can_set_mode||[2,3].includes(c?.ussd_state)||modes.length<2||!!current?.pending_network_trial;
+    if(c?.current_mode)node.querySelector('small').textContent=modeName(c.current_mode)+' · chạm để đổi';
+    else if(!c)node.querySelector('small').textContent='Chưa đọc được chế độ';
+  }
+  async function readMode() {
+    if(!el('quick-mode'))return;
+    try{const r=await fetch('/api/header',{headers,cache:'no-store'});if(!r.ok)throw Error();const c=(await r.json()).modem_status;if(c){modeStatus=c;drawMode();return true;}}catch(_){}drawMode();return false;
+  }
+  if(el('quick-mode'))el('quick-mode').onclick=async()=>{
+    if(busy||el('quick-mode').disabled)return;
+    busy=true;draw(current);drawMode();
+    let target;
+    try {
+      if(!await readMode())throw Error('RESULT_UNKNOWN');const c=modeStatus;
+      if(!c?.can_set_mode||[2,3].includes(c.ussd_state))throw Error('MODEM_BUSY');
+      const modes=modeChoices(c);if(modes.length<2)throw Error('UNSUPPORTED');
+      const index=modes.findIndex(m=>m[0]===c.current_mode[0]&&m[1]===c.current_mode[1]);
+      target=modes[(index+1)%modes.length];
+      notice('Đang chuyển sang '+modeName(target)+'; mạng SIM có thể tạm ngắt.');
+      const r=await fetch('/api/modem',{method:'POST',headers,body:JSON.stringify({action:'mode',allowed:target[0],preferred:target[1],confirm:true})});
+      if(!r.ok)throw Error('MODEM_BUSY');
+      const deadline=Date.now()+90000;
+      let done=false;
+      while(Date.now()<deadline){
+        const poll=await fetch('/api/modem/state',{headers,cache:'no-store'});if(!poll.ok)throw Error('RESULT_UNKNOWN');
+        const state=await poll.json();if(!state.busy){if(state.error)throw Error(state.error);done=true;break;}
+        await new Promise(resolve=>setTimeout(resolve,700));
+      }
+      if(!done)throw Error('RESULT_UNKNOWN');
+      await readMode();
+      if(modeStatus?.current_mode?.join(',')!==target.join(','))throw Error('RESULT_UNKNOWN');
+      notice('Đã chuyển sang '+modeName(target)+'.');
+    }catch(e){notice(errors[e.message]||'Chưa xác minh được chế độ mạng. Đọc lại trạng thái; không tự gửi lại.');}
+    finally{busy=false;await refresh();drawMode();}
+  };
   async function refresh() {
     try {
       const r = await fetch('/api/quick', {headers, cache:'no-store'});
       if (r.status===401) {location.href='/login';return;}
       if (!r.ok) throw Error();
       draw(await r.json());
+      await readMode();
       if (el('quick-notice').textContent === 'Đang đọc trạng thái…') notice('Chạm một ô để xem và xác nhận thay đổi.');
     } catch (_) {
       current = null;
