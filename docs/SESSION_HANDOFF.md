@@ -1,5 +1,34 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16: fix incoming mDNS query filtering on the real USB
+
+Owner confirmed that the numeric station-IP management URL opened on a phone
+while `openstick.local` failed DNS. Source-bound LAN HTTP reached the login
+redirect for either exact Host. Avahi was registered as `openstick.local`;
+LAN/USB/Avahi services were running and no setup/hotspot transition was pending.
+
+Reproduced the server defect from the PC's Wi-Fi interface: multicast A queries
+with TTL 1 and 64 timed out, while TTL 255 returned the correct station address.
+The original `53_openstick_mdns.nft` required TTL 255 even for incoming queries.
+Added a WLAN-only, exact `224.0.0.251`/UDP5353 accept rule without a query TTL
+condition, retaining the old stricter rule. Repeated wire probes for all three
+TTLs returned RCODE 0, matching transaction IDs and the correct WLAN address.
+
+Backed up the original file under
+`/var/lib/openstick/deploy-backups/mdns-query-1794792297396710055/`.
+Installed file SHA-256:
+`1324de292c0c1f0a68ae55889ba2c21dc60f29ef2d1b2e91b4641049d423c320`.
+Full persistent nftables syntax check passed. Added only one live rule,
+without flushing firewall state or restarting services. No radio, SIM data,
+credentials, Wi-Fi profile, website, Tunnel or reboot change was made.
+
+Focused LAN/auth/firewall regression tests: 11 passed, exit 0. Full suite:
+468 passed, one Windows symlink-privilege skip, exit 0 (17.12 seconds). Phone name
+acceptance after this fix is pending; the owner was asked to reconnect phone
+Wi-Fi to clear the previous negative DNS result. A client that uses only
+ordinary router DNS remains a separate case; the current router rejected the
+local name request. See [local management addressing](LOCAL_MANAGEMENT_ADDRESS.md).
+
 ## 2026-11-16: navigation and management UI V2 deployed on the physical USB
 
 Commit `fddda78c51ad7f3f63167181a68eb18e486574f5` was fast-forwarded

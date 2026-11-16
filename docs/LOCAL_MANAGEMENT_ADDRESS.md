@@ -1,6 +1,6 @@
 # One local administration URL
 
-Use **http://openstick.local:8765** on a PC connected by USB, a phone or PC
+Use **http://openstick.local:8765** on clients with local-name resolution: a PC connected by USB, a phone or PC
 on the same Wi-Fi as the stick, or a phone connected to its setup/SIM AP.
 This is a local name supplied by mDNS and, on the stick's hotspots, local DNS.
 It is not a public Tunnel hostname. Wi-Fi still requires
@@ -55,6 +55,53 @@ interface allowlist covers station and hotspot mode; no simultaneous
 station/AP support is required.
 
 ## Using and troubleshooting the name
+
+### Incoming query TTL compatibility fix (2026-11-16)
+
+The original firewall required IP TTL 255 on **every** incoming mDNS packet.
+That incorrectly filtered link-local multicast queries using TTL 1 or the
+client OS default. RFC 6762 section 11 recommends TTL 255 on **responses**;
+it does not require that TTL on all queries. Avahi already handles the
+protocol's responder/source checks.
+
+The rule now additionally accepts UDP destination port 5353 addressed to
+`224.0.0.251`, arriving only on `wlan0`, without imposing a query TTL.
+The existing TTL-255 rule for other mDNS ingress remains. This does not open
+ordinary DNS on new interfaces, enable a reflector, alter WWAN/forwarding,
+or weaken HTTP Host/Origin/login checks.
+
+This was reproduced on the physical USB from the PC's actual Wi-Fi interface:
+
+| Query IP TTL | Before | After |
+|---|---|---|
+| 1 | Timeout | Correct WLAN A record |
+| 64 | Timeout | Correct WLAN A record |
+| 255 | Correct WLAN A record | Correct WLAN A record |
+
+Each successful reply had RCODE 0 and the matching transaction ID. Source-bound
+LAN HTTP with both the numeric and named Host returned the login redirect.
+The owner independently confirmed numeric-IP access from the phone before
+the fix. Phone acceptance using the name after this change is still pending.
+This demonstrates a real firewall defect; it does not prove that every
+Android/browser DNS failure has the same cause.
+
+Only the persistent mDNS file and one live multicast accept rule were added;
+the old rule was retained. The entire firewall was not flushed. Configuration
+validation passed; no service restart, Wi-Fi reconnection, radio operation,
+SIM data activation or reboot was performed. The original file is backed up
+locally under `/var/lib/openstick/deploy-backups/mdns-query-1794792297396710055/`.
+
+Clients that bypass mDNS and ask a router/public resolver still need working
+local name resolution on that client/router. The observed LAN router rejected
+an ordinary DNS request for this name. A server-side mDNS fix cannot make
+that router answer. Numeric IP remains a valid fallback; do not redirect
+ordinary LAN DNS traffic or expose administration publicly to work around it.
+
+Protocol basis: [RFC 6762 section 11](https://www.rfc-editor.org/rfc/rfc6762.html#section-11).
+Android's resolver behavior and exclusions are described in
+[AOSP mDNS .local resolution](https://source.android.com/docs/core/ota/modular-system/dns-resolver#mdns-local-resolution).
+
+### Client and network checks
 
 - On a phone connected to the setup AP, keep the Wi-Fi connection when it
   reports no Internet. Allow time for name caches to update after a change.

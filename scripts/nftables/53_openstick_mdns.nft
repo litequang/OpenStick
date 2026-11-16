@@ -2,6 +2,11 @@
 # USB already has its own allow rule. No WWAN ingress or forwarding changes.
 table inet filter {
     chain input {
+        # One-shot/legacy resolvers may use TTL 1 or the OS default for
+        # queries. RFC 6762 section 11's TTL 255 recommendation concerns
+        # responses, not a mandatory TTL on incoming multicast queries.
+        # Restrict this exception to the link-local multicast destination.
+        meta nfproto ipv4 iifname "wlan0" ip daddr 224.0.0.251 udp dport 5353 accept comment "OpenStick local multicast name queries"
         meta nfproto ipv4 iifname "wlan0" ip ttl 255 udp dport 5353 accept comment "OpenStick local Wi-Fi name discovery"
     }
 }
