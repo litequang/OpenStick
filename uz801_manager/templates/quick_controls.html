@@ -8,7 +8,7 @@
   <button class="quick-tile" id="quick-usb" disabled><span aria-hidden="true">↔</span><strong>USB tethering</strong><small>Đang đọc…</small></button>
 </div>
 <nav class="quick-shortcuts" aria-label="Menu nhanh cài đặt">
-  {% for feature,label,href in [('wifi','Wi-Fi đã lưu','/setup#saved-wifi'),('wifi','Tên & mật khẩu Wi-Fi phát','/setup#usb-ap-settings'),('hotspot','Cấu hình APN','/sim/apn'),('network','Chế độ sóng SIM','/modem/network'),('internet','Ưu tiên Internet','/internet'),('leds','Đèn trạng thái','/settings/leds')] %}
+  {% for feature,label,href in [('wifi','Wi-Fi đã lưu','/setup#saved-wifi'),('wifi','Tên & mật khẩu Wi-Fi phát','/setup#usb-ap-settings')] %}
   {% if (portal_settings_features|default({})).get(feature) %}<a href="{{ href }}">{{ label }}<span aria-hidden="true"> ↗</span></a>{% endif %}
   {% endfor %}
 </nav>
