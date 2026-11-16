@@ -30,6 +30,8 @@ let hotspotBusy=false,hotspotState=null,loaded=false,hotspotLastOperation=null;
 const policyActiveMessage='Tự quản lý Internet đang bật. Vào Nguồn Internet để tắt trước khi phát Wi-Fi.';
 const messages={CELLULAR_NO_INTERNET:'SIM chưa truy cập Internet được. Chưa chuyển sang phát Wi-Fi; kiểm tra gói dữ liệu và APN.',SIM_NOT_READY:'SIM chưa sẵn sàng hoặc chưa đăng ký mạng.',MODEM_BUSY:'Không thể hủy an toàn phiên USSD đang chờ, hoặc modem đang thực hiện SMS/USSD. Chờ thao tác kết thúc rồi thử lại.',NETWORK_BUSY:'Đang có thao tác mạng khác. Thử lại sau.',AP_UNSUPPORTED:'Không đủ hỗ trợ AP hoặc dịch vụ DHCP.',CELLULAR_ALREADY_ACTIVE:'Đang có phiên dữ liệu SIM khác. Chưa thay đổi phiên đó.',HOTSPOT_CONFIRM_EXPIRED:'Lượt thử đã hết hạn hoặc đã quay về mạng cũ.',ROLLBACK_FAILED:'Chưa xác nhận khôi phục mạng cũ được. Giữ USB cắm và kiểm tra qua 172.16.42.1.',HOTSPOT_ACTIVE:'Đang phát hoặc đang thử hotspot. Tắt trước khi sửa cấu hình.'};
 messages.CELLULAR_CONNECT_FAILED='Không tạo được kết nối dữ liệu SIM. Kiểm tra APN, gói dữ liệu và trạng thái SIM.';
+messages.AIRPLANE_ACTIVE='Chế độ máy bay đang bật. Mở Cài đặt nhanh để cho phép di động trước; dữ liệu SIM vẫn cần xác nhận riêng.';
+messages.CELLULAR_DISABLED='Dữ liệu SIM đang bị chặn bởi Cài đặt nhanh.';
 messages.AP_START_FAILED='Chưa khởi động được điểm phát Wi-Fi. Đã yêu cầu khôi phục kết nối trước đó; kiểm tra lại qua USB.';
 messages.HOTSPOT_NOT_CONFIGURED='Cấu hình Wi-Fi USB ở trang Wi-Fi cài đặt rồi bật thử.';
 messages.CELLULAR_UNAVAILABLE='Chưa tìm thấy giao diện dữ liệu SIM phù hợp trên USB.';

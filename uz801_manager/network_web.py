@@ -40,7 +40,7 @@ def register_network_routes(app, backend, token):
                 result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:state['result'] = result
             except Exception as exc:
-                allowed = {'HOTSPOT_ACTIVE', 'CELLULAR_NOT_CONFIGURED', 'CELLULAR_ALREADY_ACTIVE',
+                allowed = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'HOTSPOT_ACTIVE', 'CELLULAR_NOT_CONFIGURED', 'CELLULAR_ALREADY_ACTIVE',
                            'PROFILE_NOT_FOUND', 'PROFILE_ACTIVE', 'POLICY_CONFLICT', 'WIFI_SWITCH_FAILED',
                            'SWITCH_FAILED', 'ROLLBACK_FAILED', 'NETWORK_BUSY', 'DATA_DISCONNECT_FAILED'}
                 with lock:state['error'] = str(exc) if str(exc) in allowed else 'NETWORK_OPERATION_FAILED'

@@ -29,8 +29,9 @@
 {% if page in ['setup', 'website', 'leds'] %}
 <div class="portal-breadcrumb"><a href="/manage">← Quản lý</a><span aria-hidden="true">/</span><span>{{ {'network':'Mạng SIM', 'internet':'Nguồn Internet', 'setup':'Wi-Fi cài đặt', 'hotspot':'Phát Wi-Fi từ SIM', 'website':'Website', 'leds':'Đèn thông báo'}[page] }}</span></div>
 {% endif %}
-{% if page in ['manage', 'wifi', 'setup', 'network', 'internet', 'hotspot', 'leds'] %}
+{% if page in ['manage', 'wifi', 'setup', 'network', 'internet', 'hotspot', 'leds', 'quick'] %}
 <nav class="settings-nav" aria-label="Danh mục cài đặt">
+  {% if portal_has_quick %}<a href="/quick"{% if page == 'quick' %} aria-current="page"{% endif %}>Cài đặt nhanh</a>{% endif %}
   {% for key,label,href in [('manage','Cài đặt','/manage'),('wifi','Wi-Fi','/setup'),('internet','Internet','/internet'),('hotspot','Phát Wi-Fi','/hotspot'),('network','Mạng SIM','/modem/network'),('leds','Đèn LED','/settings/leds')] %}
   {% if key == 'manage' or (portal_settings_features|default({'wifi': true, 'network': true})).get(key) %}
   <a href="{{ href }}"{% if page == key or (page == 'setup' and key == 'wifi') %} aria-current="page"{% endif %}>{{ label }}</a>

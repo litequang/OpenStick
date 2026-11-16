@@ -1,4 +1,11 @@
 /* Lightweight settings patterns inspired by Tabler forms; no external runtime. */
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:24px 0}
+.quick-grid .quick-tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;border:1px solid #3a4c64;border-radius:20px;padding:20px;min-height:150px;background:#202a39!important;color:#e4edfa!important;text-align:left;text-decoration:none;overflow-wrap:anywhere}
+.quick-tile>span{font-size:27px;color:#99caff}.quick-tile strong{font-size:15px}.quick-tile small{font-weight:400;font-size:12px}
+.quick-grid .quick-tile[data-active=true]{background:#214c70!important;border-color:#6bb9fa}
+#quick-dialog{max-width:480px;width:calc(100% - 32px);border:1px solid #4a607c;border-radius:20px;padding:24px;background:#1d2634;color:#e4edfa}
+#quick-dialog::backdrop{background:#000a}#quick-dialog p{line-height:1.8}
+@media(max-width:620px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-grid .quick-tile{padding:16px;min-height:160px}}
 .settings-nav{display:flex;flex-wrap:wrap;gap:6px;padding:8px;margin:18px 0 24px;border:1px solid #334056;border-radius:16px;background:#191f2a}
 .settings-nav a{flex:1 0 auto;min-height:44px;display:grid;place-items:center;padding:10px 14px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:650;color:#b5c5da!important}
 .settings-nav a:hover{background:#253146;color:#fff!important}

@@ -1,5 +1,26 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16: Quick Settings source only — NOT deployed
+
+Owner first requested read-only audit, then explicitly asked to develop the
+features and test with a SIM later. Owner confirms no SIM is currently fitted.
+Read-only hardware evidence: six requested module hashes match USB baseline
+`c704264`; station/USB management work; NCM gadget and Windows DHCP confirmed.
+USB forwarding is zero, no NAT/default host route: management, not tethering.
+Installed USB-sharing dispatcher rebinds UDC; do not blindly use NM shared.
+Supplicant has MaxNumSta=128 and ApIsolate=0; neither is hardware acceptance.
+Saved/current radio mode is now [8,0], not the older [12,8] observation.
+
+New source adds `/quick`, explicit radio/data/local-AP actions, durable intent
+and operation IDs, shared watchdog/legacy vetoes and data-off AP fallback.
+497 pytest passed / 1 Windows symlink skip; Chrome memory-demo consent/Escape,
+no-SIM and four viewport checks passed. Physical modem toggles, role changes,
+SIM data and cold boot are untested. No install, service restart or network
+change on the USB was performed. Source HEAD after this work is ahead of
+installed baseline: do not assume `/quick` exists on the device. Review the
+two Quick Settings reports before any deployment. Runtime evidence is sanitized
+and ignored. Existing unrelated untracked files were preserved.
+
 ## 2026-11-16: settings UX review installed on the physical USB
 
 Owner prioritized all settings and explicitly declined Computer Use. Used

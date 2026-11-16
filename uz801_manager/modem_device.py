@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .modem import validate_action
+from .quick_intent import radio_allowed
 
 SERVICE = 'org.freedesktop.ModemManager1'
 ROOT = '/org/freedesktop/ModemManager1'
@@ -133,6 +134,8 @@ class ModemManager:
 
     def call(self, action, **values):
         validate_action({'action': action, **values})
+        if action in ('enable', 'mode', 'send', 'ussd_start', 'ussd_reply') and not radio_allowed():
+            raise RuntimeError('AIRPLANE_ACTIVE')
         with self.lock_factory():
             return self._call(action, values)
 
@@ -372,8 +375,17 @@ def watch_radio():
     attempts = 0
     mode_attempts = 0
     applied = None
+    airplane_reconciled = False
     while True:
         try:
+            if not radio_allowed():
+                if not airplane_reconciled:
+                    from .quick_settings import QuickSettings
+                    QuickSettings().reconcile_airplane()
+                    airplane_reconciled = True
+                time.sleep(30)
+                continue
+            airplane_reconciled = False
             status = modem.call('status')
             if status['can_enable'] and attempts < 3:
                 attempts += 1

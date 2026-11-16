@@ -8,6 +8,7 @@ import uuid
 
 from .hotspot import AP_UUID, CELL_UUID, Hotspot, Network, boot_id, network_lock
 from .modem_device import ModemManager, modem_lock
+from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 
 MODES = ('wifi_only', 'sim_only', 'wifi_preferred', 'sim_preferred')
 
@@ -147,6 +148,9 @@ class NetworkPolicy:
                 with self.modem_lock_factory():
                     active = [self.network.active(d) for d in self.network.devices()]
                     if any(p and p != CELL_UUID for p in active):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
+                    intent = load_intent(self.directory)
+                    if intent is not None:
+                        save_intent(self.directory, airplane=intent['airplane'], data_allowed=False)
                     # Stop automation before disconnecting; no Wi-Fi Internet
                     # prerequisite, and never disable the modem/SMS radio.
                     self.write('network-policy.json', {'mode': 'wifi_only', 'enabled': False,
@@ -159,15 +163,22 @@ class NetworkPolicy:
                         'streaks': {}, 'last_switch': 0, 'health': {'wifi': False, 'sim': False}})
                 return {**self.status(), 'data_off': True}
             if action == 'configure':
+                if values['enabled'] and values['mode'] != 'wifi_only' and not radio_allowed(self.directory):
+                    raise RuntimeError('AIRPLANE_ACTIVE')
                 previous = self.config()
                 config = {k: values[k] for k in ('mode', 'enabled', 'auto_wifi', 'cellular_consent')}
                 if config['enabled'] and config['mode'] != 'wifi_only' and not self.read('hotspot.json').get('ssid'):
                     raise RuntimeError('CELLULAR_NOT_CONFIGURED')
+                old_intent = load_intent(self.directory)
+                if old_intent is not None and config['enabled'] and config['mode'] != 'wifi_only':
+                    save_intent(self.directory, airplane=False, data_allowed=True)
                 self.write('network-policy.json', config)
                 if config['enabled']:
                     try:self._tick(force=True)
                     except Exception:
                         self.write('network-policy.json', previous)
+                        if old_intent is not None:
+                            save_intent(self.directory, airplane=old_intent['airplane'], data_allowed=old_intent['data_allowed'])
                         raise
                 return self.status()
             identity = values['uuid']
@@ -199,6 +210,8 @@ class NetworkPolicy:
 
     def _tick(self, force=False):
         config, state, now = self.config(), self.state(), self.clock()
+        if config['mode'] != 'wifi_only' and not data_allowed(self.directory):
+            raise RuntimeError('CELLULAR_DISABLED')
         controls = self.network.devices()
         control = controls[0] if len(controls) == 1 else None
         wifi = self.network.active('wlan0')
@@ -256,6 +269,7 @@ class NetworkPolicy:
                             except Exception:wifi = None
                         else:self.network.nm('device', 'disconnect', 'wlan0')
             if need_sim and (preferred == 'sim' or not health['wifi']):
+                if not data_allowed(self.directory):raise RuntimeError('CELLULAR_DISABLED')
                 if not control or not config['cellular_consent']:raise RuntimeError('CELLULAR_UNAVAILABLE')
                 with self.modem_lock_factory():
                     ready = self.readiness()

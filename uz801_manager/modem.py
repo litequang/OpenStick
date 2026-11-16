@@ -122,7 +122,7 @@ def register_modem_routes(app, backend, token):
                     state['result'] = result
             except Exception as exc:
                 # Never return DBus errors, SMS contents, destinations or codes.
-                allowed = {'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
+                allowed = {'AIRPLANE_ACTIVE', 'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
                            'MODEM_UNAVAILABLE', 'MODEM_AMBIGUOUS', 'ALREADY_ATTEMPTED',
                            'RESULT_UNKNOWN', 'USSD_SESSION_STATE', 'MODEM_BUSY',
                            'USSD_TIMEOUT', 'USSD_UNSUPPORTED', 'USSD_NO_NETWORK', 'USSD_FAILED', 'USSD_MONITOR_UNAVAILABLE',

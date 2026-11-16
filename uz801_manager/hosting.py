@@ -225,7 +225,7 @@ networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=n
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None, led_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None, led_backend=None, quick_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -257,6 +257,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         from .lan_access import LAN_URL
         return {'stable_lan_url': LAN_URL if usb_portal and (lan_auth is not None or lan_settings is not None) else None,
                 'portal_has_website': usb_portal and site_backend is not None,
+                'portal_has_quick': usb_portal and quick_backend is not None,
                 'portal_settings_features': {'wifi': setup_backend is not None,
                                              'network': modem_backend is not None,
                                              'internet': network_backend is not None,
@@ -378,6 +379,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     if usb_portal and led_backend is not None:
         from .led_web import register_led_routes
         register_led_routes(app, led_backend, token)
+    if usb_portal and quick_backend is not None:
+        from .quick_web import register_quick_routes
+        register_quick_routes(app, quick_backend, token)
     return app
 
 

@@ -1,5 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — Quick Settings: audit thật, mã Phase 1 CHƯA CÀI USB.**
+Chủ xác nhận hiện không lắp SIM; MM báo SIM missing không phải kết luận modem
+hỏng. Nguồn mới có `/quick`, radio/data intent, receipt, veto watchdog/legacy
+và luồng data-off → AP nội bộ có xác nhận. Không cài/restart/đổi mạng trên USB;
+USB vẫn là baseline `c704264`. Không nhầm HEAD mới với code đã triển khai.
+USB NCM/DHCP quản trị đã đối chiếu Windows; chưa chia sẻ Internet (forwarding
+0, không NAT/default route USB). Dispatcher shared hiện rebind UDC nên giữ
+tethering khóa. WPA3 bị chặn PMF; MaxNumSta 128 chỉ là metadata userspace.
+Xem `docs/QUICK_SETTINGS_PHASE0_AUDIT_2026_11_16.md` và
+`docs/QUICK_SETTINGS_PHASE1_SOURCE.md` trước khi tiếp tục.
+
 **16/11/2026 — Đã rà/sửa phần cài đặt và cài lên USB thật:** Chủ không dùng
 Computer Use; kiểm tra bằng fixture và Chrome headless. Thanh mục cài đặt
 thống nhất; `/setup` hiển thị Wi-Fi hiện tại, đổi mạng station qua API sẵn có,

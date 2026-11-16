@@ -26,6 +26,35 @@ class Leds:
     def configure(self, values):raise RuntimeError('DEMO_READ_ONLY')
 
 
+class Quick:
+    """Memory-only demo: no real radio/network object is constructed."""
+    def __init__(self):
+        self.intent=None;self.role='station';self.receipts={}
+
+    def status(self):
+        return {'intent':self.intent,'radio':{'state':-1,'power_state':1,'sim_ready':False,'registered':False},
+                'wifi_role':self.role,'mobile_data_connected':False,'foreign_cellular_active':False,
+                'pending_network_trial':False,'internet_verified':False,'hardware_validation':'NOT_TESTED',
+                'usb_tethering':{'available':False,'reason':'USB_DISPATCHER_REBINDS_UDC'}}
+
+    def call(self,action,**values):
+        from uz801_manager.quick_settings import validate_quick
+        validate_quick({'action':action,**values})
+        identity=values['operation']
+        if identity in self.receipts:raise RuntimeError('ALREADY_ATTEMPTED')
+        if action=='data_on':raise RuntimeError('SIM_NOT_READY')
+        airplane=bool(self.intent and self.intent['airplane'])
+        if action=='airplane_on':airplane=True
+        if action=='airplane_off':airplane=False
+        self.intent={'version':1,'airplane':airplane,'data_allowed':False}
+        if action=='local_ap_on':self.role='local_ap'
+        if action=='local_ap_off':self.role='station'
+        self.receipts[identity]={'kind':action,'state':'COMPLETED'}
+        return self.status()
+
+    def receipt(self,identity):return self.receipts.get(identity,{'state':'NOT_FOUND'})
+
+
 class Modem:
     def call(self, action, **values):
         if action == 'status':
@@ -85,7 +114,7 @@ def main():
         app=create_hosting_app(backend=Wifi(),modem_backend=ArchivedModem(Modem(),archive),
               hotspot_backend=Hotspot(),network_backend=Policy(),site_backend=StaticSite(site,lock_path=None),
               usb_portal=True,authority='127.0.0.1:8771',hostname='example.invalid',setup_backend=Setup(),
-              lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds())
+              lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds(),quick_backend=Quick())
         @app.after_request
         def demo_banner(response):
             if response.mimetype=='text/html':

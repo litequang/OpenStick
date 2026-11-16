@@ -16,6 +16,7 @@ import time
 import uuid
 
 from .modem_device import ModemManager, modem_lock
+from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 
 AP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/hotspot'))
 CELL_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/cellular'))
@@ -24,7 +25,7 @@ NM = 'org.freedesktop.NetworkManager'
 NM_ROOT = '/org/freedesktop/NetworkManager'
 DEVICE = NM + '.Device'
 PROPS = 'org.freedesktop.DBus.Properties'
-HOTSPOT_ERRORS = {'NETWORK_BUSY', 'MODEM_BUSY', 'HOTSPOT_ACTIVE', 'AP_UNSUPPORTED', 'CELLULAR_UNAVAILABLE',
+HOTSPOT_ERRORS = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'NETWORK_BUSY', 'MODEM_BUSY', 'HOTSPOT_ACTIVE', 'AP_UNSUPPORTED', 'CELLULAR_UNAVAILABLE',
                   'CELLULAR_ALREADY_ACTIVE', 'HOTSPOT_NOT_CONFIGURED', 'SIM_NOT_READY', 'CHECKPOINT_UNAVAILABLE',
                   'CELLULAR_NO_INTERNET', 'CELLULAR_CONNECT_FAILED', 'AP_START_FAILED', 'ROLLBACK_FAILED',
                   'HOTSPOT_START_FAILED', 'HOTSPOT_CONFIRM_EXPIRED', 'POLICY_ACTIVE', 'SETUP_ACTIVE',
@@ -366,7 +367,17 @@ class Hotspot:
             if self.network.active('wlan0') == SETUP_UUID and action not in ('start', 'configure', 'configure_apn'):
                 raise RuntimeError('SETUP_ACTIVE')
             with self.modem_lock_factory():
-                if action == 'start':return self.start()
+                if action == 'start':
+                    if not radio_allowed(self.directory):raise RuntimeError('AIRPLANE_ACTIVE')
+                    old_intent = load_intent(self.directory)
+                    if self.read('network-policy.json').get('enabled'):raise RuntimeError('POLICY_ACTIVE')
+                    if old_intent is not None:
+                        save_intent(self.directory, airplane=False, data_allowed=True)
+                    try:return self.start()
+                    except Exception:
+                        if old_intent is not None:
+                            save_intent(self.directory, airplane=old_intent['airplane'], data_allowed=old_intent['data_allowed'])
+                        raise
                 if action == 'keep':return self.keep(values['attempt'])
                 if action == 'stop':return self.stop()
         raise RuntimeError('INPUT_INVALID')
@@ -461,6 +472,7 @@ class Hotspot:
         self.write('hotspot.json', {'ssid': values['ssid'], 'channel': values['channel'], 'apn': values['apn'], 'enabled': False})
 
     def start(self):
+        if not data_allowed(self.directory):raise RuntimeError('AIRPLANE_ACTIVE' if not radio_allowed(self.directory) else 'CELLULAR_DISABLED')
         if self.read('network-policy.json').get('enabled'):raise RuntimeError('POLICY_ACTIVE')
         config = self.read('hotspot.json')
         if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:raise RuntimeError('HOTSPOT_ACTIVE')
@@ -477,7 +489,10 @@ class Hotspot:
         devices = self.network.devices()
         if len(devices) != 1:raise RuntimeError('CELLULAR_UNAVAILABLE')
         control = devices[0]
-        if self.network.active(control):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
+        active_cell = self.network.active(control)
+        reuse_owned_data = (active_cell == CELL_UUID and load_intent(self.directory) is not None
+                            and data_allowed(self.directory))
+        if active_cell and not reuse_owned_data:raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
         snapshot = self._setup_snapshot() if unified else None
         checkpoint = self.network.checkpoint(['wlan0', control])
         pending = {'checkpoint': checkpoint, 'attempt': secrets.token_hex(16), 'boot': self.boot(),
@@ -488,7 +503,7 @@ class Hotspot:
         try:
             if unified:self._adopt_setup_ap()
             self.network.nm('radio', 'wwan', 'on')
-            self.network.up(CELL_UUID)
+            if not reuse_owned_data:self.network.up(CELL_UUID)
             interface = self.network.cellular_interface(control)
             if not self.network.internet(interface, control):raise RuntimeError('CELLULAR_NO_INTERNET')
             # Replace STA only after the SIM has an actual bound Internet probe.

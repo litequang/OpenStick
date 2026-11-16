@@ -64,6 +64,19 @@ def configure(backend):
 def start(backend):return backend.call('start', confirm=True, cellular_consent=True, switch_wifi=True)
 
 
+def test_quick_settings_owned_data_can_be_shared_without_reconnecting_bearer(setup_hotspot):
+    from uz801_manager.quick_intent import save_intent
+    backend, network, _ = setup_hotspot
+    configure(backend)
+    save_intent(backend.directory, airplane=False, data_allowed=True)
+    network.current['wwan0qmi0'] = CELL_UUID
+    network.calls.clear()
+    state = start(backend)
+    assert state['hotspot_active'] and state['pending']
+    assert ('up', CELL_UUID) not in network.calls
+    assert ('up', AP_UUID) in network.calls
+
+
 def setup_mode(backend, network):
     setup = SetupAP(directory=backend.directory, profiles=backend.profiles,
                     network=network, lock_factory=nullcontext, modem_lock_factory=nullcontext,
