@@ -13,7 +13,7 @@ Saved/current radio mode is now [8,0], not the older [12,8] observation.
 
 New source adds `/quick`, explicit radio/data/local-AP actions, durable intent
 and operation IDs, shared watchdog/legacy vetoes and data-off AP fallback.
-497 pytest passed / 1 Windows symlink skip; Chrome memory-demo consent/Escape,
+498 pytest passed / 1 Windows symlink skip; Chrome memory-demo consent/Escape,
 no-SIM and four viewport checks passed. Physical modem toggles, role changes,
 SIM data and cold boot are untested. No install, service restart or network
 change on the USB was performed. Source HEAD after this work is ahead of

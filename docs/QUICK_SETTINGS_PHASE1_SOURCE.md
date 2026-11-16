@@ -55,9 +55,10 @@ failover phải có thao tác/consent mới ở trang nguồn Internet. Link SIM
 
 ## Kiểm thử và cách xem
 
-Local pytest cuối: **497 PASS, 1 SKIP**, exit 0. Skip Windows thiếu quyền tạo
-symlink. Có 28 test mới so với baseline, gồm consent/schema, no-SIM, status
+Local pytest cuối: **498 PASS, 1 SKIP**, exit 0. Skip Windows thiếu quyền tạo
+symlink. Có 29 test mới so với baseline, gồm consent/schema, no-SIM, status
 không tạo file, lock/session conflict, receipt chống replay, boot off-only,
+replay đúng saved mode sau một chu kỳ airplane,
 veto legacy modem/hotspot/policy, cut-off khi lỗi, AP identity và UUID đang
 configuring chưa phải data connected. Self-test package/API và Node syntax PASS.
 

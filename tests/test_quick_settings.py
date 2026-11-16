@@ -217,6 +217,28 @@ def test_watchdog_never_enables_or_replays_mode_under_airplane(monkeypatch):
     assert calls == ['recover_off']
 
 
+def test_saved_mode_is_replayed_after_airplane_cycle_without_changing_preference(monkeypatch):
+    from uz801_manager import modem_device,quick_settings
+    index=[0];modes=[];current=[[12,8]]
+    class StopLoop(BaseException):pass
+    class Modem:
+        def call(self,action,**values):
+            if action=='status':return {'can_enable':False,'saved_mode':[8,0],'can_set_mode':True,
+                'ussd_state':1,'supported_modes':[[8,0],[12,8]],'current_mode':current[0]}
+            assert action=='mode';modes.append([values['allowed'],values['preferred']]);current[0]=modes[-1]
+    class Recovery:
+        def reconcile_airplane(self):current[0]=[12,8]
+    def sleep(_):
+        index[0]+=1
+        if index[0]==3:raise StopLoop()
+    monkeypatch.setattr(modem_device,'ModemManager',Modem)
+    monkeypatch.setattr(modem_device,'radio_allowed',lambda:index[0]!=1)
+    monkeypatch.setattr(modem_device.time,'sleep',sleep)
+    monkeypatch.setattr(quick_settings,'QuickSettings',Recovery)
+    with pytest.raises(StopLoop):modem_device.watch_radio()
+    assert modes==[[8,0],[8,0]]
+
+
 def test_boot_recovery_only_applies_saved_airplane_off_never_data_on(quick):
     backend, network, radio, _ = quick
     provision(backend)

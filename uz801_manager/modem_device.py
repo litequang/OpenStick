@@ -379,6 +379,10 @@ def watch_radio():
     while True:
         try:
             if not radio_allowed():
+                # Re-enable must replay the owner's saved mode even when the
+                # modem lost its runtime setting during this radio-off cycle.
+                applied = None
+                mode_attempts = 0
                 if not airplane_reconciled:
                     from .quick_settings import QuickSettings
                     QuickSettings().reconcile_airplane()
