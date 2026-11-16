@@ -9,6 +9,7 @@
     <p class="manage-intro">Chọn việc cần làm. Mỗi nhóm chỉ hiển thị các chức năng liên quan, không cần đi qua nhiều tầng menu.</p>
   </div>
 </header>
+{% if portal_has_quick %}<p class="manage-quick-link"><a href="/quick">Mở Cài đặt nhanh →</a> · Bật/tắt kết nối và mở các mục thường dùng.</p>{% endif %}
 <div class="manage-layout" aria-label="Danh mục quản lý">
   <section class="manage-section" id="manage-wifi" aria-labelledby="manage-wifi-title">
     <div class="manage-section-head"><span class="manage-section-symbol" aria-hidden="true">⌁</span>

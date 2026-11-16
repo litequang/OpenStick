@@ -53,3 +53,8 @@ main:has(.settings-nav) :is(.setup-feedback,.notice,[role=status]){overflow-wrap
  main:has(.settings-nav) section{padding:16px!important}
 }
 @media(prefers-reduced-motion:reduce){main:has(.settings-nav) *{scroll-behavior:auto!important;transition:none!important}}
+
+.quick-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.quick-shortcuts a{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;box-sizing:border-box;padding:10px 14px;border:1px solid #43566e;border-radius:12px;background:#202a39;color:#dcecff;text-decoration:none;font-size:13px;overflow-wrap:anywhere}
+.quick-shortcuts a:hover{background:#293b50;border-color:#99caff}.quick-shortcuts a:focus-visible{outline:2px solid #99caff;outline-offset:3px}
+@media(max-width:620px){.quick-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.quick-shortcuts a{min-width:0;padding:10px;font-size:12px}}
