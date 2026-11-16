@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from uz801_manager.hosting import REMOTE, LinuxWifi, create_hosting_app
+from uz801_manager.hosting import REMOTE, LinuxWifi, create_hosting_app, station_profile
 from uz801_manager.hosting_device import LocalWifi
 
 
@@ -22,6 +22,8 @@ def test_saved_station_profile_keeps_compatibility_and_known_wpa_vector():
     assert config['connection']['autoconnect']=='true'
     assert config['wifi-security']['psk']=='f42c6fc52df0ebef9ebb4b90b38a5f902e83fe1b135a70e23aed762e9710a12e'
     assert 'password' not in text
+    assert text==station_profile('IEEE','password','07ca019c-485b-4f06-b99d-171c167e18bb')
+    assert namespace['station_profile']('fixture;\\name','password','07ca019c-485b-4f06-b99d-171c167e18bb')==station_profile('fixture;\\name','password','07ca019c-485b-4f06-b99d-171c167e18bb')
 
 
 @pytest.mark.parametrize('code',['WIFI_AUTH_REQUIRED','WIFI_TIMEOUT','POLICY_ACTIVE'])

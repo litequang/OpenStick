@@ -9,7 +9,7 @@
 <p class="muted">Bấm các biểu tượng trên header để xem chi tiết modem, SIM, mạng và sóng.</p>
 {% if page == 'network' %}
 <button id="enable" hidden disabled>Bật modem để đăng ký mạng</button>
-<p class="ux-callout">SIM đang dùng để đăng ký mạng, gửi SMS và USSD. <strong>Đổi chế độ 3G/4G không bật dữ liệu Internet SIM.</strong> Cấu hình Internet và APN nằm ở <a href="/internet">Nguồn Internet</a> hoặc <a href="/hotspot">Phát Wi-Fi từ SIM</a>.</p>
+<p class="ux-callout">SIM đang dùng để đăng ký mạng, gửi SMS và USSD. <strong>Đổi chế độ 3G/4G không bật dữ liệu Internet SIM.</strong> <a href="/sim/apn">APN tùy chỉnh →</a> · <a href="/internet">Nguồn Internet →</a></p>
 <section><h2>Chọn chế độ mạng SIM</h2><p>Chỉ 4G sẽ không tự chuyển xuống 3G vì sóng mạnh hơn. Ngoài vùng phủ 4G, kết nối di động có thể mất; Wi-Fi vẫn hoạt động.</p>
 <form id="mode"><fieldset id="mode-fields" disabled><label for="radio-mode">Chế độ modem công bố hỗ trợ</label><select id="radio-mode" required><option value="">Đang đọc chế độ…</option></select>
 <label class="check"><input id="mode-confirm" type="checkbox" required>Tôi đồng ý đổi chế độ; kết nối di động có thể ngắt để đăng ký lại.</label><button type="submit">Lưu chế độ mạng</button></fieldset></form><div id="mode-result" class="notice" role="status">Lựa chọn được lưu và áp dụng lại khi khởi động. Chưa kiểm thử với SIM thật; SMS/USSD ở 4G-only cần kiểm tra riêng.</div></section>

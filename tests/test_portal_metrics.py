@@ -35,6 +35,7 @@ def snapshot(root, now=1794618000):
 def test_real_fields_have_correct_units_and_no_fabricated_lifetime(linux_tree):
     root, _ = linux_tree
     result = snapshot(root)
+    assert result['storage']['emmc_total'] is None
     assert result['ram'] == {'total': 409600000, 'used': 153600000}
     assert result['load'] == [0.08, 0.29, 0.47]
     assert result['temperature_c'] == 41
@@ -56,6 +57,16 @@ def test_unsupported_or_missing_telemetry_is_unknown_not_healthy_zero(tmp_path):
     assert result['swap']['used'] is None
     assert result['swap']['zram_total'] is None and result['swap']['other_used'] is None
     assert result['sms']['estimated_today_vnd'] is None
+
+
+def test_emmc_capacity_is_separate_from_filesystem_and_never_inferred(linux_tree):
+    root,write=linux_tree
+    write('/sys/class/block/mmcblk0/size','7570400')
+    result=snapshot(root)['storage']
+    assert result['emmc_total']==7570400*512
+    assert result['total']!=result['emmc_total']
+    write('/sys/class/block/mmcblk0/size','invalid')
+    assert snapshot(root)['storage']['emmc_total'] is None
 
 
 def test_sms_counts_are_submission_only_with_vietnam_day_boundary(linux_tree):

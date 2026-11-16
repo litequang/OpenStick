@@ -2,12 +2,18 @@
 
 Ngày kiểm chứng: 16/11/2026, UZ801 V3.2 chạy postmarketOS.
 
+**Cập nhật cuối ngày:** hai lượt bật/tắt bằng reboot bên dưới đã PASS, nhưng
+sau cold replug Windows giữ lease quản trị cũ 42 ngày, thiếu gateway/DNS USB.
+Thiết bị vẫn bật DHCP/NAT và quản trị được; không coi đó là PC có Internet.
+Cold replug/PC mới chưa được chứng nhận. Xem
+[bằng chứng và việc cần kiểm tra](QUICK_WIFI_APN_2026_11_16.md).
+
 Mở **Tổng quan → USB tethering**, đọc xác nhận rồi bấm áp dụng. USB lưu chế
 độ và khởi động lại bình thường **một lần**. Giữ USB cắm; trang đợi thiết bị
 trở lại. Website và Tunnel tạm ngắt trong lúc reboot. Không mở trang nào tự
 khởi động lại hoặc tự bật Internet SIM.
 
-PC tự xin cấu hình IP/gateway/DNS khi thiết bị trở lại. Không cần ứng dụng
+Ở hai lượt reboot đã thử, PC tự xin cấu hình IP/gateway/DNS khi thiết bị trở lại. Không cần ứng dụng
 Windows, script gia hạn DHCP hoặc rút/cắm. Chế độ lưu **trên USB**, nên vẫn
 dùng khi chuyển máy. Máy mới phải có driver USB NCM tương thích; đã kiểm
 chứng máy Windows hiện tại với `UsbNcm Host Device`, chưa thử máy/OS khác.

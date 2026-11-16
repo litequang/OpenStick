@@ -30,6 +30,9 @@ def main():
                     assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth')
                     if path=='/overview':
                         assert page.locator('#quick-ap').bounding_box()['height']<=140
+                    dock=page.locator('.app-bottom-nav-item:visible')
+                    assert dock.last.get_attribute('data-nav')=='overview'
+                    assert dock.last.bounding_box()['x']>dock.first.bounding_box()['x']
             assert actions == [], 'Opening the UI changed state'
             # Reset only the fictional memory backend so this verifier is repeatable.
             assert 'MÔ PHỎNG' in page.locator('body').inner_text()
@@ -57,6 +60,40 @@ def main():
             expect(page.locator('#quick-airplane')).to_have_attribute('aria-pressed','false')
             assert actions == ['airplane_on','local_ap_on','airplane_off']
             assert 'data_on' not in actions
+            page.locator('#quick-receive').click()
+            expect(page.locator('#quick-dialog')).to_be_visible()
+            page.locator('#quick-dialog button[value=cancel]').click()
+            assert 'wifi_auto' not in actions
+            page.locator('#quick-receive').click();page.locator('#quick-apply').click()
+            expect(page.locator('#quick-receive')).to_have_attribute('aria-pressed','true')
+            before=len(actions)
+            page.locator('#quick-receive').click()
+            expect(page.locator('#quick-wifi-dialog')).to_be_visible()
+            expect(page.locator('#quick-wifi-current')).to_contain_text('Wi-Fi mẫu')
+            assert len(actions)==before,'Opening chooser changed network'
+            page.set_viewport_size({'width':320,'height':844})
+            assert page.locator('#quick-wifi-dialog').evaluate('(el)=>el.scrollWidth<=el.clientWidth')
+            page.locator('#quick-wifi-saved button').filter(has_text='Wi-Fi phụ').click()
+            expect(page.locator('#quick-dialog')).to_be_visible()
+            assert 'wifi_saved' not in actions
+            page.locator('#quick-apply').click()
+            expect(page.locator('#quick-notice')).to_contain_text('Đã kết nối Wi-Fi')
+            page.locator('#quick-receive').click()
+            page.locator('#quick-wifi-nearby button').filter(has_text='Wi-Fi mới').click()
+            page.locator('#quick-wifi-password').fill('fictional-password')
+            page.locator('#quick-wifi-connect').click()
+            expect(page.locator('#quick-wifi-password')).to_have_value('')
+            assert 'wifi_connect' not in actions
+            page.locator('#quick-apply').click()
+            expect(page.locator('#quick-notice')).to_contain_text('Đã kết nối Wi-Fi')
+            assert 'fictional-password' not in page.evaluate('JSON.stringify(sessionStorage)')
+            page.locator('#quick-receive').click();page.locator('#quick-wifi-scan').click()
+            expect(page.locator('#quick-dialog-copy')).to_contain_text('Quét Wi-Fi')
+            page.locator('#quick-apply').click()
+            expect(page.locator('#quick-wifi-dialog')).to_be_visible()
+            page.locator('#quick-wifi-disconnect').click();page.locator('#quick-apply').click()
+            expect(page.locator('#quick-receive')).to_have_attribute('aria-pressed','false')
+            assert all(actions.count(a)==1 for a in ['wifi_auto','wifi_saved','wifi_connect','wifi_scan','wifi_off'])
             # Synthetic reboot: a persisted receipt survives a new CSRF token.
             fixture=page.request.get('http://127.0.0.1:8771/api/quick',headers={'X-OpenStick-Token':token}).json()
             fixture['pending_network_trial']=False
@@ -95,7 +132,7 @@ def main():
             assert not errors, errors
             (output/'browser-report.json').write_text(json.dumps({'widths':[320,390,768,1280],
                 'actions':actions,'javascript_errors':errors,'hardware_operations':0}),encoding='utf-8')
-            print(json.dumps({'layouts':8,'http_without_random_uuid':'PASS','consent_escape_no_sim':'PASS','reboot_token_recovery':'PASS','hardware_operations':0}))
+            print(json.dumps({'layouts':8,'http_without_random_uuid':'PASS','consent_escape_no_sim':'PASS','wifi_chooser':'PASS','reboot_token_recovery':'PASS','hardware_operations':0}))
         finally:
             browser.close()
 

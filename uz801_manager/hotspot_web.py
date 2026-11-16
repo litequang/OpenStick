@@ -18,6 +18,19 @@ def register_hotspot_routes(app, backend, token):
     def hotspot_page():
         return render_template('hotspot.html', token=token, page='hotspot')
 
+    @app.get('/sim/apn')
+    def cellular_page():
+        return render_template('cellular.html', token=token, page='network')
+
+    @app.get('/api/cellular')
+    def cellular_current():
+        try:
+            value = backend.call('status')
+            return jsonify(settings=value.get('cellular_settings', {'available': False}),
+                           blocked=bool(value.get('hotspot_active') or value.get('pending')
+                                        or value.get('cellular_connected') or value.get('enabled')))
+        except Exception:return jsonify(error='STATUS_UNAVAILABLE'), 503
+
     @app.get('/api/hotspot/state')
     def hotspot_current():
         latest = None

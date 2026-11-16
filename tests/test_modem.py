@@ -45,7 +45,8 @@ def test_modem_page_bootstraps_usb_token_and_preserves_guards():
     assert client.post('/api/modem', json={'action': 'status'}, headers=headers(Origin='https://evil.invalid')).status_code == 403
     assert client.get('/modem', headers={'Host': 'evil.invalid'}).status_code == 403
     assert not backend.calls
-    assert '/modem' in client.get('/', headers={'Host': '172.16.42.1'}).get_data(as_text=True)
+    assert client.get('/', headers={'Host': '172.16.42.1'}).location == '/overview'
+    assert '/modem' in client.get('/', headers={'Host': '172.16.42.1'}, follow_redirects=True).text
 
 
 def test_windows_launcher_does_not_expose_modem_routes():
@@ -108,7 +109,7 @@ def test_last_ussd_reply_survives_status_refresh_without_retaining_code():
 def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
     app, client, _ = setup()
     for route in ['/overview', '/manage', '/', '/modem/sms', '/modem/ussd', '/modem/network']:
-        response = client.get(route, headers={'Host': '172.16.42.1'})
+        response = client.get(route, headers={'Host': '172.16.42.1'}, follow_redirects=True)
         assert response.status_code == 200 and 'id="portal-nav"' in response.text
         assert 'id="chip-sim"' in response.text and 'id="chip-modem"' in response.text
         assert 'id="chip-wifi"' in response.text and 'id="chip-signal"' not in response.text

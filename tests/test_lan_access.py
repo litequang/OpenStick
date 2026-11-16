@@ -43,6 +43,9 @@ def test_lan_requires_login_even_if_api_token_is_known(lan):
     response = client.get('/api/modem/state', base_url=BASE, headers={'X-OpenStick-Token': 'fixture-token'})
     assert response.status_code == 401 and response.json['error'] == 'LOGIN_REQUIRED'
     assert 'fixture-token' not in client.get('/login', base_url=BASE).text
+    assert client.get('/', base_url=BASE).location == '/login'
+    assert login(client).location == '/overview'
+    assert client.get('/', base_url=BASE).location == '/overview'
 
 
 def test_login_returns_to_requested_setup_page(lan):

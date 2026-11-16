@@ -1,5 +1,35 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16 latest: Quick Wi-Fi, advanced APN and Overview entry installed
+
+See [current report](QUICK_WIFI_APN_2026_11_16.md), including the new cold-replug
+USB DHCP limitation. Root redirects to Overview; home is rightmost at all
+dock widths. Popup handles automatic saved Wi-Fi, choosing saved/new networks,
+explicit scans and disconnect. AP-down first scan returned empty on hardware;
+bounded cache warm-up fixed two actual AP → saved-station tests. Final Wi-Fi
+bound HTTPS passed. No new password login was exercised on the device.
+
+Advanced APN lives at `/sim/apn`, linked from SIM/Manage. It saves only, with
+auth, credential keep/replace/clear, IP family and roaming. Secrets are never
+returned; NM keyfile parsing preserves normalized trailing password spaces.
+20 offline NM roundtrips passed on USB, not SIM authentication. Owner removed
+SIM mid-test; don't report subsequent SIM cases as hardware PASS. 573 pytest
+passed / one Windows privilege skip; demo and actual read-only browser checks
+passed. Actual root/dock/popup/APN tested at four viewport widths, no writes.
+
+Final checkpoint: station Internet, data intent OFF, tether desired ON, no
+network trial pending; critical site/Tunnel/LAN/SSH/radio hashes unchanged.
+Windows retained an old 42-day management lease after the owner's replug:
+no USB gateway/DNS and source-bound HTTPS failed despite active owned DHCP/NAT.
+This is a new known limitation, not covered by earlier on/off reboot PASS.
+Read the report before promising automatic cold-boot sharing. No PC reset,
+manual renew, firmware/initramfs/gadget edits or reboot in this update.
+
+Latest private deployment backup: `quick-validation-1794821201506118600`,
+28 files, under `/var/lib/openstick/deploy-backups/`. Do not restore all
+protected config blindly or overwrite the owner's later changes. Unrelated
+untracked `hosting_launcher.py` and `docs/HYBRID_COMPATIBILITY_MATRIX.md` stay untouched.
+
 ## 2026-11-16 latest: installed Quick Settings, SIM and USB sharing tested
 
 This supersedes the historical source-only/no-SIM checkpoint below. Owner

@@ -196,7 +196,9 @@ def test_speed_measurement_is_bounded_fixed_https_and_bound_to_wifi(response, su
 def test_wifi_ui_prioritizes_current_connection_and_only_measures_on_click(tmp_path, state):
     node = shutil.which('node')
     if not node:pytest.skip('Node.js is needed for the synthetic UI fixture')
-    app = create_hosting_app(backend=Backend(), modem_backend=object(), token='fixture', usb_portal=True)
+    # The legacy standalone Wi-Fi UI remains separate from the full portal,
+    # whose root now redirects to Overview.
+    app = create_hosting_app(backend=Backend(), token='fixture', usb_portal=True)
     page = tmp_path / 'wifi.html'
     with app.test_client() as client:
         page.write_text(client.get('/', base_url='http://172.16.42.1').text, encoding='utf-8')

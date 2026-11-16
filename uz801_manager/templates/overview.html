@@ -64,7 +64,7 @@ function renderOverview(data,updateHeader=true){
  if(!data?.system||!data.wifi)throw Error('INCOMPLETE_SNAPSHOT');
  const s=data.system,w=data.wifi,c=w.modem_status;overviewRetained=false;if(updateHeader){renderHeader(c);renderWifiHeader(w)}
  metric('ram',finite(s.ram?.used)&&finite(s.ram?.total),()=>{put('metric-ram',bytes(s.ram.used));put('note-ram','đã dùng trên '+bytes(s.ram.total));bar('ram',s.ram.used,s.ram.total)});
- metric('storage',finite(s.storage?.used)&&finite(s.storage?.total),()=>{put('metric-storage',bytes(s.storage.used));put('note-storage','đã dùng trên '+bytes(s.storage.total));bar('storage',s.storage.used,s.storage.total)});
+ metric('storage',finite(s.storage?.used)&&finite(s.storage?.total),()=>{put('metric-storage',bytes(s.storage.used));put('note-storage','đã dùng / '+bytes(s.storage.total)+' hệ điều hành · còn '+bytes(s.storage.free)+(finite(s.storage.emmc_total)?' · eMMC tổng '+(s.storage.emmc_total/1e9).toFixed(2)+' GB (các phân vùng khác không thuộc chỗ trống hệ điều hành)':''));bar('storage',s.storage.used,s.storage.total)});
  const signal=finite(c?.signal_percent)&&c.signal_percent>=0&&c.signal_percent<=100&&c.signal_recent===true;
  const noSignal=c&&(c.sim_present===false||c.sim_locked===true||c.registered===false);
  metric('signal',signal||noSignal,()=>{put('metric-signal',noSignal?(c.sim_present===false?'Không có SIM':c.sim_locked?'SIM khóa':'Chưa đăng ký mạng'):c.signal_percent+'%');put('note-signal',c.operator_name||'Sóng di động');bar('signal',noSignal?null:c.signal_percent,100)});

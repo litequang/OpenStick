@@ -29,13 +29,22 @@ class Leds:
 class Quick:
     """Memory-only demo: no real radio/network object is constructed."""
     def __init__(self):
-        self.intent=None;self.role='station';self.receipts={}
+        self.intent=None;self.role='station';self.receipts={};self.wifi=self
+
+    def options(self):
+        return {'connected':self.role=='station','ssid':'Wi-Fi mẫu' if self.role=='station' else None,
+                'ap_active':self.role in ('local_ap','sim_ap'),
+                'saved':[{'ssid':'Wi-Fi mẫu','active':self.role=='station'},{'ssid':'Wi-Fi phụ','active':False}],
+                'networks':[{'ssid':'Wi-Fi mới','signal':82,'security':'WPA2'},
+                            {'ssid':'Wi-Fi mẫu','signal':68,'security':'WPA2'},
+                            {'ssid':'Mạng doanh nghiệp','signal':50,'security':'WPA2 802.1X'}],
+                'scan_at':1794800000}
 
     def status(self):
         return {'intent':self.intent,'radio':{'state':-1,'power_state':1,'sim_ready':False,'registered':False},
                 'wifi_role':self.role,'mobile_data_connected':False,'foreign_cellular_active':False,
                 'pending_network_trial':False,'internet_verified':False,'hardware_validation':'NOT_TESTED',
-                'usb_tethering':{'available':False,'reason':'USB_DISPATCHER_REBINDS_UDC'}}
+                'usb_tethering':{'available':False,'reason':'DEMO_NO_USB'}}
 
     def call(self,action,**values):
         from uz801_manager.quick_settings import validate_quick
@@ -48,7 +57,8 @@ class Quick:
         if action=='airplane_off':airplane=False
         self.intent={'version':1,'airplane':airplane,'data_allowed':False}
         if action=='local_ap_on':self.role='local_ap'
-        if action=='local_ap_off':self.role='station'
+        if action in ('local_ap_off','wifi_off'):self.role='offline'
+        if action in ('wifi_auto','wifi_saved','wifi_connect'):self.role='station'
         self.receipts[identity]={'kind':action,'state':'COMPLETED'}
         return self.status()
 

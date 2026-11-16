@@ -23,6 +23,11 @@ def register_quick_routes(app, backend, token):
         except Exception:
             return jsonify(error='QUICK_STATUS_UNAVAILABLE'), 503
 
+    @app.get('/api/quick/wifi')
+    def quick_wifi_options():
+        try:return jsonify(backend.wifi.options())
+        except Exception:return jsonify(error='WIFI_STATUS_UNAVAILABLE'), 503
+
     @app.get('/api/quick/operation/<identity>')
     def quick_receipt(identity):
         try:

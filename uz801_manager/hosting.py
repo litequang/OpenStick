@@ -1,6 +1,7 @@
 """USB Wi-Fi setup for Linux. Separate from Android/firmware operations."""
 import argparse
 import html
+import hashlib
 import json
 import os
 import re
@@ -11,10 +12,22 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 from waitress import serve
 
 WIFI_ERRORS = {'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND', 'HOTSPOT_ACTIVE', 'SETUP_ACTIVE', 'POLICY_ACTIVE', 'NETWORK_BUSY'}
+
+
+def station_profile(ssid, password, identity):
+    """Same profile as the self-contained SSH worker (kept compatible by tests)."""
+    psk = hashlib.pbkdf2_hmac('sha1', password.encode(), ssid.encode(), 4096, 32).hex()
+    escaped = ssid.replace('\\', '\\\\').replace(';', '\\;')
+    profile = 'openstick-'+hashlib.sha256(ssid.encode()).hexdigest()[:16]
+    return ('[connection]\nid='+profile+'\nuuid='+identity+
+        '\ntype=wifi\ninterface-name=wlan0\nautoconnect=true\nautoconnect-priority=10\n\n'
+        '[wifi]\nmode=infrastructure\ncloned-mac-address=permanent\npowersave=2\nssid='+escaped+
+        '\n\n[wifi-security]\nkey-mgmt=wpa-psk\npsk='+psk+
+        '\n\n[ipv4]\nmethod=auto\nroute-metric=100\n\n[ipv6]\nmethod=auto\nroute-metric=100\n')
 
 
 REMOTE = r'''
@@ -279,6 +292,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
 
     @app.get('/')
     def index():
+        if usb_portal and modem_backend is not None:return redirect('/overview')
         page = HTML.replace('__OPENSTICK_HOSTNAME__', html.escape(hostname))
         if usb_portal and modem_backend is not None:
             page = page.replace('<main>', '<main>' + render_template('portal_chrome.html', page='wifi', token=token), 1)

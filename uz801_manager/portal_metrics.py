@@ -46,6 +46,8 @@ def system_snapshot(root=Path('/'), *, disk_usage=shutil.disk_usage, now=time.ti
         storage = {'total': disk.total, 'used': disk.used, 'free': disk.free}
     except OSError:
         storage = {'total': None, 'used': None, 'free': None}
+    sectors = read('/sys/class/block/mmcblk0/size')
+    storage['emmc_total'] = int(sectors) * 512 if sectors.isdigit() and len(sectors) <= 20 else None
     uptime = numbers('/proc/uptime')
     uptime = uptime[0] if uptime else None
     load = numbers('/proc/loadavg')[:3]  # The last fields contain process IDs, not floats.

@@ -9,6 +9,10 @@
 .quick-grid .quick-tile[data-active=true]{background:#214c70!important;border-color:#6bb9fa}
 #quick-dialog{max-width:480px;width:calc(100% - 32px);border:1px solid #4a607c;border-radius:20px;padding:24px;background:#1d2634;color:#e4edfa}
 #quick-dialog::backdrop{background:#000a}#quick-dialog p{line-height:1.8}
+#quick-wifi-dialog{box-sizing:border-box;width:min(540px,calc(100% - 24px));max-height:88dvh;overflow-y:auto;border:1px solid #4a607c;border-radius:20px;padding:20px;background:#1d2634;color:#e4edfa}
+#quick-wifi-dialog::backdrop{background:#000a}.quick-wifi-list{display:grid;gap:8px}.quick-wifi-network{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:48px;padding:12px!important;margin:0!important;text-align:left;border:1px solid #43566e;border-radius:10px;background:#26364b!important;color:#e4edfa!important;overflow-wrap:anywhere}.quick-wifi-network small{font-size:11px;font-weight:400}.quick-wifi-network[data-active=true]{border-color:#74c2ff}
+.quick-wifi-form{display:grid;gap:12px;margin:18px 0}.quick-wifi-form h3{margin-bottom:0}.quick-wifi-form label{display:grid;gap:6px}.quick-wifi-form input{box-sizing:border-box;width:100%;min-width:0;padding:12px;border:1px solid #52657c;border-radius:10px;background:#141d29;color:#eef6ff;font:inherit}
+#quick-wifi-feedback:not(:empty){padding:12px;background:#343021;border:1px solid #685b39;border-radius:10px;line-height:1.6}#quick-wifi-dialog .settings-actions{align-items:center}#quick-wifi-dialog h3{font-size:15px}#quick-wifi-dialog p{overflow-wrap:anywhere;line-height:1.6}
 @media(max-width:620px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-grid .quick-tile{padding:16px;min-height:160px}}
 .settings-nav{display:flex;flex-wrap:wrap;gap:6px;padding:8px;margin:18px 0 24px;border:1px solid #334056;border-radius:16px;background:#191f2a}
 .settings-nav a{flex:1 0 auto;min-height:44px;display:grid;place-items:center;padding:10px 14px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:650;color:#b5c5da!important}

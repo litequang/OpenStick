@@ -17,6 +17,7 @@ import uuid
 
 from .modem_device import ModemManager, modem_lock
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
+from .cellular_profile import FIELDS as CELLULAR_FIELDS, validate_cellular
 
 AP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/hotspot'))
 CELL_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/cellular'))
@@ -37,10 +38,12 @@ def validate_hotspot(value):
     action = value['action']
     fields = {'status': set(), 'configure': {'ssid', 'password', 'channel', 'apn', 'confirm'},
               'configure_apn': {'apn', 'confirm'},
+              'configure_cellular': CELLULAR_FIELDS | {'confirm'},
               'start': {'confirm', 'cellular_consent', 'switch_wifi'},
               'keep': {'attempt', 'confirm'}, 'stop': {'confirm'}}
     if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
     if action != 'status' and value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
+    if action == 'configure_cellular':validate_cellular(value)
     if action in ('configure', 'configure_apn'):
         if (not isinstance(value['apn'], str) or len(value['apn']) > 100
                 or (value['apn'] and not re.fullmatch('[a-z0-9][a-z0-9.-]*', value['apn']))):
@@ -321,6 +324,7 @@ class Hotspot:
         setup_active = active == SETUP_UUID and setup.get('enabled') is True
         unified = bool(setup.get('ssid') and setup.get('password'))
         return {'configured': unified or bool(config.get('ssid')),
+                'cellular_settings': self.cellular_settings(),
                 'ssid': setup.get('ssid') if unified else config.get('ssid'),
                 'channel': setup.get('channel', 6) if unified else config.get('channel'),
                 'apn': config.get('apn', ''), 'enabled': config.get('enabled', False),
@@ -335,14 +339,14 @@ class Hotspot:
     def last_operation(self):
         value = self.read('hotspot-last-operation.json')
         if (isinstance(value, dict) and set(value) == {'action', 'error', 'at'}
-                and value['action'] in ('configure', 'configure_apn', 'start', 'keep', 'stop')
+                and value['action'] in ('configure', 'configure_apn', 'configure_cellular', 'start', 'keep', 'stop')
                 and (value['error'] is None or isinstance(value['error'], str) and value['error'] in HOTSPOT_ERRORS)
                 and type(value['at']) in (int, float)):
             return value
         return None
 
     def record_operation(self, action, error):
-        if action not in ('configure', 'configure_apn', 'start', 'keep', 'stop') or (error is not None and error not in HOTSPOT_ERRORS):
+        if action not in ('configure', 'configure_apn', 'configure_cellular', 'start', 'keep', 'stop') or (error is not None and error not in HOTSPOT_ERRORS):
             raise ValueError('INPUT_INVALID')
         value = {'action': action, 'error': error, 'at': time.time()}
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -364,6 +368,8 @@ class Hotspot:
                 raise RuntimeError('SETUP_ACTIVE')
             if action == 'configure':return self.configure(values)
             if action == 'configure_apn':return self.configure_apn(values['apn'])
+            if action == 'configure_cellular':
+                with self.modem_lock_factory():return self.configure_apn(values['apn'], details=values)
             if self.network.active('wlan0') == SETUP_UUID and action not in ('start', 'configure', 'configure_apn'):
                 raise RuntimeError('SETUP_ACTIVE')
             with self.modem_lock_factory():
@@ -382,7 +388,17 @@ class Hotspot:
                 if action == 'stop':return self.stop()
         raise RuntimeError('INPUT_INVALID')
 
-    def configure_apn(self, apn):
+    def cellular_settings(self):
+        from .cellular_profile import parse_profile, summary
+        path = self.profiles / 'openstick-cellular.nmconnection'
+        try:
+            if path.is_symlink():raise ValueError()
+            profile = parse_profile(path.read_text())
+            if profile.get('connection', 'uuid', fallback=None) != CELL_UUID:raise ValueError()
+            return {**summary(profile, self.read('hotspot.json').get('apn_name', '')), 'available': True}
+        except (OSError, ValueError, configparser.Error):return {'available': False}
+
+    def configure_apn(self, apn, details=None):
         config = self.read('hotspot.json')
         if self.read('hotspot-pending.json') or self.network.active('wlan0') == AP_UUID:
             raise RuntimeError('HOTSPOT_ACTIVE')
@@ -403,18 +419,22 @@ class Hotspot:
                 config = self.read('hotspot.json')
             if path.is_symlink() or not path.is_file():raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
             original, stored = path.read_text(), (self.directory / 'hotspot.json').read_text()
-            profile = configparser.ConfigParser(interpolation=None)
-            profile.read_string(original)
+            from .cellular_profile import parse_profile
+            profile = parse_profile(original)
             if (profile.get('connection', 'uuid', fallback=None) != CELL_UUID
                     or profile.get('connection', 'type', fallback=None) != 'gsm' or not profile.has_section('gsm')):
                 raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
             profile.set('gsm', 'auto-config', 'false' if apn else 'true')
             if apn:profile.set('gsm', 'apn', apn)
             else:profile.remove_option('gsm', 'apn')
+            if details is not None:
+                from .cellular_profile import apply
+                apply(profile, details)
             output = io.StringIO();profile.write(output, space_around_delimiters=False)
             self.atomic(path, output.getvalue())
             self.network.load(path)
             config.update(apn=apn, tested=False)
+            if details is not None:config['apn_name'] = details['name']
             self.write('hotspot.json', config)
         except Exception as error:
             try:

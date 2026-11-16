@@ -45,7 +45,7 @@
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính"
      data-current-section="{{ 'sim' if page in ['network', 'hotspot', 'internet'] else 'website' if page == 'website' else page }}"
      data-has-website="{{ 'true' if portal_has_website else 'false' }}">
-{% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('overview','Tổng quan','/overview','home'),('wifi','Wi-Fi','/setup','wifi'),('sim','SIM','/modem/network','sim'),('website','Website','/website','website'),('manage','Quản lý','/manage','manage')] %}
+{% for key,label,href,glyph in [('sms','SMS','/modem/sms','sms'),('ussd','USSD','/modem/ussd','ussd'),('wifi','Wi-Fi','/setup','wifi'),('sim','SIM','/modem/network','sim'),('website','Website','/website','website'),('manage','Quản lý','/manage','manage'),('overview','Tổng quan','/overview','home')] %}
   {% if key != 'website' or portal_has_website %}
   <a href="{{ href }}" class="app-bottom-nav-item{% if key == 'overview' %} app-bottom-nav-home{% elif key == 'sim' %} portal-nav-sim{% elif key == 'website' %} portal-nav-website{% endif %}"
      data-nav="{{ key }}"

@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — MỚI NHẤT: đã cài popup Quick Wi-Fi, APN nâng cao và root → Tổng quan.**
+Đọc [bàn giao mới](QUICK_WIFI_APN_2026_11_16.md). Tổng quan ngoài cùng bên phải.
+Đã sửa cache quét rỗng sau AP; hai lượt AP → saved station thật đạt, Wi-Fi có
+Internet. APN có auth/credentials/IP/roaming, chỉ lưu; 20 offline roundtrip
+trên NM thật đạt, không thay APN thật. Chủ đã tháo SIM; chưa kiểm thử custom
+APN hoặc chuyển AP → STA giữ SIM sau bản sửa. 573 PASS / 1 Windows skip.
+**Cold replug tethering hiện có lỗi lease PC:** Windows giữ lease quản trị cũ,
+không gateway/DNS, dù device sharing ON. Không lấy hai reboot PASS trước làm
+chứng nhận cold boot/PC mới. USB admin, Wi-Fi và website vẫn hoạt động.
+Không tự sửa initramfs/gadget/firmware hoặc renew/reset Windows để che lỗi.
+Checkpoint cuối: Wi-Fi station, data intent OFF, saved tether ON; đọc mới
+trước khi đổi mạng. Website/Tunnel/LAN/SSH/radio được giữ nguyên.
+
 **16/11/2026 — MỚI NHẤT: Quick Settings đã cài và thử trên USB có SIM.**
 Các ghi chú “source only / chưa cài / không có SIM” bên dưới là lịch sử.
 Đọc [báo cáo phần cứng](QUICK_SETTINGS_HARDWARE_VALIDATION_2026_11_16.md)

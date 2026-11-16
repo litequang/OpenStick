@@ -52,7 +52,8 @@ def test_lan_settings_move_from_wifi_to_management_on_usb_only(tmp_path):
     app = create_hosting_app(backend=Wifi(), usb_portal=True, modem_backend=object(),
                              lan_settings=lan, token="fixture")
     with app.test_client() as client:
-        wifi = client.get("/", base_url=BASE)
+        assert client.get("/", base_url=BASE).location == '/overview'
+        wifi = client.get("/", base_url=BASE, follow_redirects=True)
         manage = client.get("/manage", base_url=BASE)
         assert wifi.status_code == 200
         assert 'id="lan-settings"' not in wifi.text

@@ -12,7 +12,8 @@ from .network_policy import NetworkPolicy
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .setup_ap import SETUP_UUID, SetupAP, SetupNetwork
 
-ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off')
+ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off',
+           'wifi_auto', 'wifi_saved', 'wifi_scan', 'wifi_connect', 'wifi_off')
 ERRORS = {'INPUT_INVALID', 'CONFIRM_REQUIRED', 'CONSENT_REQUIRED', 'ALREADY_ATTEMPTED',
           'NETWORK_BUSY', 'MODEM_BUSY', 'MODEM_UNAVAILABLE', 'SIM_NOT_READY', 'AIRPLANE_ACTIVE',
           'PENDING_NETWORK_TRIAL', 'CELLULAR_ALREADY_ACTIVE', 'CELLULAR_NOT_CONFIGURED',
@@ -21,12 +22,17 @@ ERRORS = {'INPUT_INVALID', 'CONFIRM_REQUIRED', 'CONSENT_REQUIRED', 'ALREADY_ATTE
 ERRORS |= {'USB_NO_INTERNET', 'USB_DHCP_CONFLICT', 'USB_DHCP_RESTORE_FAILED',
            'USB_TETHERING_NOT_INSTALLED', 'USB_PROFILE_UNSUPPORTED', 'USB_TETHERING_FIREWALL_FAILED',
            'USB_REBOOT_PENDING', 'DATA_CONNECT_FAILED'}
+ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED',
+           'WIFI_CONNECT_FAILED', 'WIFI_SCAN_FAILED', 'WIFI_RESTORE_FAILED',
+           'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
 
 
 def validate_quick(value):
     if not isinstance(value, dict) or value.get('action') not in ACTIONS:
         raise ValueError('INPUT_INVALID')
     expected = {'action', 'operation', 'confirm'} | ({'cellular_consent'} if value['action'] in ('data_on', 'usb_tether_on') else set())
+    if value['action'] in ('wifi_saved', 'wifi_connect'):expected |= {'ssid'}
+    if value['action'] == 'wifi_connect':expected |= {'password'}
     if set(value) != expected or not isinstance(value['operation'], str):
         raise ValueError('INPUT_INVALID')
     if str(uuid.UUID(value['operation'])) != value['operation']:
@@ -35,6 +41,13 @@ def validate_quick(value):
         raise ValueError('CONFIRM_REQUIRED')
     if value['action'] in ('data_on', 'usb_tether_on') and value['cellular_consent'] is not True:
         raise ValueError('CONSENT_REQUIRED')
+    if value['action'] in ('wifi_saved', 'wifi_connect'):
+        ssid = value['ssid']
+        if not isinstance(ssid, str) or not 1 <= len(ssid.encode()) <= 32 or any(ord(c)<32 or ord(c)==127 for c in ssid):
+            raise ValueError('INPUT_INVALID')
+    if value['action'] == 'wifi_connect':
+        from .setup_ap import validate_setup
+        validate_setup({'action':'connect','ssid':value['ssid'],'password':value['password'],'confirm':True})
     return value['action']
 
 
@@ -102,7 +115,7 @@ class RadioControl:
 class QuickSettings:
     def __init__(self, directory='/var/lib/openstick', *, network=None, radio=None,
                  lock_factory=network_lock, modem_lock_factory=modem_lock,
-                 hotspot=None, setup=None, journal=None, identity_matches=None, forwarding=None, tethering=None):
+                 hotspot=None, setup=None, journal=None, identity_matches=None, forwarding=None, tethering=None, wifi=None):
         self.directory = Path(directory)
         self.network = network or Network()
         self.radio = radio or RadioControl()
@@ -116,6 +129,8 @@ class QuickSettings:
         self.ap_forwarding = forwarding or self._ap_forwarding
         from .usb_tethering import UsbTethering
         self.tethering = tethering or UsbTethering(directory, network=self.network)
+        from .quick_wifi import QuickWifi
+        self.wifi = wifi or QuickWifi(self)
 
     def _ap_forwarding(self, allowed):
         """Only our AP guard; never alter the base firewall or USB gadget."""
@@ -322,6 +337,7 @@ class QuickSettings:
                     active = self.network.active('wlan0')
                     if active not in (SETUP_UUID, AP_UUID):
                         raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+                    self._stop_automation()
                     config = self._read('setup-ap.json')
                     config['enabled'] = False
                     self.setup.write('setup-ap.json', config)
@@ -338,8 +354,10 @@ class QuickSettings:
                     self.tethering.request(True, values['operation'])
                 elif action == 'usb_tether_off':
                     self.tethering.request(False, values['operation'])
+                elif action.startswith('wifi_'):self.wifi.call(action, values)
+                result = self.status()
                 self.journal.finish(receipt, 'COMPLETED')
-                return self.status()
+                return result
             except Exception as error:
                 category = str(error) if str(error) in ERRORS else 'QUICK_OPERATION_FAILED'
                 self.journal.finish(receipt, 'UNKNOWN', category)

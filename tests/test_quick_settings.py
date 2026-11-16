@@ -312,6 +312,38 @@ def test_usb_sharing_needs_its_own_consent_and_does_not_activate_cellular(quick)
     assert load_intent(backend.directory) is None
 
 
+def test_wifi_password_never_enters_receipt_and_options_stay_guarded(quick):
+    backend,network,_,_=quick
+    class Wifi:
+        def options(self):return {'saved':[{'ssid':'fictional-network','active':False}]}
+        def call(self,action,values):
+            assert values['password']=='fictional-password'
+            raise RuntimeError('WIFI_CONNECT_FAILED')
+    backend.wifi=Wifi();identity=str(uuid.uuid4())
+    with pytest.raises(RuntimeError,match='WIFI_CONNECT_FAILED'):
+        invoke(backend,'wifi_connect',identity,ssid='fictional-network',password='fictional-password')
+    stored=json.dumps(backend.receipt(identity))
+    assert 'fictional-password' not in stored and 'fictional-network' not in stored
+    app=create_hosting_app(backend=object(),usb_portal=True,modem_backend=object(),quick_backend=backend,token='fixture')
+    with app.test_client() as client:
+        base='http://172.16.42.1'
+        assert client.get('/api/quick/wifi',base_url=base).status_code==403
+        response=client.get('/api/quick/wifi',base_url=base,headers={'X-OpenStick-Token':'fixture'})
+        assert response.status_code==200 and response.json['saved'][0]['ssid']=='fictional-network'
+    assert not network.calls
+
+
+def test_receipt_is_not_completed_before_final_status_can_be_read(quick):
+    backend,_,_,_=quick
+    transitions=[];finish=backend.journal.finish
+    def record(receipt,state,failure=None):
+        transitions.append(state);finish(receipt,state,failure)
+    backend.journal.finish=record
+    backend.status=lambda:(_ for _ in ()).throw(RuntimeError('private-status-error'))
+    with pytest.raises(RuntimeError,match='QUICK_OPERATION_FAILED'):invoke(backend,'airplane_off')
+    assert transitions==['UNKNOWN']
+
+
 def test_legacy_modem_enable_is_vetoed_before_opening_bus(monkeypatch):
     from uz801_manager import modem_device
     monkeypatch.setattr(modem_device, 'radio_allowed', lambda: False)

@@ -29,6 +29,17 @@
     USB_PROFILE_UNSUPPORTED:'Cấu hình USB khác cấu hình đã kiểm chứng; chưa thay đổi gadget.',
     USB_TETHERING_FIREWALL_FAILED:'Chưa áp dụng được chia sẻ Internet qua USB; chưa xác nhận bật thành công.'
   });
+  Object.assign(errors,{
+    WIFI_SAVED_NOT_FOUND:'Chưa kết nối được Wi-Fi đã lưu. Đã thử khôi phục mạng trước; chọn mạng trong danh sách để kết nối.',
+    WIFI_PROFILE_NOT_FOUND:'Mạng này chưa còn trong danh sách đã lưu. Quét lại hoặc nhập mật khẩu.',
+    WIFI_NOT_CONNECTED:'USB hiện chưa nhận Wi-Fi.',
+    WIFI_CONNECT_FAILED:'Chưa nối được Wi-Fi. Đã thử khôi phục mạng trước; kiểm tra tên mạng và mật khẩu.',
+    WIFI_AUTH_REQUIRED:'Wi-Fi yêu cầu lại mật khẩu. Nhập mật khẩu mới để kết nối.',
+    WIFI_TIMEOUT:'Hết thời gian kết nối Wi-Fi. Kiểm tra bộ phát và mật khẩu.',
+    WIFI_NOT_FOUND:'Chưa tìm thấy Wi-Fi. Quét lại hoặc nhập tên mạng ẩn.',
+    WIFI_SCAN_FAILED:'Chưa quét được Wi-Fi; đã thử khôi phục mạng trước.',
+    WIFI_RESTORE_FAILED:'Chưa khôi phục được Wi-Fi trước. Giữ kết nối USB để kiểm tra; không gửi lại thao tác.'
+  });
   const notice = text => {el('quick-notice').textContent = text;};
   function operationId() {
     const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -49,7 +60,7 @@
     const ap = ['local_ap','sim_ap'].includes(s.wifi_role);
     tile('quick-ap', ap?(s.mobile_data_connected?'Đang phát · Internet SIM':'Đang phát · không Internet'):'Đang tắt', ap, blocked);
     tile('quick-usb', !s.usb_tethering.available?'Chưa được cài':s.usb_tethering.reboot_pending?'Đã lưu · đang áp dụng':s.usb_tethering.degraded?'Chưa xác minh · chạm để tắt':s.usb_tethering.enabled?'Đang chia sẻ Internet':'Tắt · chạm để bật', !!s.usb_tethering.enabled, blocked || !s.usb_tethering.available);
-    el('quick-wifi').textContent = (compact?{station:'Đã nối Wi-Fi',local_ap:'Tạm dừng',sim_ap:'Tạm dừng',offline:'Chọn mạng Wi-Fi'}:{station:'Đang nhận Internet từ Wi-Fi',local_ap:'Tạm dừng khi đang phát Wi-Fi',sim_ap:'Tạm dừng khi đang phát Wi-Fi',offline:'Chọn Wi-Fi để lấy Internet'})[s.wifi_role] || 'Chưa xác định';
+    tile('quick-receive',(compact?{station:'Đã nối · chạm để đổi',local_ap:'Chạm để nhận Wi-Fi',sim_ap:'Chạm để nhận Wi-Fi',offline:'Chạm để kết nối'}:{station:'Đã kết nối · chọn để xem hoặc đổi',local_ap:'Chạm để chuyển sang nhận Wi-Fi',sim_ap:'Chạm để chuyển sang nhận Wi-Fi',offline:'Tự nối mạng đã lưu hoặc chọn mạng mới'})[s.wifi_role] || 'Chưa xác định',s.wifi_role==='station',blocked);
     const modemState=({'-1':'Chưa sẵn sàng',0:'Chưa xác định',1:'Đang khởi tạo',2:'SIM đang khóa',3:'Đã tắt',4:'Đang tắt',5:'Đang bật',6:'Đã bật',7:'Đang tìm mạng',8:'Đã đăng ký mạng',9:'Đang ngắt dữ liệu',10:'Đang kết nối dữ liệu',11:'Đã kết nối dữ liệu'})[s.radio.state] || 'Chưa xác định';
     if (el('quick-details')) el('quick-details').textContent = `SIM: ${s.radio.sim_ready?'sẵn sàng':'chưa sẵn sàng'}\nModem: ${modemState}\n${s.pending_network_trial?'Đang có lượt thử mạng.':'Không có lượt thử mạng.'}\nCác chức năng mới: đang kiểm chứng phần cứng.`;
   }
@@ -62,29 +73,32 @@
       if (el('quick-notice').textContent === 'Đang đọc trạng thái…') notice('Chạm một ô để xem và xác nhận thay đổi.');
     } catch (_) {
       current = null;
-      for (const id of ['quick-airplane','quick-data','quick-ap','quick-usb']) el(id).disabled = true;
+      for (const id of ['quick-airplane','quick-data','quick-ap','quick-usb','quick-receive']) el(id).disabled = true;
       notice('Chưa đọc được trạng thái USB. Các công tắc đã khóa; kiểm tra kết nối rồi đọc lại.');
     }
   }
-  function ask(action, copy) {
+  function ask(action, copy, values={}) {
     if (busy || !current) return;
-    selected = action; el('quick-dialog-copy').textContent = copy; el('quick-dialog').returnValue='cancel';el('quick-dialog').showModal();
+    if(el('quick-wifi-dialog').open)el('quick-wifi-dialog').close();
+    selected = {action,values}; el('quick-dialog-copy').textContent = copy; el('quick-dialog').returnValue='cancel';el('quick-dialog').showModal();
   }
-  async function apply(action) {
+  async function apply(action,values={}) {
     if (busy) return;
     busy = true; if(current) draw(current); notice('Đang thực hiện. Nếu mất kết nối, mở lại trang để đọc trạng thái; không gửi lại lệnh.');
     let operation;
+    let chooseWifi=false, wifiMessage='';
     // Keep only an operation ID, never radio identities or credentials.
     try {
       operation = operationId();
       try {sessionStorage.setItem('openstick-quick-operation', operation);} catch (_) {}
       let r;
-      try {r = await fetch('/api/quick', {method:'POST',headers,body:JSON.stringify({action,operation,confirm:true,...(['data_on','usb_tether_on'].includes(action)?{cellular_consent:true}:{})})});}
+      try {r = await fetch('/api/quick', {method:'POST',headers,body:JSON.stringify({action,operation,confirm:true,...values,...(['data_on','usb_tether_on'].includes(action)?{cellular_consent:true}:{})})});}
       catch (_) {await poll(operation,action);return;}
       if (!r.ok) {const result = await r.json();throw Error(result.error || 'QUICK_OPERATION_FAILED');}
       await poll(operation,action);
-    } catch (error) {notice(errors[error.message] || 'Chưa xác minh được kết quả. Kiểm tra trạng thái qua USB trước khi thử tiếp.');}
-    finally {busy = false; await refresh();}
+      chooseWifi=action==='wifi_scan';
+    } catch (error) {wifiMessage=errors[error.message] || 'Chưa xác minh được kết quả. Kiểm tra trạng thái qua USB trước khi thử tiếp.';notice(wifiMessage);chooseWifi=action.startsWith('wifi_')&&error.message!=='WIFI_RESTORE_FAILED';}
+    finally {values={};busy = false; await refresh();if(chooseWifi)await showWifi(wifiMessage);}
   }
   async function poll(operation,action=null) {
     const deadline = Date.now()+210000;
@@ -120,7 +134,7 @@
           }
           if (usb.enabled!==(receipt.kind==='usb_tether_on')) throw Error('USB_APPLY_FAILED');
           notice(usb.enabled?'Đã bật chia sẻ USB sau khởi động lại. PC tự nhận cấu hình mạng; Internet phụ thuộc Wi-Fi hoặc dữ liệu SIM đang hoạt động.':'Đã tắt chia sẻ USB sau khởi động lại. USB vẫn dùng được để quản trị.');
-        } else notice('Đã hoàn tất. Trạng thái vừa được đọc lại; Internet chưa được chứng nhận từ kết quả này.');
+        } else notice(receipt.kind==='wifi_scan'?'Đã quét xong. Chọn mạng để kết nối.':['wifi_auto','wifi_saved','wifi_connect'].includes(receipt.kind)?'Đã kết nối Wi-Fi. Internet cần được kiểm tra riêng; bấm ô Nhận Wi-Fi để xem hoặc đổi mạng.':'Đã hoàn tất. Trạng thái vừa được đọc lại; Internet chưa được chứng nhận từ kết quả này.');
         try{sessionStorage.removeItem('openstick-quick-operation');}catch(_){}return;
       }
       if (!receipt.busy && receipt.state!=='STARTED' && !(receipt.state==='NOT_FOUND' && Date.now()<deadline-200000)) throw Error('RADIO_RESULT_UNKNOWN');
@@ -128,7 +142,51 @@
     }
     throw Error('RADIO_RESULT_UNKNOWN');
   }
-  el('quick-dialog').addEventListener('close',()=>{const action=selected;selected=null;if(el('quick-dialog').returnValue==='apply'&&action)apply(action);});
+  const wifiImpact=()=>['local_ap','sim_ap'].includes(current?.wifi_role)?'Wi-Fi đang phát sẽ tạm ngừng; nếu không kết nối được sẽ thử phát lại. Giữ USB để quản trị.':'Kết nối Wi-Fi quản trị hiện tại có thể ngắt; cổng USB vẫn dùng được.';
+  async function showWifi(message='') {
+    if(busy||!current)return;
+    const dialog=el('quick-wifi-dialog');
+    el('quick-wifi-feedback').textContent=message;
+    if(!dialog.open)dialog.showModal();
+    el('quick-wifi-current').textContent='Đang đọc Wi-Fi…';
+    el('quick-wifi-saved').replaceChildren();el('quick-wifi-nearby').replaceChildren();
+    el('quick-wifi-disconnect').hidden=true;
+    try {
+      const r=await fetch('/api/quick/wifi',{headers,cache:'no-store'});
+      if(!r.ok)throw Error();const s=await r.json();
+      el('quick-wifi-current').textContent=s.connected?`Đang kết nối: ${s.ssid||'Wi-Fi đã lưu'}`:s.ap_active?'USB đang phát Wi-Fi. Chọn mạng để chuyển sang nhận.':'USB chưa nhận Wi-Fi.';
+      el('quick-wifi-disconnect').hidden=!s.connected;
+      const saved=s.saved||[], names=new Set(saved.map(p=>p.ssid));
+      function row(parent,title,detail,click,active=false,disabled=false) {
+        const button=document.createElement('button');button.type='button';button.className='quick-wifi-network';button.dataset.active=String(active);button.disabled=disabled;
+        const label=document.createElement('span'),small=document.createElement('small');label.textContent=title;small.textContent=detail;button.append(label,small);button.onclick=click;parent.append(button);
+      }
+      function connectSaved(ssid){ask('wifi_saved',`Kết nối Wi-Fi đã lưu “${ssid}”? ${wifiImpact()} Dữ liệu SIM giữ nguyên; không tự bật thêm data.`,{ssid});}
+      for(const p of saved)row(el('quick-wifi-saved'),p.ssid,p.active?'Đang kết nối':'Đã lưu · không cần nhập lại mật khẩu',()=>connectSaved(p.ssid),p.active,p.active);
+      if(!saved.length)el('quick-wifi-saved').textContent='Chưa có Wi-Fi đã lưu.';
+      for(const n of s.networks||[]) {
+        const supported=/(^|\s)WPA[12]($|\s)/.test(n.security)&&!/(802\.1X|EAP)/.test(n.security);
+        row(el('quick-wifi-nearby'),n.ssid,`${n.signal}% · ${n.security||'Mạng mở'}${supported?'':' · chưa hỗ trợ'}`,()=>{
+          if(names.has(n.ssid)){connectSaved(n.ssid);return;}
+          el('quick-wifi-ssid').value=n.ssid;el('quick-wifi-password').value='';el('quick-wifi-form-title').textContent='Nhập mật khẩu để kết nối';el('quick-wifi-password').focus();
+        },false,!supported);
+      }
+      if(!(s.networks||[]).length)el('quick-wifi-nearby').textContent='Chưa có kết quả quét. Bấm Quét lại hoặc nhập Wi-Fi ẩn bên dưới.';
+      el('quick-wifi-scan-age').textContent=s.scan_at?`Lần quét: ${new Date(s.scan_at*1000).toLocaleTimeString()}. Bấm Quét lại để cập nhật.`:'Chọn mạng chỉ điền thông tin; chưa thay kết nối.';
+    } catch (_) {el('quick-wifi-current').textContent='Chưa đọc được danh sách. Giữ USB và kiểm tra lại.';}
+  }
+  el('quick-dialog').addEventListener('close',()=>{const request=selected;selected=null;if(el('quick-dialog').returnValue==='apply'&&request)apply(request.action,request.values);});
+  el('quick-receive').onclick=()=>current.wifi_role==='station'?showWifi():ask('wifi_auto',`Quét và kết nối Wi-Fi đã lưu? ${wifiImpact()} Nếu không nối được, mở danh sách để chọn mạng hoặc nhập mật khẩu. Không tự bật dữ liệu SIM.`);
+  el('quick-wifi-close').onclick=()=>el('quick-wifi-dialog').close();
+  el('quick-wifi-dialog').addEventListener('close',()=>{el('quick-wifi-password').value='';});
+  el('quick-wifi-scan').onclick=()=>ask('wifi_scan',`Quét Wi-Fi xung quanh? ${['local_ap','sim_ap'].includes(current?.wifi_role)?wifiImpact():'Giữ nguyên Wi-Fi đang nhận.'} Chỉ quét rồi trở về mạng trước, chưa chọn mạng mới; kết nối SIM giữ nguyên.`);
+  el('quick-wifi-disconnect').onclick=()=>ask('wifi_off','Ngắt nhận Wi-Fi? Không tự phát Wi-Fi hoặc nối sang mạng khác. Dữ liệu SIM giữ nguyên; trang quản trị USB vẫn dùng được.');
+  el('quick-wifi-form').onsubmit=event=>{
+    event.preventDefault();if(busy||!current)return;
+    const ssid=el('quick-wifi-ssid').value,password=el('quick-wifi-password').value;
+    if(new TextEncoder().encode(ssid).length>32){el('quick-wifi-feedback').textContent='Tên Wi-Fi vượt quá 32 byte.';return;}
+    ask('wifi_connect',`Kết nối Wi-Fi “${ssid}” và lưu cho lần sau? ${wifiImpact()} Không tự bật dữ liệu SIM.`,{ssid,password});
+  };
   el('quick-airplane').onclick=()=>ask(current.intent?.airplane?'airplane_off':'airplane_on',current.intent?.airplane?'Cho phép modem di động hoạt động lại? Dữ liệu SIM vẫn tắt; chưa có SIM thì chờ lắp SIM.':'Tắt kết nối di động? SMS/USSD và dữ liệu SIM sẽ ngừng. Wi-Fi và USB Ethernet vẫn được giữ; nếu đang chia sẻ SIM, Wi-Fi có thể ngắt rồi phát lại nội bộ, không Internet.');
   el('quick-data').onclick=()=>ask(current.mobile_data_connected?'data_off':'data_on',current.mobile_data_connected?'Tắt dữ liệu SIM? Web/Tunnel và thiết bị dùng Internet SIM sẽ mất Internet. Wi-Fi đang phát vẫn giữ để quản trị; không tự bật lại data.':'Bật dữ liệu SIM và cho phép phát sinh cước? Nếu Wi-Fi đang phát, các thiết bị kết nối sẽ được dùng Internet SIM. Giữ cùng tên và mật khẩu Wi-Fi.');
   el('quick-ap').onclick=()=>{const ap=['local_ap','sim_ap'].includes(current.wifi_role);ask(ap?'local_ap_off':'local_ap_on',ap?'Tắt phát Wi-Fi? Điện thoại sẽ ngắt. Không tự nối Wi-Fi nhà; dữ liệu SIM giữ nguyên.':current.mobile_data_connected?'Bật phát Wi-Fi để chia sẻ Internet SIM? Các thiết bị kết nối có thể phát sinh cước SIM. Wi-Fi nhà sẽ ngắt; dùng tên và mật khẩu phát đã lưu.':'Bật phát Wi-Fi để quản trị? Wi-Fi nhà sẽ ngắt. Chưa có Internet cho đến khi bạn bật Dữ liệu SIM.');};

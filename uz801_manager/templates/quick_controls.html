@@ -3,7 +3,7 @@
 <div class="quick-grid" aria-label="Điều khiển kết nối">
   <button class="quick-tile" id="quick-airplane" disabled><span aria-hidden="true">✈</span><strong>Chế độ máy bay</strong><small>Đang đọc…</small></button>
   <button class="quick-tile" id="quick-data" disabled><span aria-hidden="true">⇅</span><strong>Dữ liệu SIM</strong><small>Đang đọc…</small></button>
-  <a class="quick-tile" href="/setup"><span class="quick-icon" aria-hidden="true">{{ icon('wifi-receive') }}</span><strong>Nhận Wi-Fi</strong><small id="quick-wifi">Đang đọc…</small></a>
+  <button class="quick-tile" id="quick-receive" disabled><span class="quick-icon" aria-hidden="true">{{ icon('wifi-receive') }}</span><strong>Nhận Wi-Fi</strong><small id="quick-wifi">Đang đọc…</small></button>
   <button class="quick-tile" id="quick-ap" disabled><span class="quick-icon" aria-hidden="true">{{ icon('wifi-broadcast') }}</span><strong>Phát Wi-Fi</strong><small>Đang đọc…</small></button>
   <button class="quick-tile" id="quick-usb" disabled><span aria-hidden="true">↔</span><strong>USB tethering</strong><small>Đang đọc…</small></button>
 </div>
@@ -14,5 +14,20 @@
 <dialog id="quick-dialog" aria-labelledby="quick-dialog-title" aria-describedby="quick-dialog-copy">
   <h2 id="quick-dialog-title">Xác nhận thay đổi</h2><p id="quick-dialog-copy"></p>
   <form method="dialog"><div class="settings-actions"><button value="cancel" class="secondary">Hủy</button><button value="apply" id="quick-apply">Xác nhận</button></div></form>
+</dialog>
+<dialog id="quick-wifi-dialog" aria-labelledby="quick-wifi-title">
+  <div class="quick-panel-heading"><h2 id="quick-wifi-title">Nhận Wi-Fi</h2><button type="button" id="quick-wifi-close" class="secondary" aria-label="Đóng danh sách Wi-Fi">Đóng</button></div>
+  <p id="quick-wifi-current"></p><p id="quick-wifi-feedback" role="status" aria-live="polite"></p>
+  <h3>Wi-Fi đã lưu</h3><div id="quick-wifi-saved" class="quick-wifi-list"></div>
+  <div class="quick-panel-heading"><h3>Mạng xung quanh</h3><button type="button" id="quick-wifi-scan" class="secondary">Quét lại</button></div>
+  <p id="quick-wifi-scan-age" class="quick-panel-help"></p><div id="quick-wifi-nearby" class="quick-wifi-list"></div>
+  <form id="quick-wifi-form" class="quick-wifi-form">
+    <h3 id="quick-wifi-form-title">Kết nối mạng khác hoặc Wi-Fi ẩn</h3>
+    <label>Tên Wi-Fi<input id="quick-wifi-ssid" name="ssid" required autocomplete="off" maxlength="32"></label>
+    <label>Mật khẩu Wi-Fi<input id="quick-wifi-password" name="password" type="password" required minlength="8" maxlength="63" autocomplete="new-password"></label>
+    <button type="submit" id="quick-wifi-connect">Kết nối</button>
+  </form>
+  <div class="settings-actions"><button type="button" id="quick-wifi-disconnect" class="secondary">Ngắt nhận Wi-Fi</button><a href="/setup">Cài đặt Wi-Fi chi tiết</a></div>
+  <p class="quick-panel-help">USB chỉ nhận hoặc phát Wi-Fi tại một thời điểm. Chọn mạng không tự bật dữ liệu SIM. Mật khẩu chỉ gửi khi bạn xác nhận kết nối.</p>
 </dialog>
 <script src="/static/quick.js"></script>

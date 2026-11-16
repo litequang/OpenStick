@@ -299,6 +299,55 @@ def test_apn_only_save_preserves_wifi_and_never_activates_data(setup_hotspot):
     assert all(call==('load',str(cell)) for call in network.calls)
 
 
+def advanced_apn(**changes):
+    return dict(name='Fixture custom',apn='fixture.apn',username='fixture-user',password='fixture-secret',
+                password_action='replace',auth='pap_chap',ip_family='ipv4',roaming=False,confirm=True,**changes)
+
+
+def test_advanced_apn_saves_only_and_never_returns_password(setup_hotspot):
+    import configparser
+    backend,network,_=setup_hotspot;configure(backend)
+    ap=(backend.profiles/'openstick-hotspot.nmconnection').read_bytes();network.calls.clear()
+    result=backend.call('configure_cellular',**advanced_apn())
+    assert 'fixture-secret' not in json.dumps(result)
+    assert result['cellular_settings']['password_saved'] and result['cellular_settings']['auth']=='pap_chap'
+    assert result['cellular_settings']['ip_family']=='ipv4'
+    assert (backend.profiles/'openstick-hotspot.nmconnection').read_bytes()==ap
+    path=backend.profiles/'openstick-cellular.nmconnection'
+    p=configparser.ConfigParser(interpolation=None);p.read(path)
+    assert p['gsm']['username']=='fixture-user' and p['gsm']['home-only']=='true'
+    assert p['connection']['autoconnect']=='false' and p['connection']['uuid']==CELL_UUID
+    assert p['ipv4']['route-metric']=='600' and p['ipv6']['method']=='disabled'
+    assert network.calls==[('load',str(path))]
+    keep=advanced_apn();keep.update(password='',password_action='keep',ip_family='ipv4v6')
+    assert backend.call('configure_cellular',**keep)['cellular_settings']['password_saved']
+    assert 'password=fixture-secret' in path.read_text()
+    keep.update(apn='',username='',auth='auto',password_action='clear')
+    auto=backend.call('configure_cellular',**keep)['cellular_settings']
+    assert not auto['password_saved'] and not auto['username'] and not auto['apn']
+
+
+def test_advanced_apn_load_failure_restores_all_private_files(setup_hotspot):
+    backend,network,_=setup_hotspot;configure(backend)
+    before={p:p.read_bytes() for p in [*backend.profiles.glob('*'),backend.directory/'hotspot.json']}
+    calls=[]
+    def load(path):
+        calls.append(path)
+        if len(calls)==1:raise RuntimeError('fixture-secret')
+    network.load=load
+    with pytest.raises(RuntimeError,match='^HOTSPOT_OPERATION_FAILED$'):
+        backend.call('configure_cellular',**advanced_apn())
+    assert all(p.read_bytes()==data for p,data in before.items()) and len(calls)==2
+
+
+@pytest.mark.parametrize('field,value',[('username','x\n[ipv4]'),('password','x\nkey=value'),('auth','shell'),
+    ('ip_family','command'),('roaming','yes'),('password_action','unknown'),('name','x\x00')])
+def test_advanced_apn_rejects_injection_or_unknown_enum_before_writes(setup_hotspot,field,value):
+    backend,network,_=setup_hotspot;values=advanced_apn();values[field]=value
+    with pytest.raises(ValueError):backend.call('configure_cellular',**values)
+    assert not network.calls and not backend.directory.exists()
+
+
 @pytest.mark.parametrize('apn', ['bad\npassword=secret', 'x;bad', 'X', None, 'a'*101])
 def test_apn_only_rejects_invalid_values_before_transport(setup_hotspot,apn):
     backend,network,_=setup_hotspot
