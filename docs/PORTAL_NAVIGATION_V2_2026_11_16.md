@@ -79,7 +79,10 @@ Do not infer real Android touch acceptance from a synthetic DOM test.
 Deploy to actual USB only after explicitly checking device state and
 creating a timestamped backup of `hosting.py`, `portal_chrome.html`,
 `manage.html`, `portal.css`. If a network handoff is pending, postpone.
-Use the owner’s Codex PC physical USB process; no direct deployment here.
+Actual physical USB deployment completed 2026-11-16 from commit `fddda78`,
+with the four files backed up and checksum-verified. Both USB and LAN
+portal listeners were tested. See `docs/SESSION_HANDOFF.md` for the exact
+backup, service checks and LAN mDNS versus router DNS findings.
 
 ## Outstanding
 Manual acceptance needed on phone/tablet for 6/7-item dock width and

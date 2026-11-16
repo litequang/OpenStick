@@ -1,5 +1,17 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — Đã cài giao diện quản lý/navigation V2 commit `fddda78`
+lên USB thật.** Sao lưu bốn tệp trước khi cài, kiểm tra SHA-256 sau khi
+cài; Wi-Fi hiện tại, SIM, Tunnel, cấu hình và phiên thử mạng giữ nguyên.
+467 pytest PASS, 1 SKIP trên Windows. Dịch vụ quản trị USB và LAN chạy
+tốt; trang LAN không có phiên đăng nhập vẫn chuyển đến `/login`.
+Kiểm tra mDNS từ PC qua Wi-Fi với TTL 255 xác nhận USB trả đúng IP LAN,
+nhưng router gia đình trả NXDOMAIN khi hỏi DNS thường cho
+`openstick.local`. Vì vậy chưa thể kết luận Android trên mạng gia đình
+truy cập được bằng tên này; cần mDNS ở máy khách hoặc bản ghi DNS trên
+router. Xem đầu `docs/SESSION_HANDOFF.md` để biết backup, kiểm thử và
+giới hạn nghiệm thu.
+
 **15/11/2026 — Đã chỉnh lại giao diện `/setup` và triển khai lên USB thật:**
 Hai thẻ rõ ràng cho USB nhận Wi-Fi và USB phát Wi-Fi (cấu hình chung với
 hotspot SIM). Trên điện thoại các thẻ xếp dọc, máy tính xếp hai cột; các

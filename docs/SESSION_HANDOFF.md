@@ -1,5 +1,42 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16: navigation and management UI V2 deployed on the physical USB
+
+Commit `fddda78c51ad7f3f63167181a68eb18e486574f5` was fast-forwarded
+onto the local `codex/uz801-v32-postmarketos` branch and deployed to the
+physical device. Source validation: **467 pytest passed, 1 Windows symlink
+skip**; JavaScript syntax and Python compilation passed.
+
+Before installing, the four prior files were backed up as
+`/var/lib/openstick/deploy-backups/home-20261114/before-portal-v2-fddda78-1794788421.tar.gz`
+(SHA-256 archive: `07478bdeeb9ed90a6380c7666029e8399bbdd0f2c70c0575c158c0c3ed840952`).
+Installed only `uz801_manager/hosting.py`, `static/portal.css`,
+`templates/manage.html`, and `templates/portal_chrome.html`. Every
+installed checksum matched the package manifest. Restarted only
+`openstick-wifi` and `openstick-lan`, which remained started alongside
+`openstick-hotspot` and `avahi-daemon`. Saved station connection,
+station IP and no-pending-trial state remained unchanged. No device reboot
+or SIM/hotspot/Wi-Fi mode operation was performed.
+
+Physical USB listener responded HTTP 200 at `/manage`, `/setup`,
+`/overview`, `/hotspot` and `/static/portal.css`. The deployed
+`/manage` HTML contains the saved-Wi-Fi link, SIM group, LED shortcut
+and preserved legacy `saved-wifi` anchor. Actual Wi-Fi LAN IPv4 access
+redirected unauthenticated `/manage` and `/hotspot` to `/login`
+(HTTP 302), while `/login` returned HTTP 200. Authentication password
+was not used or changed.
+
+**Local-name diagnosis:** On the PC with the USB cable connected, normal
+`openstick.local` resolution selects the USB-only address, so that test
+does not prove the Wi-Fi path. From the PC's actual Wi-Fi interface, a
+proper mDNS query with TTL 255 received an answer from the device's WLAN
+IPv4 address and did not include the USB address. The home router's
+ordinary unicast DNS returned `NXDOMAIN` for `openstick.local`.
+Consequently clients using only that router DNS may still fail; either
+client mDNS support or a router-side local DNS record is required.
+Android phone acceptance on the home LAN remains unverified. No router
+DNS or client settings were changed.
+
 ## 2026-11-15: Wi-Fi setup management UI redesigned and deployed
 
 The real USB `/setup` portal now has two prominent Wi-Fi panels: **USB joins
