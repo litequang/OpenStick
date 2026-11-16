@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>OpenStick — Cài đặt Wi-Fi</title>
 </head>
-<body><main>
+<body><main class="settings-page">
 {% include 'portal_chrome.html' %}
 
 <div class="setup-page-heading">
@@ -14,6 +14,14 @@
   <p>Quản lý mạng USB kết nối và Wi-Fi USB phát ra từ cùng một nơi.</p>
 </div>
 
+<section class="settings-connection" aria-labelledby="connection-title">
+  <div><p class="ux-eyebrow">KẾT NỐI HIỆN TẠI</p><h2 id="connection-title">Wi-Fi của USB</h2></div>
+  <p id="setup-wifi-status" role="status">Đang đọc kết nối…</p>
+  <p class="setup-field-help">Tốc độ TX/RX là tốc độ liên kết Wi-Fi, không phải tốc độ tải Internet.</p>
+</section>
+<nav class="settings-local-nav" aria-label="Các mục Wi-Fi">
+  <a href="#setup-connect-pane">Kết nối mạng</a><a href="#saved-wifi">Mạng đã lưu</a><a href="#usb-ap-settings">Mạng USB phát</a><a href="#setup-status-panel">Khôi phục</a>
+</nav>
 <div class="setup-panel-grid">
   <section id="setup-connect-pane" class="setup-panel setup-panel-station">
     <div class="setup-panel-heading">
@@ -24,6 +32,7 @@
         <p>Cho USB dùng Wi-Fi nhà hoặc mạng có sẵn.</p>
       </div>
     </div>
+    <details id="setup-connect-details" open><summary>Chọn hoặc đổi mạng Wi-Fi</summary>
     <form id="setup-connect" class="setup-form">
       <div class="setup-field">
         <div class="setup-label-action">
@@ -47,10 +56,12 @@
       </div>
       <div class="setup-impact setup-impact-warning" role="note">
         <span aria-hidden="true">!</span>
-        <p><strong>USB sẽ khởi động lại một lần.</strong> Kết nối có thể ngắt tạm thời. Nếu không vào được mạng mới, USB sẽ thử Wi-Fi đã lưu rồi phát Wi-Fi cài đặt để khôi phục.</p>
+        <p id="setup-connect-impact">Đang kiểm tra cách kết nối phù hợp…</p>
       </div>
       <button id="setup-submit" class="setup-primary-action" type="submit">Lưu &amp; kết nối Wi-Fi →</button>
+      <p id="setup-connect-notice" class="setup-feedback" role="status" aria-live="polite"></p>
     </form>
+    </details>
     <section id="saved-wifi" class="setup-saved-networks" aria-labelledby="saved-wifi-title">
       <div class="setup-saved-heading">
         <div>
@@ -150,7 +161,7 @@
     <div><h2>Lưu thông tin kết nối</h2><p>Lưu thẻ Wi-Fi USB vào điện thoại để dùng khi không có PC.</p></div>
   </div>
   <div class="setup-recovery-actions">
-    <button id="setup-reveal" class="secondary">Xem thông tin kết nối</button>
+    <button id="setup-reveal" class="secondary" aria-expanded="false" aria-controls="setup-credentials">Xem thông tin kết nối</button>
     <button id="setup-card" class="secondary">↓ Tải thẻ kết nối</button>
   </div>
   <pre id="setup-credentials" class="setup-credentials" hidden></pre>

@@ -256,7 +256,12 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     def lan_address_context():
         from .lan_access import LAN_URL
         return {'stable_lan_url': LAN_URL if usb_portal and (lan_auth is not None or lan_settings is not None) else None,
-                'portal_has_website': usb_portal and site_backend is not None}
+                'portal_has_website': usb_portal and site_backend is not None,
+                'portal_settings_features': {'wifi': setup_backend is not None,
+                                             'network': modem_backend is not None,
+                                             'internet': network_backend is not None,
+                                             'hotspot': hotspot_backend is not None,
+                                             'leds': led_backend is not None}}
 
     @app.after_request
     def headers(response):

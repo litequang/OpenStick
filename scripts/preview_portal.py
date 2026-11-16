@@ -10,6 +10,20 @@ from waitress import serve
 from uz801_manager.hosting import create_hosting_app
 from uz801_manager.sms_archive import ArchivedModem, SmsArchive
 from uz801_manager.static_site import StaticSite
+from uz801_manager.lan_access import LanSettings
+from uz801_manager.leds import default_network_rules
+
+
+class Leds:
+    def status(self):
+        return {'supported':True,'saved':False,
+                'network':{'enabled':False,'state':'wifi_station','rules':default_network_rules()},
+                'leds':[{'id':color,'label':label,'modes':['default','off','on','blink'],
+                         'settings':{'mode':'default','on_ms':500,'off_ms':500},
+                         'lit':False,'controlled':False}
+                        for color,label in [('red','Đỏ'),('green','Xanh lá'),('blue','Xanh dương')]]}
+
+    def configure(self, values):raise RuntimeError('DEMO_READ_ONLY')
 
 
 class Modem:
@@ -49,9 +63,9 @@ class Wifi:
 
 class Setup:
     def status(self, credentials=False):
-        value = {'enabled': True, 'configured': True, 'setup_active': True, 'lan_ready': True,
+        value = {'enabled': True, 'configured': True, 'setup_active': False, 'lan_ready': True,
                  'ssid': 'OpenStick-Setup-DEMO', 'url': 'http://192.0.2.1:8765/setup',
-                 'busy': False, 'result': 'SCAN_READY', 'error': None, 'scan_at': 1794646800,
+                 'busy': False, 'result': None, 'error': None, 'scan_at': 1794646800,
                  'networks': [{'ssid': 'Wi-Fi mẫu', 'signal': 72, 'security': 'WPA2'}]}
         if credentials:value['password'] = 'demo-password-only'
         return value
@@ -70,7 +84,8 @@ def main():
                                    'timestamp':'2026-11-14T10:01:00Z','state':3,'path':'/demo/2'}])
         app=create_hosting_app(backend=Wifi(),modem_backend=ArchivedModem(Modem(),archive),
               hotspot_backend=Hotspot(),network_backend=Policy(),site_backend=StaticSite(site,lock_path=None),
-              usb_portal=True,authority='127.0.0.1:8771',hostname='example.invalid',setup_backend=Setup())
+              usb_portal=True,authority='127.0.0.1:8771',hostname='example.invalid',setup_backend=Setup(),
+              lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds())
         @app.after_request
         def demo_banner(response):
             if response.mimetype=='text/html':

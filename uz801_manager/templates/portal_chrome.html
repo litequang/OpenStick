@@ -12,6 +12,7 @@
 {% else %}<rect x="3" y="8" width="18" height="12" rx="3"/><path d="M7 8V4m10 4V4M7 15h.01M12 15h5"/>{% endif %}</svg>
 {%- endmacro %}
 <link rel="stylesheet" href="/static/portal.css">
+<link rel="stylesheet" href="/static/settings.css">
 <a class="portal-skip-link" href="#portal-content">Bỏ qua điều hướng</a>
 <header class="portal-header" data-status-token="{{ token }}">
   <a class="portal-brand" href="/overview">OpenStick <small>UZ801 V3.2</small></a>
@@ -28,25 +29,14 @@
 {% if page in ['setup', 'website', 'leds'] %}
 <div class="portal-breadcrumb"><a href="/manage">← Quản lý</a><span aria-hidden="true">/</span><span>{{ {'network':'Mạng SIM', 'internet':'Nguồn Internet', 'setup':'Wi-Fi cài đặt', 'hotspot':'Phát Wi-Fi từ SIM', 'website':'Website', 'leds':'Đèn thông báo'}[page] }}</span></div>
 {% endif %}
-{% if page in ['network', 'internet', 'hotspot'] %}
-<div class="portal-group-context">
-  <a class="portal-group-parent" href="/manage">← Quản lý</a>
-  <nav class="portal-group-tabs" aria-label="Cài đặt SIM và Internet">
-    <a href="/modem/network"{% if page == 'network' %} aria-current="page"{% endif %}>Mạng SIM</a>
-    <a href="/hotspot"{% if page == 'hotspot' %} aria-current="page"{% endif %}>Chia sẻ SIM</a>
-    <a href="/internet"{% if page == 'internet' %} aria-current="page"{% endif %}>Nguồn Internet</a>
-  </nav>
-</div>
-{% endif %}
-{% if page == 'wifi' %}
-<div class="portal-group-context">
-  <a class="portal-group-parent" href="/manage#manage-wifi">Wi-Fi</a>
-  <nav class="portal-group-tabs" aria-label="Cài đặt Wi-Fi">
-    <a href="/setup" aria-current="page">Kết nối Wi-Fi</a>
-    <a href="/setup#saved-wifi">Wi-Fi đã lưu</a>
-    <a href="/setup#usb-ap-settings">Wi-Fi USB phát</a>
-  </nav>
-</div>
+{% if page in ['manage', 'wifi', 'setup', 'network', 'internet', 'hotspot', 'leds'] %}
+<nav class="settings-nav" aria-label="Danh mục cài đặt">
+  {% for key,label,href in [('manage','Cài đặt','/manage'),('wifi','Wi-Fi','/setup'),('internet','Internet','/internet'),('hotspot','Phát Wi-Fi','/hotspot'),('network','Mạng SIM','/modem/network'),('leds','Đèn LED','/settings/leds')] %}
+  {% if key == 'manage' or (portal_settings_features|default({'wifi': true, 'network': true})).get(key) %}
+  <a href="{{ href }}"{% if page == key or (page == 'setup' and key == 'wifi') %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% endif %}
+  {% endfor %}
+</nav>
 {% endif %}
 <div id="portal-content" tabindex="-1"></div>
 <nav class="app-bottom-nav" id="portal-nav" aria-label="Điều hướng chính"

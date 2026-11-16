@@ -6,7 +6,8 @@ async function policyJob(action,values={}){
   policyId('data-off').disabled=true;
   try{
     const response=await fetch('/api/internet',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':policyToken},body:JSON.stringify({action,...values})});
-    if(!response.ok)throw Error('NETWORK_OPERATION_FAILED');
+    if(response.status===401){location.href='/login';throw Error('SESSION_EXPIRED')}
+    if(!response.ok){const body=await response.json().catch(()=>({}));throw Error(body.error||'NETWORK_OPERATION_FAILED')}
     const end=Date.now()+290000;
     while(Date.now()<end){const poll=await fetch('/api/internet/state',{headers:{'X-OpenStick-Token':policyToken}});if(!poll.ok)throw Error();const s=await poll.json();if(!s.busy){if(s.error)throw Error(s.error);return s.result}await new Promise(resolve=>setTimeout(resolve,800))}
     throw Error('RESULT_UNKNOWN');
@@ -20,7 +21,12 @@ function renderPolicy(result){
   if(c.enabled&&(result.age_seconds==null||result.age_seconds>120))policyId('policy-status').textContent+='\nChưa có số liệu gần đây; cần kiểm tra dịch vụ tự quản lý trên USB.';
 }
 async function refreshPolicy(){try{renderPolicy(await policyJob('status'))}catch(e){policyExplain(e)}}
-policyId('policy-refresh').onclick=refreshPolicy;
+const policyModeHelp=()=>{const mode=policyId('internet-mode').value;policyId('policy-mode-help').textContent=({wifi_only:'Chỉ dùng Wi-Fi cho website và Tunnel. Khi áp dụng sẽ ngắt dữ liệu SIM do OpenStick quản lý; SMS/USSD vẫn hoạt động.',sim_only:'Dùng dữ liệu SIM cho website và Tunnel. Khi bật tự quản lý sẽ ngắt Wi-Fi nhận mạng; nên thao tác qua cáp USB.',wifi_preferred:'Ưu tiên Wi-Fi có Internet. Nếu kiểm tra thất bại liên tiếp, dùng SIM đã được cho phép; quay lại Wi-Fi khi phục hồi.',sim_preferred:'Ưu tiên SIM có Internet. Dùng Wi-Fi dự phòng khi SIM không có Internet và quay lại SIM khi phục hồi.'})[mode];policyId('policy-cellular').disabled=mode==='wifi_only';if(mode==='wifi_only')policyId('policy-cellular').checked=false};
+policyId('internet-mode').onchange=policyModeHelp;
+let policyDirty=false;
+policyId('policy-form').addEventListener('input',()=>{policyDirty=true});
+policyId('policy-refresh').onclick=()=>{if(policyDirty&&!confirm('Đọc lại cấu hình sẽ bỏ các thay đổi chưa áp dụng. Tiếp tục?'))return;policyDirty=false;refreshPolicy()};
 policyId('data-off').onclick=async()=>{if(!window.confirm('Tắt dữ liệu SIM và tự chuyển sang SIM? Kết nối Internet đang dùng SIM sẽ ngắt; SMS và Wi-Fi vẫn giữ.'))return;try{renderPolicy(await policyJob('data_off',{confirm:true}));policyId('policy-notice').textContent='Đã tắt dữ liệu SIM do OpenStick quản lý. SIM tiếp tục hoạt động cho SMS / USSD.'}catch(e){policyExplain(e)}};
 policyId('policy-form').onsubmit=async event=>{event.preventDefault();if(!policyId('policy-confirm').checked)return;const values={mode:policyId('internet-mode').value,enabled:policyId('policy-enabled').checked,auto_wifi:policyId('policy-auto-wifi').checked,cellular_consent:policyId('policy-cellular').checked,confirm:true};if(values.enabled&&values.mode!=='wifi_only'&&!values.cellular_consent){policyId('policy-notice').textContent='Cần tích cho phép dữ liệu SIM khi bật chính sách có SIM.';return}policyId('policy-confirm').checked=false;try{renderPolicy(await policyJob('configure',values));policyId('policy-notice').textContent='Đã lưu và áp dụng chính sách.'}catch(e){policyExplain(e)}};
+const drawPolicy=renderPolicy;renderPolicy=result=>{drawPolicy(result);policyDirty=false;policyModeHelp()};
 refreshPolicy();

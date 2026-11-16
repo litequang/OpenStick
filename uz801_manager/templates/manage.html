@@ -19,7 +19,7 @@
       <a href="/setup#saved-wifi"><span><strong>Wi-Fi đã lưu</strong><small>Kết nối lại hoặc quên mạng cũ</small></span><b aria-hidden="true">›</b></a>
       <a href="/setup#usb-ap-settings"><span><strong>Wi-Fi USB phát</strong><small>Tên mạng, mật khẩu và kênh phát</small></span><b aria-hidden="true">›</b></a>
       {% endif %}
-      <a href="/"><span><strong>Xem thông tin Wi-Fi hiện tại</strong><small>SSID, cường độ sóng và địa chỉ mạng</small></span><b aria-hidden="true">›</b></a>
+      <a href="{% if features.setup %}/setup#connection-title{% else %}/{% endif %}"><span><strong>Xem thông tin Wi-Fi hiện tại</strong><small>SSID, cường độ sóng và địa chỉ mạng</small></span><b aria-hidden="true">›</b></a>
     </nav>
     <p class="manage-footnote" id="saved-wifi">Mạng đã lưu nằm cùng màn kết nối. {% if features.setup %}<a href="/setup#saved-wifi">Mở danh sách</a>{% endif %}</p>
   </section>

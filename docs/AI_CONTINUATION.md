@@ -1,5 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**16/11/2026 — Đã rà/sửa phần cài đặt và cài lên USB thật:** Chủ không dùng
+Computer Use; kiểm tra bằng fixture và Chrome headless. Thanh mục cài đặt
+thống nhất; `/setup` hiển thị Wi-Fi hiện tại, đổi mạng station qua API sẵn có,
+giữ luồng setup AP reboot một lần. Thêm giải thích nút khóa, giữ bản nháp
+chính sách khi hủy refresh, chặn gửi trùng mật khẩu LAN và ẩn credentials.
+469 pytest PASS, 1 SKIP Windows; 24 bố cục Chrome preview PASS, không lỗi JS
+hoặc tràn ngang. Đã sao lưu và cài 11 tệp, kiểm tra hash/HTTP/dịch vụ; Wi-Fi,
+cấu hình, website, Tunnel, radio, quyền SSH và boot ID giữ nguyên. Không tự
+gửi SMS/USSD, bật SIM, đổi Wi-Fi hoặc reboot để thử. Xem đầu
+`docs/SESSION_HANDOFF.md` và `docs/SETTINGS_UX_REVIEW_2026_11_16.md`.
+
 **16/11/2026 — Đã sửa firewall mDNS trên USB thật:** tái hiện truy vấn A từ
 Wi-Fi với TTL 1/64 bị chặn, TTL 255 trả đúng IP. Quy tắc cũ yêu cầu TTL 255
 cho cả query; đã thêm đúng ngoại lệ multicast `224.0.0.251`/UDP5353 trên

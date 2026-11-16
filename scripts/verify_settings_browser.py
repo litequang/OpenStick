@@ -1,0 +1,129 @@
+"""Headless Chrome QA against the disposable preview, never the USB portal.
+
+Start scripts/preview_portal.py first. Run with a Python that has Playwright.
+Screenshots contain only fictional preview data and remain under artifacts/.
+"""
+import json
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright, expect
+
+BASE = 'http://127.0.0.1:8771'
+OUT = Path('artifacts/settings-browser')
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    results = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(channel='chrome', headless=True)
+        try:
+            page = browser.new_page()
+            errors = []
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            for width in [320, 390, 768, 1280]:
+                page.set_viewport_size({'width': width, 'height': 844})
+                for path in ['/manage', '/setup', '/internet', '/hotspot', '/modem/network', '/settings/leds']:
+                    response = page.goto(BASE + path)
+                    assert response.status == 200, (path, response.status)
+                    expect(page.locator('.settings-nav [aria-current="page"]')).to_have_count(1)
+                    page.wait_for_timeout(250)
+                    assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth'), (path, width, 'overflow')
+                    assert not errors, errors
+                    if width in [390, 1280]:
+                        page.screenshot(path=str(OUT / (path.strip('/').replace('/', '-') + f'-{width}.png')), full_page=True)
+                    results.append({'path': path, 'width': width, 'http': response.status, 'overflow': False})
+
+            page.set_viewport_size({'width': 390, 'height': 844})
+            # Default preview models station mode: change Wi-Fi must be usable.
+            page.goto(BASE + '/setup')
+            expect(page.locator('#setup-submit')).to_be_enabled()
+            expect(page.locator('#setup-connect-details')).not_to_have_attribute('open', '')
+            page.locator('#setup-connect-details summary').click()
+            expect(page.locator('#setup-connect-impact')).to_contain_text('không khởi động lại')
+            page.locator('#setup-ssid').fill('Fictional station')
+            page.locator('#setup-password').fill('fictional-password')
+            writes = []
+            def station(route):
+                writes.append(route.request.post_data_json)
+                route.fulfill(json={'accepted': True}, status=202)
+            page.route('**/api/wifi', station)
+            page.route('**/api/state', lambda route: route.fulfill(json={'busy': False, 'result': {'connected': True}}))
+            page.once('dialog', lambda dialog: dialog.dismiss())
+            page.locator('#setup-submit').click()
+            assert writes == []
+            page.once('dialog', lambda dialog: dialog.accept())
+            page.locator('#setup-submit').click()
+            expect(page.locator('#setup-connect-notice')).to_contain_text('Đã kết nối Wi-Fi')
+            assert [write['action'] for write in writes] == ['connect']
+            assert 'confirm' not in writes[0], 'Station backend contract changed'
+            expect(page.locator('#setup-password')).to_have_value('')
+            page.locator('#setup-reveal').click()
+            expect(page.locator('#setup-credentials')).to_be_visible()
+            page.locator('#setup-reveal').click()
+            expect(page.locator('#setup-credentials')).to_be_hidden()
+            expect(page.locator('#setup-credentials')).to_have_text('')
+
+            # AP mode must retain the original reboot handoff and explicit consent.
+            page.route('**/api/setup', lambda route: route.fulfill(json={
+                'enabled': True, 'configured': True, 'setup_active': True, 'busy': False,
+                'ssid': 'Fictional setup', 'url': 'http://192.0.2.1:8765/setup', 'networks': [], 'scan_at': 1}))
+            page.route('**/api/header', lambda route: route.fulfill(json={
+                'connected': False, 'setup_active': True, 'hotspot_active': True, 'ssid': 'Fictional setup'}))
+            page.reload()
+            expect(page.locator('#setup-submit')).to_contain_text('khởi động lại')
+            expect(page.locator('#setup-connect-impact')).to_contain_text('một lần')
+            page.locator('#setup-ap-ssid').fill('Unsaved draft')
+            page.wait_for_timeout(5200)
+            expect(page.locator('#setup-ap-ssid')).to_have_value('Unsaved draft')
+            page.unroute('**/api/setup'); page.unroute('**/api/header')
+
+            # Failed and disconnected station requests must not claim success/retry.
+            page.goto(BASE + '/setup')
+            page.locator('#setup-connect-details summary').click()
+            page.locator('#setup-ssid').fill('Fictional station')
+            page.locator('#setup-password').fill('fictional-password')
+            page.unroute('**/api/state')
+            page.route('**/api/state', lambda route: route.fulfill(json={'busy': False, 'error': True, 'error_code': 'WIFI_AUTH_REQUIRED'}))
+            page.once('dialog', lambda dialog: dialog.accept()); page.locator('#setup-submit').click()
+            expect(page.locator('#setup-connect-notice')).to_contain_text('mật khẩu')
+            page.unroute('**/api/state'); page.route('**/api/state', lambda route: route.abort())
+            page.once('dialog', lambda dialog: dialog.accept()); page.locator('#setup-submit').click()
+            expect(page.locator('#setup-connect-notice')).to_contain_text('không tự gửi lại')
+            assert len(writes) == 3
+
+            page.goto(BASE + '/internet')
+            expect(page.locator('#policy-fields')).to_be_enabled()
+            page.locator('#internet-mode').select_option('sim_only')
+            page.once('dialog', lambda dialog: dialog.dismiss()); page.locator('#policy-refresh').click()
+            expect(page.locator('#internet-mode')).to_have_value('sim_only')
+            expect(page.locator('#policy-mode-help')).to_contain_text('ngắt Wi-Fi')
+            page.locator('#internet-mode').select_option('wifi_only')
+            expect(page.locator('#policy-cellular')).to_be_disabled()
+
+            page.goto(BASE + '/hotspot')
+            expect(page.locator('#hotspot-start-reason')).to_contain_text('Cấu hình')
+            expect(page.locator('#hotspot-start')).to_be_disabled()
+            page.locator('#hotspot-apn-mode').select_option('manual')
+            page.locator('#hotspot-apn').fill('fictional.apn')
+            page.wait_for_timeout(10500)
+            expect(page.locator('#hotspot-apn')).to_have_value('fictional.apn')
+            expect(page.locator('#hotspot-apn-mode')).to_have_value('manual')
+
+            page.goto(BASE + '/manage#lan-manage')
+            page.locator('#lan-manage').evaluate('(el)=>el.open=true')
+            expect(page.locator('#lan-fields')).to_be_enabled()
+            page.locator('#lan-password').fill('fictional-password')
+            page.locator('#lan-password-repeat').fill('different-password')
+            page.locator('#lan-settings button[type=submit]').click()
+            expect(page.locator('#lan-status')).to_contain_text('chưa trùng')
+            assert not errors, errors
+            results.append({'interactions': 'PASS', 'javascript_errors': errors, 'device_operations': 0})
+        finally:
+            browser.close()
+    (OUT / 'report.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
+    print(json.dumps({'layouts': 24, 'interactions': 'PASS', 'device_operations': 0}))
+
+
+if __name__ == '__main__':
+    main()

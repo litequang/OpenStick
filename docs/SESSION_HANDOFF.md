@@ -1,5 +1,52 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-16: settings UX review installed on the physical USB
+
+Owner prioritized all settings and explicitly declined Computer Use. Used
+source audit, Node behavior fixtures and Playwright/Chrome headless instead.
+See [settings UX review](SETTINGS_UX_REVIEW_2026_11_16.md) for the source
+references, actual bugs, changes and reproduction commands.
+
+Added shared settings navigation and form styling; station Wi-Fi now uses the
+existing direct-connect API in `/setup`, while setup AP retains the existing
+one-reboot durable handoff. Added current Wi-Fi status, nearby feedback,
+explicit transition confirmation, locked-button reasons, hide credentials,
+policy draft protection and LAN duplicate-submit prevention. No backup,
+firmware, modem/radio or network-worker logic was changed. New navigation
+uses backend availability flags from the Flask context.
+
+Validation: baseline 468 PASS / 1 SKIP; final 469 PASS / 1 Windows symlink
+privilege SKIP, exit 0. Node syntax, packaged self-test and pip check exit 0.
+Chrome preview: 24 layouts (six settings pages, widths 320/390/768/1280), no
+horizontal overflow or JavaScript errors. Interaction tests cover rejected
+consent, password error, disconnected polling/no POST replay, credential hide,
+draft preservation and LAN mismatch/duplicate protection. These are synthetic
+network tests, not proof of real network switching.
+
+Eleven installed source/assets matched baseline `5ceead5` before deployment.
+First install was rolled back automatically because the immediate HTTP probe
+ran before the restarted server had opened its socket. Confirmed the old UI
+was healthy, added readiness retries to the private deploy helper, then
+installed successfully. Restarted only `openstick-wifi` and `openstick-lan`.
+Eight USB HTTP checks and four service checks passed; all eleven installed
+file hashes match. Protected configuration/profile/site/SSH hashes, active
+connections and boot ID stayed unchanged. No reboot, Wi-Fi switch, SIM data,
+SMS/USSD, hotspot trial or credential change was performed.
+
+Post-install Chrome headless against the physical USB opened six settings
+pages at 390 px with no overflow or JavaScript errors. Station connect and
+policy/LED forms loaded successfully. Interception allowed only read-only
+`status`/`profiles` POSTs; no mutating request was generated. A separate
+numeric Wi-Fi LAN request still redirected to the login form, and the saved
+LAN password configuration hash was unchanged. No phone login was repeated.
+
+Successful deployment backup:
+`/var/lib/openstick/deploy-backups/settings-ui-1794794151267590617/before.tar.gz`
+SHA-256 `e82a9c305cd277a4aaa19bfe3ac2491aa03d7f0194ab714d15810838aee29fba`.
+No real passwords, identifiers or messages are included in committed evidence.
+Physical-phone visual acceptance and actual network-changing form acceptance
+remain for the owner; do not perform them automatically.
+
 ## 2026-11-16: fix incoming mDNS query filtering on the real USB
 
 Owner confirmed that the numeric station-IP management URL opened on a phone
