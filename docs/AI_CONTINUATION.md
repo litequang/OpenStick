@@ -1,5 +1,17 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**17/11/2026 — mới nhất: đã cài panel nhiều website / file manager trên USB.**
+Đọc [WEB_HOSTING_PANEL.md](WEB_HOSTING_PANEL.md) và đầu SESSION_HANDOFF.
+8 website tĩnh, root riêng, tên miền lưu riêng và Apply có xác nhận; DNS vẫn
+thủ công/chưa xác minh. File manager có thư mục/tìm kiếm/sửa/copy/move/rename/
+xóa/tải xuống, upload 32 MiB/file, ZIP 128 MiB, website 256 MiB. ZIP kiểm tra
+riêng trước publish, rollback và journal khôi phục khi gián đoạn; không atomic
+nhiều file đối với Nginx. 621 PASS / 1 Windows skip, browser demo và read-only
+USB 12 layout PASS; fixtures filesystem thật 2 MiB và ZIP/copy/move PASS.
+Không áp dụng domain, đổi DNS, sửa website chủ, restart Tunnel/Nginx hay reboot.
+Chỉ restart hai portal; cấu hình riêng và mạng giữ nguyên. Các lỗi MM/DHCP cũ
+vẫn mở. Không tự sửa mạng/firmware trong khi phát triển panel web.
+
 **16/11/2026 — mới hơn: nhiều APN và dọn các nút mạng cũ.**
 Đọc [UI_ACTION_AUDIT_2026_11_16.md](UI_ACTION_AUDIT_2026_11_16.md).
 APN có danh sách tối đa 20 tên riêng: lưu/sửa không áp dụng, Apply riêng và

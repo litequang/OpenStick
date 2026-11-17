@@ -376,8 +376,15 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         @app.before_request
         def site_body_limit():
             if request.path == '/api/site':request.max_content_length = 1500000
+            if request.path == '/api/websites':request.max_content_length = 12 * 1048576 + 65536
+            if request.path == '/api/websites/transfer':
+                request.max_content_length = 129 * 1048576
+                request.max_form_memory_size = 65536
+                request.max_form_parts = 12
         from .static_site import register_site_routes
         register_site_routes(app, site_backend, token, hostname)
+        from .website_panel import WebsitePanel, register_panel_routes
+        register_panel_routes(app, WebsitePanel(site_backend, hostname))
     if lan_auth is not None:
         from .lan_access import install_lan_auth
         install_lan_auth(app, lan_auth)

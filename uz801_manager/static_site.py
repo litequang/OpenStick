@@ -142,7 +142,7 @@ class StaticSite:
 def register_site_routes(app, backend, token, hostname):
     @app.get('/website')
     def website():
-        return render_template('website.html', token=token, page='wifi', hostname=hostname)
+        return render_template('website.html', token=token, page='website', hostname=hostname)
 
     @app.post('/api/site')
     def site():

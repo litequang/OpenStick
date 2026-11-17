@@ -64,8 +64,8 @@ def main():
                              modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
                              lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings(), quick_backend=QuickSettings())
     with usb_socket() as sock, usb_socket(8765) as named_sock:
-        serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=30,
-              max_request_body_size=1500000, ident='OpenStick')
+        serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=120,
+              max_request_body_size=129 * 1048576, inbuf_overflow=65536, ident='OpenStick')
 
 
 if __name__ == '__main__':

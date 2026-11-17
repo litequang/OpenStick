@@ -1,5 +1,50 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-17 latest: multi-site web file manager installed
+
+Pulled the standard branch fast-forward from a6e7754 to 1954eb2 (three commits),
+then implemented the owner's new priority: multiple static websites/domains,
+larger streaming uploads and ZIP extraction. See [panel guide](WEB_HOSTING_PANEL.md).
+Website page now uses the website navigation section. New roots are independent;
+main's directory and primary hostname are protected. Up to eight sites, ten
+hostnames/site, 32 MiB/file, 128 MiB/ZIP, 256 MiB/site, 2,000 entries. JSON text
+editor capped at 2 MiB; legacy /api/site remains compatible. Both USB/LAN
+Waitress listeners now accept the upload envelope and spill request input to disk.
+
+File manager supports folder navigation/search, create/edit/copy/move/rename,
+confirmed file/subtree delete, streamed upload and download, folder ZIP export.
+ZIP inspect is separate from publish, with archive hash and tree revision checks,
+bounded metadata/data decompression, private staging/backups, I/O rollback and
+durable interruption journal. Recovery requires explicit confirmation and refuses
+later external edits. Multi-file publish is not atomic from Nginx's perspective.
+Batch upload reports partial completion and never automatically retries unknowns.
+
+Domain save changes private registry only. Explicit Apply generates a narrow
+Nginx include and marked local-managed Tunnel ingress, preserves the default
+server and original hostname, validates both, reloads Nginx/restarts Tunnel,
+and rolls back on failure. Unsupported existing schema is blocked. DNS remains
+UNVERIFIED and manual in Cloudflare; no DNS token or credentials exported.
+No domain configuration was applied or DNS changed in this session.
+
+Validation: 621 pytest PASS / one Windows symlink-privilege skip, exit 0;
+Node syntax, packaged self-test and pip check PASS. Chrome memory demo passed
+12 layouts and file/multisite/upload/ZIP/download/cancel interactions. Actual
+USB Chrome read-only passed 12 layouts, no JS errors/overflow/mutating requests.
+Actual USB temporary private fixtures passed independent roots, 2,097,169-byte
+streamed upload, ZIP inspect/publish/export, copy/move; fixtures removed and
+protected owner state unchanged. These are not maximum-size stress tests,
+real power-cut tests, public DNS acceptance, or actual domain service reload.
+
+Installed exactly eleven web-panel source/assets, verified all hashes; restarted
+only openstick-wifi/openstick-lan. No network-worker restart, radio change, SIM
+data, Wi-Fi switch, firmware operation or reboot. Website/Tunnel/Nginx/SSH/LAN/
+APN/radio config hashes and active connections unchanged, source backup under
+`/var/lib/openstick/deploy-backups/web-panel-1794880552473939180/`; sync completed.
+Only web-panel files were deployed: do not assume the separately pulled
+1954eb2 Quick Settings mode-cycling change was also installed on the USB.
+Original unrelated untracked files remain untouched. Earlier MM and cold-replug
+DHCP limitations remain open; owner asked to prioritize the hosting panel.
+
 ## Latest: named APN presets and conflicting legacy button cleanup
 
 See [action audit](UI_ACTION_AUDIT_2026_11_16.md). Named APN save/edit/delete

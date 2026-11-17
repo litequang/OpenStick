@@ -57,7 +57,8 @@ def main():
                              hostname=hostname, lan_auth=settings,
                              authority=authority, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings(), quick_backend=QuickSettings())
     with lan_socket() as sock:
-        serve(app, sockets=[sock], threads=2, channel_timeout=30, max_request_body_size=1500000, ident='OpenStick')
+        serve(app, sockets=[sock], threads=2, channel_timeout=120,
+              max_request_body_size=129 * 1048576, inbuf_overflow=65536, ident='OpenStick')
 
 
 if __name__ == '__main__':main()
