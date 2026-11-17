@@ -58,6 +58,12 @@ Waitress của cả USB và LAN chấp nhận request 129 MiB, với input spill
 khiển Wi-Fi/mạng vẫn giữ mức cũ. File không được base64 hóa trong API mới.
 API `/api/site` cũ vẫn có hợp đồng và giới hạn cũ để tương thích.
 
+Multipart decoder có headroom 256 KiB để chứa buffer đọc 64 KiB cộng phần
+boundary dở. Đây không phải giới hạn kích thước file hay bộ nhớ giữ cả file.
+HTTP 413 báo riêng request bị từ chối, không tự suy thành ZIP vượt 128 MiB.
+Đã tái hiện ZIP mẫu 27 MiB nhận 413 trên USB trước sửa; cùng ZIP nhận 200 và
+mở nút giải nén sau sửa. Chỉ kiểm tra, không xuất bản bộ mã vào website chủ.
+
 ## Bảo toàn dữ liệu và xử lý lỗi
 
 - File, metadata, ZIP dùng chung khóa thread + flock của portal; hai listener

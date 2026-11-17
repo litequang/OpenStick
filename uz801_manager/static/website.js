@@ -15,6 +15,7 @@
     SITE_TOO_LARGE:'Website vượt 256 MiB.', SITE_TOO_MANY_FILES:'Website vượt 2.000 file và thư mục.',
     DISK_SPACE_LOW:'USB thiếu dung lượng trống cho thao tác và vùng dự phòng. Xóa file không cần thiết trước.',
     ZIP_TOO_LARGE:'ZIP vượt 128 MiB.', ZIP_INVALID:'ZIP lỗi hoặc chứa kiểu file, liên kết hay cấu trúc không được hỗ trợ.',
+    UPLOAD_REQUEST_REJECTED:'Máy chủ chưa nhận được dữ liệu tải lên (HTTP 413). Tải lại trang rồi thử lại; nếu vẫn lỗi, cần kiểm tra bộ nhận file trên USB.',
     ZIP_MIXED:'Chọn một ZIP riêng để giải nén. Không trộn ZIP với các file thường trong cùng lượt tải.',
     ZIP_DUPLICATE:'ZIP có đường dẫn trùng nhau. Sửa bộ mã rồi kiểm tra lại.',
     ZIP_PUBLISH_FAILED:'Giải nén thất bại; đã khôi phục các file vừa thay đổi.',
@@ -207,7 +208,7 @@
       xhr.upload.onprogress=event=>{if(event.lengthComputable){progress.value=Math.round(event.loaded/event.total*100);say('Đang tải dữ liệu: '+progress.value+'%. Đợi USB xử lý xong; không tải lại trang.');}};
       xhr.upload.onload=()=>say(values.action==='inspect_zip'?'Đã tải ZIP lên. USB đang kiểm tra bộ mã…':values.action==='unzip'?'Đã tải đủ dữ liệu. USB đang giải nén và xuất bản…':'Đã tải đủ dữ liệu. USB đang lưu file…');
       xhr.onerror=xhr.ontimeout=()=>reject(Error('RESULT_UNKNOWN'));
-      xhr.onload=()=>{if(xhr.status===401){location.href='/login';reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status===413){reject(Error(values.action==='upload'?'FILE_TOO_LARGE':'ZIP_TOO_LARGE'));return;}let result;try{result=JSON.parse(xhr.responseText);}catch(_){reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status>=200&&xhr.status<300)resolve(result);else{const error=Error(result.error||'RESULT_UNKNOWN');if(typeof result.entry==='string')error.entry=result.entry;reject(error);}};
+      xhr.onload=()=>{if(xhr.status===401){location.href='/login';reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status===413){reject(Error('UPLOAD_REQUEST_REJECTED'));return;}let result;try{result=JSON.parse(xhr.responseText);}catch(_){reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status>=200&&xhr.status<300)resolve(result);else{const error=Error(result.error||'RESULT_UNKNOWN');if(typeof result.entry==='string')error.entry=result.entry;reject(error);}};
       xhr.send(data);
     });
   }

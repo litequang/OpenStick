@@ -10,7 +10,7 @@ const listing={entries:[entry],bytes:content.length,revision:'r'};
 const main=new Element(),header=new Element();header.dataset.statusToken='fixture';
 const transfers=[];let nextTransferError=null;
 class Data{constructor(){this.values={};}append(k,v){this.values[k]=v;}}
-class Xhr{constructor(){this.upload={};}open(method,url){assert.equal(url,'/api/websites/transfer');}setRequestHeader(){}send(data){transfers.push(data.values.action);this.status=nextTransferError?400:200;this.responseText=JSON.stringify(nextTransferError?{error:nextTransferError}:{files:[{path:'index.html',bytes:20,kind:'file',overwrite:true}],bytes:20,digest:'zip',revision:'r'});this.onload();}}
+class Xhr{constructor(){this.upload={};}open(method,url){assert.equal(url,'/api/websites/transfer');}setRequestHeader(){}send(data){transfers.push(data.values.action);this.status=nextTransferError==='HTTP_413'?413:nextTransferError?400:200;this.responseText=JSON.stringify(nextTransferError?{error:nextTransferError}:{files:[{path:'index.html',bytes:20,kind:'file',overwrite:true}],bytes:20,digest:'zip',revision:'r'});this.onload();}}
 const context={console,Uint8Array,setTimeout,FormData:Data,XMLHttpRequest:Xhr,confirm:()=>confirmed,window:{addEventListener(){}},location:{},
  document:{getElementById:id=>elements[id],querySelector:selector=>selector==='.web-panel'?main:header,createElement:()=>new Element()},
  fetch:async(url,options)=>{assert.equal(url,'/api/websites');const value=JSON.parse(options.body);calls.push(value);
@@ -35,5 +35,8 @@ vm.createContext(context);vm.runInContext(fs.readFileSync(require('node:path').j
  nextTransferError='ZIP_INVALID';elements['web-zip'].files=[{name:'bad.zip',size:5}];elements['web-zip'].onchange();
  await new Promise(r=>setImmediate(r));assert.equal(elements['web-zip-publish'].disabled,true);
  assert.equal(elements['web-upload-status'].dataset.error,'true');
+ nextTransferError='HTTP_413';await elements['web-zip-inspect'].onclick();
+ assert(elements['web-upload-status'].textContent.includes('HTTP 413'));
+ assert(!elements['web-upload-status'].textContent.includes('ZIP vượt 128 MiB'));
  console.log('Static website editor fixture: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});

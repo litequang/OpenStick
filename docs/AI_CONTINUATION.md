@@ -1,5 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**17/11/2026 — sửa lỗi ZIP 27 MiB bị báo vượt 128 MiB, đã cài USB.**
+Nguyên nhân là max_form_memory_size 64 KiB bằng đúng buffer decoder, không
+chừa phần boundary còn dở từ chunk nhị phân. Tăng headroom decoder lên 256 KiB,
+giữ spill-to-disk 64 KiB và mọi hạn mức file/ZIP/site. HTTP 413 có thông báo
+request bị từ chối riêng, không suy thành ZIP vượt hạn mức. ZIP mẫu 28.311.692
+byte: trước sửa HTTP 413; sau sửa HTTP 200, kiểm tra thành công trên USB thật,
+nút giải nén bật; đã hủy, không xuất bản vào website chủ. 625 PASS / 1 skip.
+
 **17/11/2026 — đã sửa phản hồi và nút giải nén ZIP, cài trên USB.**
 ZIP chọn ở ô tải file thường cũng được chuyển sang tự tải/kiểm tra. Card ZIP
 ở đầu tab, có shortcut trong File manager; tiến độ/lỗi hiện tại chỗ. Chỉ bật

@@ -379,8 +379,17 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             if request.path == '/api/websites':request.max_content_length = 12 * 1048576 + 65536
             if request.path == '/api/websites/transfer':
                 request.max_content_length = 129 * 1048576
-                request.max_form_memory_size = 65536
+                # MultipartDecoder may retain a partial boundary between its
+                # 64 KiB reads. Leave bounded headroom for that carry; this is
+                # not the streamed file-size or Waitress input-spool limit.
+                request.max_form_memory_size = 256 * 1024
                 request.max_form_parts = 12
+        from werkzeug.exceptions import RequestEntityTooLarge
+        @app.errorhandler(RequestEntityTooLarge)
+        def upload_rejected(error):
+            if request.path == '/api/websites/transfer':
+                return jsonify(error='UPLOAD_REQUEST_REJECTED'), 413
+            return error
         from .static_site import register_site_routes
         register_site_routes(app, site_backend, token, hostname)
         from .website_panel import WebsitePanel, register_panel_routes

@@ -1,5 +1,30 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-17 latest: fix false ZIP size error on 27 MiB uploads
+
+Owner's 27 MB ZIP was reported as exceeding 128 MiB. Reproduced on the real
+USB with a generated 28,311,692-byte ZIP: HTTP 413 before inspection. The
+multipart decoder read buffer is 65,536 bytes; max_form_memory_size had been
+set to that same value. A partial boundary retained from a binary chunk made
+the next buffer exceed the bound, even for a small valid ZIP. A deterministic
+128 KiB regression with a retained CR failed 413 before the patch.
+
+Raised only multipart decoder/field headroom to 256 KiB; the streamed request
+spill threshold remains 64 KiB, request envelope 129 MiB, ZIP cap 128 MiB and
+file/site quotas unchanged. Transfer 413 now returns UPLOAD_REQUEST_REJECTED;
+the browser reports a request rejection rather than claiming the selected ZIP
+exceeds 128 MiB. True ZIP size checks still have their own ZIP_TOO_LARGE code.
+625 pytest PASS / one Windows privilege skip, exit 0. New tests cover carry,
+bounded form metadata/request envelope, true ZIP size error, and UI 413 wording.
+Chrome demo's complete hosting interactions and twelve layouts still pass.
+
+Installed and verified source hashes, protected owner state/network unchanged,
+no reboot. Backup `/var/lib/openstick/deploy-backups/web-panel-1794885793308617038/`.
+After installation the same generated 27 MiB ZIP returned HTTP 200 on the real
+USB browser, inspection passed and extract button enabled. Cancelled extraction;
+no fixture was published into the owner's website. Actual owner archive was not
+read or published. Testing used only generated data and inspection.
+
 ## 2026-11-17 latest: fix ZIP picker routing and missing feedback
 
 Owner reported ZIP upload had no visible response/extract button. The normal

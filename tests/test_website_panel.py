@@ -308,3 +308,51 @@ def test_zip_inspection_error_identifies_blocked_entry_without_publishing(panel)
         'file':(archive([('blocked.php',b'fixture')]),'fixture.zip')})
     assert response.status_code==400 and response.json=={'error':'FILE_TYPE_BLOCKED','entry':'blocked.php'}
     assert (panel.default.directory/'index.html').read_text()=='original'
+
+
+def test_multipart_binary_carry_does_not_reject_valid_zip_under_limit(panel):
+    # A trailing CR is retained until the next multipart read. The decoder's
+    # bound must allow its 64 KiB read PLUS that partial-boundary carry.
+    boundary='OpenStickRegressionBoundary'
+    prefix=b''
+    for key,value in [('action','inspect_zip'),('site','main'),('path','')]:
+        prefix+=(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n').encode()
+    prefix+=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="fixture.zip"\r\nContent-Type: application/zip\r\n\r\n').encode()
+    name='fixture.pdf';data=bytearray(b'x'*(128*1024))
+    data[65535-len(prefix)-30-len(name)]=13
+    zipped=io.BytesIO()
+    with zipfile.ZipFile(zipped,'w',compression=zipfile.ZIP_STORED) as package:package.writestr(name,data)
+    body=prefix+zipped.getvalue()+(f'\r\n--{boundary}--\r\n').encode()
+    assert body[65535]==13
+    app=create_hosting_app(backend=object(),usb_portal=True,token='fixture',site_backend=panel.default,
+                           hostname=panel.hostname)
+    response=app.test_client().post('/api/websites/transfer',base_url='http://172.16.42.1',
+        headers={'X-OpenStick-Token':'fixture'},data=body,content_type='multipart/form-data; boundary='+boundary)
+    assert response.status_code==200,response.status_code
+    assert response.json['files'][0]['bytes']==len(data)
+    assert (panel.default.directory/'index.html').read_text()=='original'
+
+
+def test_transfer_metadata_and_request_limits_remain_bounded(panel):
+    app=create_hosting_app(backend=object(),usb_portal=True,token='fixture',site_backend=panel.default,
+                           hostname=panel.hostname)
+    client=app.test_client();headers={'X-OpenStick-Token':'fixture'};base='http://172.16.42.1'
+    response=client.post('/api/websites/transfer',base_url=base,headers=headers,data={
+        'action':'inspect_zip','site':'main','path':'x'*(256*1024+1),
+        'file':(archive([('x.html',b'x')]),'fixture.zip')})
+    assert response.status_code==413 and response.json=={'error':'UPLOAD_REQUEST_REJECTED'}
+    response=client.post('/api/websites/transfer',base_url=base,headers=headers,data=b'',
+        content_type='multipart/form-data; boundary=fixture',
+        environ_overrides={'CONTENT_LENGTH':str(129*1048576+1)})
+    assert response.status_code==413 and response.json=={'error':'UPLOAD_REQUEST_REJECTED'}
+    assert (panel.default.directory/'index.html').read_text()=='original'
+
+
+def test_actual_zip_limit_has_a_separate_error_code(panel,monkeypatch):
+    monkeypatch.setattr('uz801_manager.site_files.ZIP_LIMIT',64)
+    app=create_hosting_app(backend=object(),usb_portal=True,token='fixture',site_backend=panel.default,
+                           hostname=panel.hostname)
+    response=app.test_client().post('/api/websites/transfer',base_url='http://172.16.42.1',
+        headers={'X-OpenStick-Token':'fixture'},data={'action':'inspect_zip','site':'main','path':'',
+        'file':(archive([('x.html',b'x')]),'fixture.zip')})
+    assert response.status_code==400 and response.json=={'error':'ZIP_TOO_LARGE'}

@@ -116,7 +116,8 @@ def main():
             def too_large(route):failures.append(True);route.fulfill(status=413,body='too large')
             page.route('**/api/websites/transfer',too_large)
             page.locator('#web-zip').set_input_files({'name':'retry.zip','mimeType':'application/zip','buffer':package.getvalue()})
-            expect(page.locator('#web-upload-status')).to_contain_text('128 MiB')
+            expect(page.locator('#web-upload-status')).to_contain_text('HTTP 413')
+            expect(page.locator('#web-upload-status')).not_to_contain_text('ZIP vượt 128 MiB')
             expect(page.locator('#web-zip-publish')).to_be_disabled()
             page.wait_for_timeout(300);assert len(failures)==1
             page.unroute('**/api/websites/transfer')
