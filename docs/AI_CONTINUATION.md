@@ -1,5 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**17/11/2026 — mới nhất: đã cài FileGator 7.16.9 từ GitHub.**
+Đọc [FILEGATOR.md](FILEGATOR.md) và đầu SESSION_HANDOFF. `/website` chọn site
+→ Mở trình quản lý file; upload ZIP → Unzip, không cần kiểm tra thủ công.
+Tên miền/Tunnel giữ OpenStick; unzip giữ backend/journal hiện có. PHP on-demand
++ Nginx loopback riêng, đăng nhập LAN/CSRF giữ nguyên. 637 PASS / 1 skip;
+ZIP mẫu 27 MiB trên USB upload/hash/unzip/download đạt trong thư mục tạm.
+RSS thêm ~14 MiB idle / ~26 MiB busy; không reboot hoặc đổi mạng/Tunnel.
+Chrome mở được FileGator nhưng chưa đạt toàn bộ 4 layout/quay lại. Không ghi
+visual/điện thoại/LAN PASS. Không tiếp tục viết file manager riêng. Các ghi chú
+ZIP UI cũ bên dưới là lịch sử.
+
 **17/11/2026 — sửa lỗi ZIP 27 MiB bị báo vượt 128 MiB, đã cài USB.**
 Nguyên nhân là max_form_memory_size 64 KiB bằng đúng buffer decoder, không
 chừa phần boundary còn dở từ chunk nhị phân. Tăng headroom decoder lên 256 KiB,

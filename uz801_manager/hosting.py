@@ -288,6 +288,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         response.headers['X-Frame-Options'] = 'DENY'
         form_action = "'self'" if lan_auth is not None else "'none'"
         response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action " + form_action + "; frame-ancestors 'none'; base-uri 'none'"
+        if request.path.startswith('/files/'):
+            from .filegator import CONTENT_SECURITY_POLICY
+            response.headers['Content-Security-Policy'] = CONTENT_SECURITY_POLICY
         return response
 
     @app.get('/')

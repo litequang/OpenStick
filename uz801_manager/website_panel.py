@@ -155,6 +155,9 @@ class WebsitePanel:
                     site = {'id': str(uuid.uuid4()), 'name': value['name'].strip(), 'domains': new_domains}
                     self.roots.mkdir(parents=True, exist_ok=True, mode=0o755)
                     root = self.root(site);root.mkdir(mode=0o755)
+                    from .filegator import provision_root
+                    try:provision_root(root)
+                    except Exception:root.rmdir();raise
                     sites.append(site)
                     try:self.write(sites)
                     except Exception:root.rmdir();raise
@@ -171,6 +174,8 @@ class WebsitePanel:
 
 
 def register_panel_routes(app, panel):
+    from .filegator import register_filegator
+    register_filegator(app, panel)
     def failure(error):
         code = str(error)
         details = {'entry': error.entry} if hasattr(error, 'entry') else {}

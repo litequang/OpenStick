@@ -1,0 +1,8 @@
+#!/sbin/openrc-run
+description="OpenStick FileGator loopback-only HTTP bridge"
+supervisor="supervise-daemon"
+command="/usr/sbin/nginx"
+command_args="-c /opt/openstick-filegator/integration/nginx.conf -p /var/lib/openstick-filegator -g 'daemon off;'"
+respawn_delay=3
+respawn_max=5
+depend() { need openstick-filegator-php; }

@@ -1,5 +1,38 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-17 latest: installed upstream FileGator
+
+Owner requested an existing GitHub panel. Installed stable FileGator 7.16.9
+(MIT), source commit 40f29bf7b0bf2193cc111334a7ee17ce3413d2af. Read
+[FILEGATOR.md](FILEGATOR.md). `/website` selects the site and opens FileGator;
+the old file/upload controls are hidden while installed. Domains still use
+OpenStick. Unzip uses the existing bounded publisher/journal internally after
+upstream CSRF validation; no manual inspect step or second upload.
+
+Pinned official 4 MB build + PHP 8.3 FPM on-demand/one worker + independent
+Nginx loopback 127.0.0.1:8788. Dedicated non-login account has ACLs only on
+public roots, original owners/content retained; old ACLs backed up privately.
+The /files/<site>/ proxy inherits LAN login and Host/Origin guards, forwards
+only the `filegator` cookie, retains upstream CSRF, and resolves roots server-side.
+No backend admin APIs/arbitrary upstreams. Initial Alpine default group mismatch
+was repaired; installer now explicitly creates/selects the dedicated group.
+
+637 PASS / one Windows skip, exit 0. Actual private fixtures: 28,311,916 bytes
+uploaded in 28 chunks, hash matched; unzip/download passed, unrelated file
+retained; missing CSRF/traversal blocked. Fixture removed. No owner archive
+published. Aggregate service RSS 26,036 KiB busy / 14,008 KiB idle.
+
+Chrome reached FileGator without a second login; full four-layout/back-navigation
+run did not pass. Website sometimes remained waiting for API; Windows ran out
+of virtual memory too. Do not claim phone/LAN/full visual acceptance. No reboot
+or cold-boot test. See remaining limits and boot status in FILEGATOR.md.
+
+Only openstick-wifi/openstick-lan restarted. Source hashes/protected state/network
+checked; no reboot, SIM/Wi-Fi/firewall/gadget/public Nginx/Tunnel changes.
+Backup: `/var/lib/openstick/deploy-backups/web-panel-1794887804034494053`.
+Earlier source: `web-panel-1794887567131205592` in the same parent. Two unrelated
+untracked files remain untouched. MM/cold USB lease issues remain open.
+
 ## 2026-11-17 latest: fix false ZIP size error on 27 MiB uploads
 
 Owner's 27 MB ZIP was reported as exceeding 128 MiB. Reproduced on the real

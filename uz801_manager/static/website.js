@@ -88,6 +88,7 @@
     for(const site of inventory.sites){const option=node('option',site.name);option.value=site.id;chooser.append(option);}
     chooser.value=siteId;
     const site=currentSite();if(!site)return;
+    const filegator=byId('web-filegator');if(filegator)filegator.href='/files/'+encodeURIComponent(siteId)+'/';
     byId('web-domain-count').textContent=site.domains.length+' tên miền';
     const routing=inventory.routing;
     byId('web-route-state').textContent=routing.local==='CONFIG_SAVED'?'Đã lưu cấu hình · DNS chưa xác minh':routing.available?'Chờ áp dụng cấu hình':'Cần cấu hình Nginx/Tunnel';

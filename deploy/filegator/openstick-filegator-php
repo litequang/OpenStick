@@ -1,0 +1,9 @@
+#!/sbin/openrc-run
+description="OpenStick FileGator PHP worker, on demand"
+supervisor="supervise-daemon"
+command="/usr/sbin/php-fpm83"
+command_args="--fpm-config /opt/openstick-filegator/integration/php-fpm.conf --nodaemonize"
+respawn_delay=3
+respawn_max=5
+depend() { need localmount; }
+start_pre() { checkpath -d -m 0755 /run/openstick-filegator; }

@@ -1,5 +1,9 @@
 # Panel nhiều website tĩnh — 17/11/2026
 
+**Cập nhật:** USB đã dùng [FileGator](FILEGATOR.md) cho quản lý file. Chọn
+website → Mở trình quản lý file. Các mô tả giao diện upload/ZIP tự viết bên
+dưới là lịch sử; tên miền và registry vẫn dùng OpenStick.
+
 Nhánh `codex/uz801-v32-postmarketos`. Mở **Website** ở menu dưới hoặc `/website`.
 Đây là panel cho HTML/CSS/JS và tài nguyên tĩnh, không phải môi trường chạy
 Node.js/PHP/WordPress. Không cài thư viện server, chạy npm hoặc thực thi ZIP.
