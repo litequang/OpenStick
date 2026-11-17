@@ -1,5 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**17/11/2026 — đã sửa phản hồi và nút giải nén ZIP, cài trên USB.**
+ZIP chọn ở ô tải file thường cũng được chuyển sang tự tải/kiểm tra. Card ZIP
+ở đầu tab, có shortcut trong File manager; tiến độ/lỗi hiện tại chỗ. Chỉ bật
+nút Giải nén vào website sau kiểm tra, vẫn phải xác nhận. 622 PASS / 1 skip;
+Chrome demo kiểm tra picker, HTTP lỗi/mất kết nối và không tự gửi lại. Trên
+USB thật đã thử ZIP fixture: nút bật, hủy không giải nén; ZIP bị chặn hiện tên
+file. Không ghi website chủ, đổi mạng, domain hoặc reboot. Đọc đầu HANDOFF.
+
 **17/11/2026 — mới nhất: đã cài panel nhiều website / file manager trên USB.**
 Đọc [WEB_HOSTING_PANEL.md](WEB_HOSTING_PANEL.md) và đầu SESSION_HANDOFF.
 8 website tĩnh, root riêng, tên miền lưu riêng và Apply có xác nhận; DNS vẫn

@@ -1,5 +1,33 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-17 latest: fix ZIP picker routing and missing feedback
+
+Owner reported ZIP upload had no visible response/extract button. The normal
+picker previously queued ZIP as a regular static upload (blocked by extension),
+while the dedicated ZIP card was below the normal uploader and errors were
+only at the page top. Both pickers now route a single ZIP directly to automatic
+inspection, never automatic publication. ZIP card is first, a toolbar shortcut
+opens it, progress/error feedback stays by the upload workflow and the extract
+button becomes enabled only after inspection. Changing destination invalidates
+the preview. Mixed ZIP/regular selections are explicitly rejected. Blocked ZIP
+paths return their entry name to the authenticated UI via textContent.
+
+622 pytest PASS / one Windows privilege skip, exit 0. Chrome demo regression
+passed normal-picker .ZIP, native ZIP error, cancelled extraction, HTTP 413 and
+disconnect feedback/no automatic retry, plus the original twelve layouts and
+multisite/file/upload/ZIP/download interactions. Synthetic Node fixture runs
+the real asset's picker routing and confirms inspection-only and disabled
+extract after errors. New API regression proves blocked-entry reporting and
+no publication on rejection.
+
+Installed web sources with hashes checked; protected state/active connections
+unchanged, no reboot, only portals stopped/started after taking the site lock.
+Backup: `/var/lib/openstick/deploy-backups/web-panel-1794882746777416009/`.
+Real USB Chrome selected a tiny fixture ZIP in the normal picker: HTTP
+inspection passed, extract enabled, cancellation sent no extraction request.
+A blocked-entry ZIP showed its filename and disabled extraction. No owner
+site file or domain was published, and no real ZIP extraction was requested.
+
 ## 2026-11-17 latest: multi-site web file manager installed
 
 Pulled the standard branch fast-forward from a6e7754 to 1954eb2 (three commits),

@@ -17,9 +17,11 @@ Node.js/PHP/WordPress. Không cài thư viện server, chạy npm hoặc thực 
    được giữ; xem danh sách ghi đè rồi xác nhận xuất bản. Upload theo thứ tự;
    nếu lỗi, các file đã hoàn tất vẫn giữ. Sau lỗi phải đọc lại danh sách đích
    trước khi xác nhận lượt mới, không tự retry kết quả chưa rõ.
-4. ZIP: chọn file và thư mục đích đã tồn tại; bấm **Kiểm tra ZIP**. Đây là bước
-   riêng, chưa ghi website. Xem file mới/ghi đè, tổng dung lượng và vị trí
-   `index.html`, rồi **Giải nén & xuất bản**. Không tự bỏ thư mục bọc ngoài;
+4. ZIP: chọn file ở ô ZIP hoặc ô tải file thường; panel tự nhận `.zip`/`.ZIP`
+   và tải lên kiểm tra, chưa ghi website. Tiến độ và lỗi hiện ngay trong tab
+   tải lên. Khi đổi thư mục đích, bấm **Tải ZIP & kiểm tra lại**. Xem file
+   mới/ghi đè, tổng dung lượng và vị trí `index.html`, rồi **Giải nén vào website**.
+   Không trộn ZIP và file thường trong một lượt; không tự bỏ thư mục bọc ngoài;
    file cũ không có trong ZIP được giữ. Không xóa cả website khi import.
 5. **Tên miền**: sửa danh sách, mỗi dòng một hostname. Một hostname chỉ thuộc
    một website. Tên miền gốc được bảo vệ. Lưu registry chưa thay đổi dịch vụ.

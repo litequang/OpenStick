@@ -298,3 +298,13 @@ def test_unknown_tunnel_schema_refuses_to_overwrite(tmp_path):
     before=p.tunnel.read_bytes()
     with pytest.raises(SiteError,match='DOMAIN_CONFIG_UNSUPPORTED'):p.apply([], 'original.example.com',tmp_path/'private')
     assert p.tunnel.read_bytes()==before and not p.virtual_hosts.exists()
+
+
+def test_zip_inspection_error_identifies_blocked_entry_without_publishing(panel):
+    app=create_hosting_app(backend=object(),usb_portal=True,token='fixture',site_backend=panel.default,
+                           hostname=panel.hostname)
+    response=app.test_client().post('/api/websites/transfer',base_url='http://172.16.42.1',
+        headers={'X-OpenStick-Token':'fixture'},data={'action':'inspect_zip','site':'main','path':'',
+        'file':(archive([('blocked.php',b'fixture')]),'fixture.zip')})
+    assert response.status_code==400 and response.json=={'error':'FILE_TYPE_BLOCKED','entry':'blocked.php'}
+    assert (panel.default.directory/'index.html').read_text()=='original'

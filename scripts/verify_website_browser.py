@@ -16,6 +16,12 @@ def main():
         browser=p.chromium.launch(channel='chrome',headless=True)
         try:
             page=browser.new_page();errors=[];actions=[]
+            page.add_init_script("""window.fixtureTransfers=[];
+              const send=XMLHttpRequest.prototype.send;
+              XMLHttpRequest.prototype.send=function(data){
+                if(data instanceof FormData)window.fixtureTransfers.push(data.get('action'));
+                return send.call(this,data);
+              };""")
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.on('request',lambda r:actions.append(r.post_data_json['action'])
                     if r.method=='POST' and r.url.endswith('/api/websites') else None)
@@ -77,12 +83,18 @@ def main():
             package=io.BytesIO()
             with zipfile.ZipFile(package,'w',compression=zipfile.ZIP_DEFLATED) as z:
                 z.writestr('index.html','<h1>ZIP demo</h1>');z.writestr('styles/main.css','body{color:blue}')
-            page.locator('#web-zip').set_input_files({'name':'site.zip','mimeType':'application/zip','buffer':package.getvalue()})
-            page.locator('#web-zip-inspect').click()
+            before=len(page.evaluate('window.fixtureTransfers'))
+            # Regression: the ordinary file picker must accept ZIP and route to
+            # inspection, not try to publish a blocked .zip as a static asset.
+            page.locator('#site-upload').set_input_files({'name':'site.ZIP','mimeType':'application/zip','buffer':package.getvalue()})
             expect(page.locator('#web-zip-publish')).to_be_enabled()
+            assert page.evaluate('window.fixtureTransfers')[before:]==['inspect_zip']
+            expect(page.locator('#web-upload-status')).to_contain_text('kiểm tra thành công')
+            expect(page.locator('#web-zip-selected')).to_contain_text('site.ZIP')
             expect(page.locator('#web-zip-summary')).to_contain_text('2 mục')
             page.once('dialog',lambda d:d.dismiss());page.locator('#web-zip-publish').click()
             expect(page.locator('#web-zip-publish')).to_be_enabled()
+            assert page.evaluate('window.fixtureTransfers')[before:]==['inspect_zip'],'Cancel extracted the ZIP'
             page.once('dialog',lambda d:d.accept());page.locator('#web-zip-publish').click()
             expect(page.locator('#web-status')).to_contain_text('Đã giải nén và xuất bản 2 file')
             page.locator('[data-web-tab=files]').click()
@@ -92,6 +104,29 @@ def main():
             assert Path(downloaded.value.path()).read_bytes()==b'<h1>ZIP demo</h1>'
             with page.expect_download() as downloaded:page.locator('#web-download-all').click()
             with zipfile.ZipFile(downloaded.value.path()) as z:assert z.read('styles/main.css')==b'body{color:blue}'
+            page.locator('[data-web-tab=uploads]').click()
+            blocked=io.BytesIO()
+            with zipfile.ZipFile(blocked,'w') as z:z.writestr('blocked.php','fixture only')
+            page.locator('#web-zip').set_input_files({'name':'blocked.zip','mimeType':'application/zip','buffer':blocked.getvalue()})
+            expect(page.locator('#web-upload-status')).to_contain_text('blocked.php')
+            expect(page.locator('#web-zip-publish')).to_be_disabled()
+            # HTTP and connection failures stay visible by the picker and never
+            # replay themselves or leave a stale extraction button enabled.
+            failures=[]
+            def too_large(route):failures.append(True);route.fulfill(status=413,body='too large')
+            page.route('**/api/websites/transfer',too_large)
+            page.locator('#web-zip').set_input_files({'name':'retry.zip','mimeType':'application/zip','buffer':package.getvalue()})
+            expect(page.locator('#web-upload-status')).to_contain_text('128 MiB')
+            expect(page.locator('#web-zip-publish')).to_be_disabled()
+            page.wait_for_timeout(300);assert len(failures)==1
+            page.unroute('**/api/websites/transfer')
+            def disconnected(route):failures.append(True);route.abort()
+            page.route('**/api/websites/transfer',disconnected)
+            page.locator('#web-zip-inspect').click()
+            expect(page.locator('#web-upload-status')).to_contain_text('Mất kết nối')
+            page.wait_for_timeout(300);assert len(failures)==2
+            page.unroute('**/api/websites/transfer')
+            page.locator('[data-web-tab=files]').click()
             page.locator('#web-site').select_option('main')
             expect(page.locator('.web-file[data-path="index.html"]')).to_be_visible()
             page.locator('.web-file[data-path="index.html"]').click()
@@ -107,7 +142,8 @@ def main():
             assert not errors,errors
             print(json.dumps({'demo_only':True,'layouts':12,'javascript_errors':0,
                               'multisite_isolation':True,'file_operations':True,'upload_over_one_mib':True,
-                              'zip_inspect_and_publish':True,'downloads':True,'cancel_does_not_publish':True}))
+                              'zip_inspect_and_publish':True,'downloads':True,'cancel_does_not_publish':True,
+                              'zip_from_normal_picker':True,'visible_failure_feedback':True,'no_automatic_retry':True}))
         finally:browser.close()
 
 

@@ -4,7 +4,7 @@
   const headers = {'Content-Type':'application/json','X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
   const mib = 1048576;
   let inventory=null, siteId='main', listing=null, folder='', selected=null, version=null;
-  let dirty=false, busy=false, creating=false, pathAction=null, uploads=[], uploadRevision=null, zipPreview=null;
+  let dirty=false, busy=false, creating=false, pathAction=null, uploads=[], uploadRevision=null, zipPreview=null, zipFile=null;
   const messages = {
     FILE_CHANGED:'File hoặc danh sách đã thay đổi. Đọc lại và đối chiếu bản sửa trước khi xuất bản; chưa tự gửi lại.',
     PATH_INVALID:'Đường dẫn không hợp lệ. Không dùng đường dẫn tuyệt đối, dấu chấm đầu tên, ký tự đặc biệt hoặc liên kết.',
@@ -15,6 +15,7 @@
     SITE_TOO_LARGE:'Website vượt 256 MiB.', SITE_TOO_MANY_FILES:'Website vượt 2.000 file và thư mục.',
     DISK_SPACE_LOW:'USB thiếu dung lượng trống cho thao tác và vùng dự phòng. Xóa file không cần thiết trước.',
     ZIP_TOO_LARGE:'ZIP vượt 128 MiB.', ZIP_INVALID:'ZIP lỗi hoặc chứa kiểu file, liên kết hay cấu trúc không được hỗ trợ.',
+    ZIP_MIXED:'Chọn một ZIP riêng để giải nén. Không trộn ZIP với các file thường trong cùng lượt tải.',
     ZIP_DUPLICATE:'ZIP có đường dẫn trùng nhau. Sửa bộ mã rồi kiểm tra lại.',
     ZIP_PUBLISH_FAILED:'Giải nén thất bại; đã khôi phục các file vừa thay đổi.',
     ZIP_ROLLBACK_FAILED:'Giải nén và khôi phục chưa hoàn tất. Giữ nguyên USB, không gửi lại. Bản sao riêng được giữ để kiểm tra.',
@@ -33,7 +34,7 @@
     SITE_NAME_INVALID:'Tên website cần từ 1 đến 60 ký tự.',
     RESULT_UNKNOWN:'Mất kết nối hoặc hết thời gian chờ. Kết quả chưa xác minh; đọc lại, không tự gửi lại thao tác.'
   };
-  const say = (text,error=false) => {byId('web-status').textContent=text;byId('web-status').dataset.error=String(error);};
+  const say = (text,error=false) => {for(const id of ['web-status','web-upload-status']){const item=byId(id);item.textContent=text;item.dataset.error=String(error);}};
   const size = bytes => bytes>=mib?(bytes/mib).toFixed(1)+' MiB':bytes>=1024?(bytes/1024).toFixed(1)+' KiB':bytes+' B';
   const currentSite = () => inventory?.sites.find(s=>s.id===siteId);
   function node(tag,text,cls) {const item=document.createElement(tag);if(text!==undefined)item.textContent=text;if(cls)item.className=cls;return item;}
@@ -51,7 +52,7 @@
       for(const id of ['web-download','web-rename','web-move','web-copy','site-delete'])byId(id).disabled=!ready||!selected;
       byId('site-upload-send').disabled=!ready||!uploads.length||!uploadRevision||uploads.some(f=>f.file.size>32*mib);
       byId('web-zip-publish').disabled=!ready||!zipPreview;
-      byId('web-zip-inspect').disabled=!ready||!byId('web-zip').files.length;
+      byId('web-zip-inspect').disabled=!ready||!zipFile;
       byId('web-apply-domains').disabled=!inventory?.routing.available;
       byId('web-configure').disabled=!inventory;byId('web-edit-domains').disabled=!inventory;
       if(listing?.recovery_required)for(const id of ['site-save','site-delete','web-rename','web-move','web-copy','web-mkdir','site-upload-send','web-zip-inspect','web-zip-publish'])byId(id).disabled=true;
@@ -72,14 +73,15 @@
   }
   async function job(work){
     if(busy)return;busy=true;controls();
-    try{await work();}catch(error){say((error.completed!==undefined?'Đã xuất bản '+error.completed+' file trong lượt này. ':'')+(messages[error.message]||'Thao tác chưa hoàn tất. Đọc lại trạng thái; không tự gửi lại.'),true);}
-    finally{busy=false;controls();}
+    try{await work();}catch(error){say((error.completed!==undefined?'Đã xuất bản '+error.completed+' file trong lượt này. ':'')+(messages[error.message]||'Thao tác chưa hoàn tất. Đọc lại trạng thái; không tự gửi lại.')+(error.entry?' Mục trong ZIP: '+error.entry:''),true);}
+    finally{busy=false;byId('web-transfer-progress').hidden=true;controls();}
   }
   function tab(name){
     panel.querySelectorAll('[data-web-tab]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.webTab===name)));
     for(const key of ['files','uploads','domains'])byId('web-pane-'+key).hidden=key!==name;
   }
   panel.querySelectorAll('[data-web-tab]').forEach(item=>item.onclick=()=>tab(item.dataset.webTab));
+  byId('web-upload-open').onclick=()=>{tab('uploads');byId('web-zip-section').scrollIntoView({block:'start'});};
   function drawInventory(){
     const chooser=byId('web-site');chooser.replaceChildren();
     for(const site of inventory.sites){const option=node('option',site.name);option.value=site.id;chooser.append(option);}
@@ -96,7 +98,7 @@
     byId('web-routing-note').textContent=routing.local==='CONFIG_SAVED'?'Cấu hình đã được lưu cho Nginx và Tunnel. Việc này chưa chứng minh tên miền đã truy cập được từ Internet.':routing.available?'Các thay đổi tên miền đang chờ áp dụng. Nút bên dưới áp dụng cấu hình cho tất cả website.':'Chưa thể áp dụng tự động trên môi trường này ('+routing.local+'). File và danh sách tên miền vẫn quản lý được.';
   }
   function resetEditor(){selected=null;version=null;dirty=false;byId('site-path').value=folder?folder+'/':'';byId('site-text').value='';byId('site-heading').textContent='File mới';byId('web-editor-note').textContent='Bản sửa nằm trong tab này. Chỉ xuất bản khi bạn xác nhận.';}
-  function resetTransfers(){uploads=[];uploadRevision=null;zipPreview=null;byId('site-upload').value='';byId('web-upload-folder').value='';byId('web-zip').value='';byId('web-upload-list').replaceChildren();byId('web-zip-list').replaceChildren();byId('web-zip-summary').textContent='Kiểm tra ZIP chỉ đọc bộ mã, chưa thay đổi website.';}
+  function resetTransfers(){uploads=[];uploadRevision=null;zipFile=null;zipPreview=null;byId('site-upload').value='';byId('web-upload-folder').value='';byId('web-zip').value='';byId('web-upload-list').replaceChildren();clearZip();}
   function drawFiles(){
     if(!listing)return;
     byId('web-recovery').hidden=!listing.recovery_required;
@@ -200,15 +202,25 @@
     return new Promise((resolve,reject)=>{
       const xhr=new XMLHttpRequest(),data=new FormData();for(const [key,value] of Object.entries(values))data.append(key,value);data.append('file',file);
       xhr.open('POST','/api/websites/transfer');xhr.setRequestHeader('X-OpenStick-Token',headers['X-OpenStick-Token']);xhr.timeout=300000;
-      xhr.upload.onprogress=event=>{if(event.lengthComputable)say('Đang tải dữ liệu: '+Math.round(event.loaded/event.total*100)+'%. Đợi USB xử lý xong; không tải lại trang.');};
+      const progress=byId('web-transfer-progress');progress.hidden=false;progress.value=0;
+      say(values.action==='inspect_zip'?'Đang tải ZIP lên để kiểm tra…':values.action==='unzip'?'Đang tải bộ mã để giải nén…':'Đang tải file lên…');
+      xhr.upload.onprogress=event=>{if(event.lengthComputable){progress.value=Math.round(event.loaded/event.total*100);say('Đang tải dữ liệu: '+progress.value+'%. Đợi USB xử lý xong; không tải lại trang.');}};
+      xhr.upload.onload=()=>say(values.action==='inspect_zip'?'Đã tải ZIP lên. USB đang kiểm tra bộ mã…':values.action==='unzip'?'Đã tải đủ dữ liệu. USB đang giải nén và xuất bản…':'Đã tải đủ dữ liệu. USB đang lưu file…');
       xhr.onerror=xhr.ontimeout=()=>reject(Error('RESULT_UNKNOWN'));
-      xhr.onload=()=>{if(xhr.status===401){location.href='/login';reject(Error('RESULT_UNKNOWN'));return;}let result;try{result=JSON.parse(xhr.responseText);}catch(_){reject(Error(xhr.status===413?'FILE_TOO_LARGE':'RESULT_UNKNOWN'));return;}if(xhr.status>=200&&xhr.status<300)resolve(result);else reject(Error(result.error||'RESULT_UNKNOWN'));};
+      xhr.onload=()=>{if(xhr.status===401){location.href='/login';reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status===413){reject(Error(values.action==='upload'?'FILE_TOO_LARGE':'ZIP_TOO_LARGE'));return;}let result;try{result=JSON.parse(xhr.responseText);}catch(_){reject(Error('RESULT_UNKNOWN'));return;}if(xhr.status>=200&&xhr.status<300)resolve(result);else{const error=Error(result.error||'RESULT_UNKNOWN');if(typeof result.entry==='string')error.entry=result.entry;reject(error);}};
       xhr.send(data);
     });
   }
   function transferRow(path,bytes,overwrite){const row=node('div',undefined,'web-transfer-row');row.dataset.overwrite=String(overwrite);row.append(node('span',path),node('small',(overwrite?'Ghi đè · ':'Mới · ')+size(bytes)));return row;}
   function chooseUploads(input){
-    uploads=Array.from(input.files).map(file=>({file,path:file.webkitRelativePath||file.name}));uploadRevision=listing?.revision;drawUploads();controls();
+    const chosen=Array.from(input.files),archives=chosen.filter(file=>/\.zip$/i.test(file.name));
+    if(archives.length){
+      uploads=[];uploadRevision=null;drawUploads();
+      if(chosen.length!==1){zipFile=null;clearZip();say(messages.ZIP_MIXED,true);return;}
+      byId('web-zip-path').value=byId('web-upload-path').value.trim();chooseZip(archives[0]);return;
+    }
+    uploads=chosen.map(file=>({file,path:file.webkitRelativePath||file.name}));uploadRevision=listing?.revision;drawUploads();controls();
+    if(uploads.length)say('Đã chọn '+uploads.length+' file. Xem danh sách và bấm Xuất bản các file đã chọn.');
   }
   function drawUploads(){
     const target=byId('web-upload-list');target.replaceChildren();const prefix=byId('web-upload-path').value.trim();
@@ -235,17 +247,25 @@
       uploads=[];resetEditor();await loadInventory();drawFiles();say('Đã xuất bản '+completed+' file.');
     });
   };
-  function clearZip(){zipPreview=null;byId('web-zip-list').replaceChildren();byId('web-zip-summary').textContent='Kiểm tra ZIP chỉ đọc bộ mã, chưa thay đổi website.';controls();}
-  byId('web-zip').onchange=clearZip;byId('web-zip-path').oninput=clearZip;
-  byId('web-zip-inspect').onclick=()=>job(async()=>{
-    const file=byId('web-zip').files[0];if(!file)return;if(file.size>128*mib)throw Error('ZIP_TOO_LARGE');
+  function clearZip(){zipPreview=null;byId('web-zip-list').replaceChildren();byId('web-zip-selected').textContent=zipFile?'Đã chọn: '+zipFile.name+' · '+size(zipFile.size):'Chưa chọn ZIP.';byId('web-zip-summary').textContent=zipFile?'ZIP chưa được kiểm tra cho thư mục đích này. Bấm Tải ZIP & kiểm tra lại để mở nút giải nén.':'Nút giải nén sẽ bật sau khi ZIP được tải lên và kiểm tra thành công.';controls();}
+  function chooseZip(file){
+    zipFile=file||null;clearZip();if(!zipFile)return;
+    tab('uploads');byId('web-zip-section').scrollIntoView({block:'start'});
+    if(zipFile.size>128*mib){zipFile=null;controls();say(messages.ZIP_TOO_LARGE,true);byId('web-zip-summary').textContent=messages.ZIP_TOO_LARGE;return;}
+    if(!/\.zip$/i.test(zipFile.name)){zipFile=null;controls();say(messages.ZIP_INVALID,true);return;}
+    inspectZip();
+  }
+  byId('web-zip').onchange=()=>chooseZip(byId('web-zip').files[0]);byId('web-zip-path').oninput=()=>{clearZip();if(zipFile)say('Thư mục đích đã đổi. Bấm Tải ZIP & kiểm tra lại trước khi giải nén.');};
+  async function inspectZip(){return job(async()=>{
+    const file=zipFile;if(!file)return;if(file.size>128*mib)throw Error('ZIP_TOO_LARGE');
     zipPreview=null;const destination=byId('web-zip-path').value.trim(),result=await transfer(file,{action:'inspect_zip',site:siteId,path:destination});
     zipPreview={...result,file,destination,site:siteId};const target=byId('web-zip-list');target.replaceChildren();
     for(const entry of result.files)target.append(transferRow(entry.path,entry.bytes,entry.overwrite));
     const overwrites=result.files.filter(e=>e.overwrite&&e.kind==='file').length;
     byId('web-zip-summary').textContent=result.files.length+' mục · '+size(result.bytes)+' · '+overwrites+' file bị ghi đè. '+(!result.files.some(e=>e.path===(destination?destination+'/':'')+'index.html')?'Không có index.html ngay tại thư mục đích.':'Có index.html tại thư mục đích.');
-    say('Đã kiểm tra ZIP. Website chưa thay đổi. Xem danh sách rồi xác nhận giải nén.');
-  });
+    say('ZIP đã tải lên và kiểm tra thành công. Bấm Giải nén vào website để tiếp tục. Website chưa thay đổi.');
+  });}
+  byId('web-zip-inspect').onclick=inspectZip;
   byId('web-zip-publish').onclick=()=>{
     if(!zipPreview||!canLeave())return;job(async()=>{
       const preview=zipPreview;

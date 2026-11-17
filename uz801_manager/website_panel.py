@@ -173,7 +173,8 @@ class WebsitePanel:
 def register_panel_routes(app, panel):
     def failure(error):
         code = str(error)
-        return jsonify(error=code), 409 if code in ('FILE_CHANGED', 'PATH_EXISTS') else 400
+        details = {'entry': error.entry} if hasattr(error, 'entry') else {}
+        return jsonify(error=code, **details), 409 if code in ('FILE_CHANGED', 'PATH_EXISTS') else 400
 
     @app.post('/api/websites')
     def websites():

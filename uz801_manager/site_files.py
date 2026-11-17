@@ -352,7 +352,10 @@ class SiteFiles:
                 if stat.S_IFMT(mode) not in (0, stat.S_IFDIR if info.is_dir() else stat.S_IFREG):raise SiteError('ZIP_INVALID')
                 if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):raise SiteError('ZIP_INVALID')
                 rel = (destination + '/' if destination else '') + name
-                path = self.path(rel, directory=info.is_dir())
+                try:path = self.path(rel, directory=info.is_dir())
+                except SiteError as error:
+                    error.entry = name[:240]
+                    raise
                 if rel.casefold() in names:raise SiteError('ZIP_DUPLICATE')
                 if rel.casefold() in existing and existing[rel.casefold()] != rel:raise SiteError('ZIP_DUPLICATE')
                 names.add(rel.casefold())
