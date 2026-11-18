@@ -33,7 +33,13 @@ def listing(panel, identity='main'):
 def archive(items):
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_DEFLATED) as package:
-        for name, data in items:package.writestr(name, data)
+        for name, data in items:
+            # Rebuilt fixtures must have identical archive bytes across ZIP's
+            # two-second timestamp boundary (preview digest is checked later).
+            if not isinstance(name, zipfile.ZipInfo):
+                name = zipfile.ZipInfo(name, date_time=(2000,1,1,0,0,0))
+                name.compress_type = zipfile.ZIP_DEFLATED
+            package.writestr(name, data)
     stream.seek(0)
     return stream
 
