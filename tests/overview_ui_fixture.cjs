@@ -8,6 +8,11 @@ const data={system:{ram:{used:150*1048576,total:400*1048576},storage:{used:10737
  temperature_c:41,load:[.08,.29,.47],sms:{submitted_today:1,submitted_month:2,unknown_today:1,estimated_today_vnd:null},
  emmc:{life_used_ranges:[],pre_eol:'unknown',written_since_boot:1048576,estimated_daily_write:113*1048576},
  swap:{used:0,total:500*1048576,zram_used:0,zram_total:500*1048576,other_used:0,other_total:0},
+ sim_usage:{available:true,status:'connected',stale:false,error:null,started_at:1795000000,sampled_at:1795000100,saved_at:1795000050,continuity_gaps:0,
+ today:{download_bytes:1048576,upload_bytes:1048576,total_bytes:2097152},
+ month:{download_bytes:3145728,upload_bytes:1048576,total_bytes:4194304},
+ total:{download_bytes:5242880,upload_bytes:1048576,total_bytes:6291456},
+ session:{download_bytes:1048576,upload_bytes:1048576,total_bytes:2097152},undated:{download_bytes:0,upload_bytes:0,total_bytes:0},imsi:'private-usage-fixture'},
  uptime_s:2400,os:'<script>Fixture Linux</script>',kernel:'fixture'},
  wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{operator_name:'Fixture carrier',registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384,imsi:'not-for-browser-cache'}},
  services:{'openstick-web':true,'cloudflared':null}};
@@ -19,6 +24,9 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));assert.equal(posts,1);
  assert.equal(elements['metric-ram'].textContent,'150 MiB');
+ assert.equal(elements['metric-sim-usage'].textContent,'2.00 MiB');
+ assert.match(elements['note-sim-usage'].textContent,/hôm nay.*1.00 MiB/);
+ assert.match(elements['sim-usage-detail'].textContent,/Tháng này.*Tổng từ lúc bắt đầu/);
  assert.equal(elements['card-emmc'].hidden,true);
  assert.match(elements['note-sms'].textContent,/chưa cài đơn giá/);
  assert.equal(elements['overview-os'].textContent,'<script>Fixture Linux</script>');
@@ -28,6 +36,7 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  assert.match(elements['signal-status'].textContent,/3\/4.*64%/);
  assert.match(elements['chip-network-summary']['aria-label'],/3\/4/);
  assert(!JSON.stringify([...saved.values()]).includes('not-for-browser-cache'));
+ assert(!JSON.stringify([...saved.values()]).includes('private-usage-fixture'));
  // Simulate returning from another full-page route while both API requests are pending.
  const restored=Object.fromEntries(Object.keys(elements).map(id=>[id,new Element()]));
  const warm={console,Date,sessionStorage,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,AbortController,
@@ -42,6 +51,8 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  assert.equal(restored['chip-wifi'].dataset.stale,'true');
  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],warm);
  assert.equal(restored['metric-ram'].textContent,'150 MiB');
+ assert.equal(restored['metric-sim-usage'].textContent,'2.00 MiB');
+ assert.equal(restored['metric-sim-usage'].dataset.stale,'true');
  assert.equal(restored['overview-wifi'].textContent,'Đã kết nối fixture');
  assert.equal(restored['metric-ram'].dataset.stale,'true');
  assert.match(restored['overview-status'].textContent,/lần gần nhất/);
@@ -104,6 +115,16 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  context.renderOverview(partial);
  for(const [id,text] of Object.entries(before))assert.equal(elements[id].textContent,text);
  assert.equal(elements['metric-ram'].dataset.stale,'true');assert.equal(elements['card-emmc'].hidden,false);
+ const usageBefore=elements['metric-sim-usage'].textContent;
+ partial.system.sim_usage={available:false,error:'USAGE_STATE_INVALID'};context.renderOverview(partial);
+ assert.equal(elements['metric-sim-usage'].textContent,usageBefore);assert.equal(elements['metric-sim-usage'].dataset.stale,'true');
+ assert.match(elements['sim-usage-detail'].textContent,/không coi.*0 byte/);
+ partial.system.sim_usage={...data.system.sim_usage,stale:true,error:'USAGE_SOURCE_UNAVAILABLE'};context.renderOverview(partial);
+ assert.equal(elements['metric-sim-usage'].dataset.stale,'true');
+ partial.system.sim_usage={...data.system.sim_usage,today:null,month:null,stale:false};context.renderOverview(partial);
+ assert.equal(elements['metric-sim-usage'].textContent,'—');assert.match(elements['note-sim-usage'].textContent,/Chờ đồng bộ/);
+ partial.system.sim_usage={...data.system.sim_usage,today:{download_bytes:0,upload_bytes:0,total_bytes:0},status:'idle'};context.renderOverview(partial);
+ assert.equal(elements['metric-sim-usage'].textContent,'0 B');
  const serviceNode=elements['service-list'].children[1];partial.services={'openstick-web':null};context.renderOverview(partial);assert.equal(serviceNode.textContent,'đang chạy');
  partial.services={'openstick-web':false};context.renderOverview(partial);assert.equal(serviceNode.textContent,'đã dừng');
  assert.equal(elements['service-list'].children[1],serviceNode);

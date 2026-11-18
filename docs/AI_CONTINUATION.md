@@ -1,5 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**18/11/2026 — thống kê dung lượng SIM trên Tổng quan.**
+Đọc [SIM_DATA_USAGE.md](SIM_DATA_USAGE.md) và đầu HANDOFF để biết trạng thái cài.
+Ô mới có hôm nay/tháng, chi tiết tải lên/xuống, phiên và tổng; UTC+7, tính chung
+các SIM trên USB, không nhận diện SIM. Worker cũ thêm một luồng lấy bộ đếm NM/
+sysfs thụ động, checkpoint riêng; mở trang không bật data hay sinh traffic probe.
+737 PASS / 1 Windows skip; Chrome preview 4 layout PASS, không phải hardware PASS.
+Không nhầm có giao diện dữ liệu với có SIM/Internet; không tự thử data/SMS/USSD.
+
 **18/11/2026 — đã cài danh sách client và chặn Internet theo MAC lên USB.**
 Đọc [AP_CLIENTS.md](AP_CLIENTS.md) và đầu HANDOFF. `/setup#ap-clients` xem thiết bị,
 chặn/bỏ chặn, lưu danh sách riêng; không chặn association hoặc trang quản trị.

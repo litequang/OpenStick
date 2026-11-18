@@ -21,6 +21,7 @@ def modem_snapshot():
 
 
 def system_snapshot(root=Path('/'), *, disk_usage=shutil.disk_usage, now=time.time):
+    from .sim_usage import snapshot as sim_usage_snapshot
     root = Path(root)
     def read(name):
         try:
@@ -119,7 +120,7 @@ def system_snapshot(root=Path('/'), *, disk_usage=shutil.disk_usage, now=time.ti
             'kernel': read('/proc/sys/kernel/osrelease')[:100], 'swap': swap,
             'emmc': {'life_used_ranges': ranges, 'pre_eol': eol,
                      'written_since_boot': written, 'estimated_daily_write': write_rate},
-            'sms': sms, 'sampled_at': now()}
+            'sms': sms, 'sim_usage':sim_usage_snapshot(root, now=now), 'sampled_at': now()}
 
 
 def save_tariff(unit_vnd, directory=Path('/var/lib/openstick')):

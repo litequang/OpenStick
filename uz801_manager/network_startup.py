@@ -172,15 +172,20 @@ class NetworkStartup:
 
 
 def main():
+    import signal
+    from .sim_usage import background
+    def terminate(signum, frame):raise SystemExit(0)
+    signal.signal(signal.SIGTERM, terminate)
     backend=NetworkStartup()
     from .ap_clients import ApClients
     clients=ApClients()
-    while True:
-        try:clients.tick()
-        except Exception:pass
-        try:backend.tick()
-        except Exception:pass  # Never log identifiers, credentials or subprocess output.
-        time.sleep(5)
+    with background():
+        while True:
+            try:clients.tick()
+            except Exception:pass
+            try:backend.tick()
+            except Exception:pass  # Never log identifiers, credentials or subprocess output.
+            time.sleep(5)
 
 
 if __name__=='__main__':main()

@@ -1,5 +1,20 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: SIM data accounting and Overview metric
+
+Owner requests passive SIM usage history and a metric beside existing Overview
+statistics. See [SIM_DATA_USAGE.md](SIM_DATA_USAGE.md). One thread reuses the
+startup worker process, independent of modem/network locks; one private writer,
+RAM snapshot and fsynced minute checkpoints. No network/radio/probe action.
+Counts aggregate all SIMs, not carrier accounts; no SIM identity is queried.
+Today/month/session/lifetime counters expose only sanitized amounts/times; failure
+and uncertain continuity remain explicit. Do not promise billing accuracy or
+complete abrupt-power-loss accounting. No quota/data-off action implemented.
+737 tests passed / one Windows symlink skip, exit 0; pip check/self-test and
+headless preview at four widths passed. Real read-only preflight found a modem
+with a connected NM data binding and readable counters, not SIM Internet PASS.
+Check the next deployment entry before claiming code is installed on the USB.
+
 ## 2026-11-18 latest: AP client feature installed and API/filter fixture verified
 
 Owner accepts Internet blocking while retaining Wi-Fi association/admin access.
