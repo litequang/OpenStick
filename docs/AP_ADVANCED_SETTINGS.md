@@ -1,9 +1,24 @@
-# Advanced AP settings — source only, 2026-11-18
+# Advanced AP settings — 2026-11-18
 
-**Not installed on the USB. No USB commands, radio changes, reboot, AP activation
-or device deployment were performed for this change.** Publish source first as
-requested. The installed USB remains on the preceding network-startup fix;
-that fix's real cold-power acceptance is still pending independently.
+**Installed on the USB after the owner explicitly authorized deployment.**
+Source commit `393ead1` was published first; Windows CI passed on both main and
+the development branch. Installed nine source/UI files with a private rollback
+archive, verified SHA-256 and served assets, HTTP controls/API, running services,
+protected owner content and unchanged active connections/base firewall/boot ID.
+Storage was synced. No manual AP/radio/SIM operation or reboot was performed.
+
+Advanced options remain **not configured/enabled** on the USB; existing choices
+were preserved. The installed backend's `MaxNumSta` and `ApIsolate` properties
+were readable through the new module, without setting either property. This is
+backend availability evidence, not client-limit or isolation hardware acceptance.
+The AP was still active after installation; SIM Internet was not tested.
+
+USB transport temporarily lost reachability while staging; a normal owner
+replug restored access. Small inline transfers completed. The first install
+failed HTTP readiness and rolled back; a subsequent guarded install passed,
+then independent source/protected-content/HTTP/asset/service checks passed.
+Private backups remain under `/var/lib/openstick/deploy-backups/ap-options-*`.
+Do not infer installed state from an earlier transfer/health error alone.
 
 ## User flow
 
@@ -83,7 +98,7 @@ See [Phase 0 evidence](QUICK_SETTINGS_PHASE0_AUDIT_2026_11_16.md).
   `dbus_new_handlers.c` parses their setters; `wpa_supplicant/ap.c` selects the
   smaller of driver-reported `max_stations` and configured `max_num_sta`.
 
-## Required hardware acceptance after a later deployment
+## Remaining hardware acceptance
 
 Offline validation: **680 pytest passed, 1 skipped, exit 0**. The single skip
 is the Windows account's unavailable symlink privilege. Includes 28 AP-option

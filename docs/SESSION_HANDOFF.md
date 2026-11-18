@@ -1,5 +1,24 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: AP option code installed after explicit authorization
+
+Owner explicitly requested install now and SIM testing later. Deployed source
+`393ead1` after both branch/main Windows CI passed. Nine source/UI files installed;
+independent SHA-256/protected-content/HTTP controls/API/served-assets/service checks
+passed. Existing AP remains active, advanced settings remain not configured;
+read-only new-module access to MaxNumSta/ApIsolate succeeded without property writes.
+No manual SIM/AP/radio action, reboot, base firewall or network profile changes.
+Existing saved data/radio/network choices retained. NM data-interface presence is
+not a SIM Internet acceptance test. Do not claim physical Hidden SSID, client cap
+or isolation PASS: no client association/peer tests have run.
+
+USB transport stopped responding during staging; owner performed normal replug.
+Small inline source transfers then succeeded. First installer HTTP readiness
+failed and rolled back; subsequent guarded installation and separate verification
+passed. Private backups: `/var/lib/openstick/deploy-backups/ap-options-*`.
+Storage synced. Read [AP_ADVANCED_SETTINGS.md](AP_ADVANCED_SETTINGS.md); older
+source-only notes below are historical. No Computer Use was used.
+
 ## 2026-11-18 latest: advanced AP options, source only, not deployed
 
 Owner requests Hidden SSID, client limit and AP isolation completed and pushed
