@@ -1,5 +1,19 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: AP inventory / Internet-by-MAC implementation
+
+Owner authorizes implementation and installation. See [AP_CLIENTS.md](AP_CLIENTS.md).
+This is connected-station inventory and routed Internet filtering, not association
+ACL. Real read-only probe: AP active, iw available/readable, zero stations; no
+expected supplicant control socket. Kernel NF_TABLES_NETDEV disabled, so netdev
+was rejected after an actual dry check. Dedicated inet-forward rules passed dry
+check. No base network/firewall changes were made during research. Saved filters
+replay through the existing network-startup worker and shared AP hook; AP scan
+rollback now also uses the common hook. Preserve previous installed state until
+deployment verification is recorded; physical packet/client tests remain pending.
+705 tests passed / one Windows symlink skip, exit 0. Browser preview 24 layouts
+and client confirmation/cancel/block/unblock/disconnect interactions passed.
+
 ## 2026-11-18 latest: AP option code installed after explicit authorization
 
 Owner explicitly requested install now and SIM testing later. Deployed source

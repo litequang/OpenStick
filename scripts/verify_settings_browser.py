@@ -21,6 +21,21 @@ def main():
             page = browser.new_page()
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
+            client_writes=[];blocked=set();client_failure=[False]
+            def client_inventory(route):
+                if route.request.method=='POST':
+                    payload=route.request.post_data_json;client_writes.append(payload)
+                    if client_failure[0]:route.abort();return
+                    if payload['action']=='block':blocked.add(payload['mac'])
+                    else:blocked.discard(payload['mac'])
+                    route.fulfill(json={'saved':True,'filter_applied':True});return
+                route.fulfill(json={'ap_active':True,'inventory_available':True,'count':1,
+                    'blocked':sorted(blocked),'filter_applied':True,'association_block_supported':False,
+                    'clients':[{'mac':'02:00:00:00:00:01','ip':'192.168.8.21',
+                      'name':'Fictional <img src=x onerror=alert(1)>','signal_dbm':-52,
+                      'rx_bytes':1048576,'tx_bytes':2048,'rx_mbps':72.2,'tx_mbps':65,
+                      'internet_blocked':'02:00:00:00:00:01' in blocked}]})
+            page.route('**/api/ap/clients',client_inventory)
             for width in [320, 390, 768, 1280]:
                 page.set_viewport_size({'width': width, 'height': 844})
                 for path in ['/manage', '/setup', '/internet', '/hotspot', '/modem/network', '/settings/leds']:
@@ -107,6 +122,27 @@ def main():
             assert len(ap_writes) == 1 and ap_writes[0]['hidden'] and ap_writes[0]['isolation']
             assert ap_writes[0]['action'] == 'configure_ap' and ap_writes[0]['max_clients'] == 3
             page.unroute('**/api/setup')
+
+            # Inventory uses literal text, and block/unblock never activates an AP.
+            page.goto(BASE+'/setup#ap-clients')
+            expect(page.locator('#ap-clients-list .ap-client-card')).to_have_count(1)
+            expect(page.locator('#ap-clients-list img')).to_have_count(0)
+            page.once('dialog',lambda d:d.dismiss())
+            page.locator('#ap-clients-list button').click();assert not client_writes
+            page.once('dialog',lambda d:d.accept())
+            page.locator('#ap-clients-list button').click()
+            expect(page.locator('#ap-clients-list button')).to_have_text('Bỏ chặn')
+            assert len(client_writes)==1 and client_writes[0]['action']=='block'
+            assert client_writes[0]['confirm'] is True and len(client_writes[0]['operation'])==36
+            page.once('dialog',lambda d:d.accept())
+            page.locator('#ap-clients-blocked button').click()
+            expect(page.locator('#ap-clients-list button')).to_have_text('Chặn Internet')
+            assert len(client_writes)==2 and client_writes[1]['action']=='unblock'
+            client_failure[0]=True
+            page.once('dialog',lambda d:d.accept());page.locator('#ap-clients-list button').click()
+            expect(page.locator('#ap-clients-notice')).to_contain_text('kết quả chưa xác định')
+            page.wait_for_timeout(500);assert len(client_writes)==3
+            client_failure[0]=False
 
             # Failed and disconnected station requests must not claim success/retry.
             page.goto(BASE + '/setup')

@@ -109,8 +109,14 @@ def activate(backend, identity):
     config = backend.read('setup-ap.json')
     if not config.get('ssid'):config = backend.read('hotspot.json')
     value = options(config)
+    from .ap_clients import for_backend
+    clients = for_backend(backend)
     if value is None:
-        backend.network.up(identity)
+        clients.prepare_ap()
+        try:backend.network.up(identity)
+        except Exception:
+            if not clients.active():clients.suspend()
+            raise
         return
     name = 'openstick-setup' if identity == SETUP_UUID else 'openstick-hotspot'
     path = backend.profiles / (name + '.nmconnection')
@@ -123,4 +129,8 @@ def activate(backend, identity):
                 or profile.getint('wifi', 'ap-isolation') != int(value['isolation'])):raise ValueError()
     except (OSError, ValueError, configparser.Error):
         raise RuntimeError('AP_OPTIONS_INVALID') from None
-    (backend.ap_backend or SupplicantAP()).activate(backend.network, identity, value)
+    clients.prepare_ap()
+    try:(backend.ap_backend or SupplicantAP()).activate(backend.network, identity, value)
+    except Exception:
+        if not clients.active():clients.suspend()
+        raise

@@ -1,5 +1,12 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**18/11/2026 — đang bổ sung danh sách client và chặn Internet theo MAC.**
+Đọc [AP_CLIENTS.md](AP_CLIENTS.md). UI ở `/setup#ap-clients`; phân biệt association
+thật từ driver với lease cũ. Bộ lọc riêng inet forward, giữ DHCP/quản trị; không
+phải chặn vào Wi-Fi. Kernel thật không có NF_TABLES_NETDEV; đã chuyển sang inet,
+cú pháp đã kiểm tra trên USB. Còn phải nghiệm thu gói cài và client/packet thật;
+không lấy fixture hoặc nft --check làm hardware PASS.
+
 **18/11/2026 — mới nhất: đã cài mã tùy chọn AP nâng cao lên USB theo yêu cầu.**
 Đọc [AP_ADVANCED_SETTINGS.md](AP_ADVANCED_SETTINGS.md). `/setup` có Hidden SSID,
 giới hạn 1–32 client và AP isolation; lưu chỉ staging cho lần phát sau. Hook

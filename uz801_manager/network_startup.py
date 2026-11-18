@@ -119,9 +119,13 @@ class NetworkStartup:
                         q.network.nm('device','set','wlan0','autoconnect','no')
                         if active==SETUP_UUID:q.setup.network.local_services(False)
                         if active:q.network.down(active)
+                        from .ap_clients import for_backend
+                        for_backend(q.hotspot).suspend()
                         q.ap_forwarding(True)
                     else:
                         if active==SETUP_UUID:q.setup.network.local_services(False)
+                        from .ap_clients import for_backend
+                        for_backend(q.hotspot).suspend()
                         q.ap_forwarding(True)
                         if active!=config['station']:q.setup.network.try_station(config['station'])
                         if (q.network.active('wlan0')!=config['station']
@@ -169,7 +173,11 @@ class NetworkStartup:
 
 def main():
     backend=NetworkStartup()
+    from .ap_clients import ApClients
+    clients=ApClients()
     while True:
+        try:clients.tick()
+        except Exception:pass
         try:backend.tick()
         except Exception:pass  # Never log identifiers, credentials or subprocess output.
         time.sleep(5)

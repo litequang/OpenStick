@@ -4,9 +4,33 @@ from flask import jsonify, render_template, request, Response
 from .setup_ap import validate_setup
 from .lan_access import LAN_URL
 from .ap_options import ERRORS as AP_ERRORS
+from .ap_clients import validate as validate_client_action, ERRORS as CLIENT_ERRORS
 
 
 def register_setup_routes(app, backend, token):
+    clients = getattr(backend, 'clients', None)
+
+    @app.get('/api/ap/clients')
+    def ap_client_status():
+        try:
+            if clients is None:raise RuntimeError('AP_CLIENTS_UNAVAILABLE')
+            return jsonify(clients.status())
+        except Exception as error:
+            return jsonify(error=str(error) if str(error) in CLIENT_ERRORS else 'AP_CLIENTS_UNAVAILABLE'), 503
+
+    @app.post('/api/ap/clients')
+    def ap_client_action():
+        value = request.get_json(silent=True)
+        try:
+            action = validate_client_action(value)
+            if clients is None:raise RuntimeError('AP_CLIENTS_UNAVAILABLE')
+            return jsonify(clients.call(action,**{k:v for k,v in value.items() if k!='action'}))
+        except (ValueError,TypeError,UnicodeError):return jsonify(error='INPUT_INVALID'),400
+        except Exception as error:
+            return jsonify(error=str(error) if str(error) in CLIENT_ERRORS else 'AP_CLIENTS_UNAVAILABLE'),409
+        finally:
+            if isinstance(value,dict):value.clear()
+
     @app.get('/setup')
     def setup_page():
         return render_template('setup.html', token=token, page='wifi')

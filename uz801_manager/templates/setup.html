@@ -20,7 +20,7 @@
   <p class="setup-field-help">Tốc độ TX/RX là tốc độ liên kết Wi-Fi, không phải tốc độ tải Internet.</p>
 </section>
 <nav class="settings-local-nav" aria-label="Các mục Wi-Fi">
-  <a href="#setup-connect-pane">Kết nối mạng</a><a href="#saved-wifi">Mạng đã lưu</a><a href="#usb-ap-settings">Mạng USB phát</a><a href="#setup-status-panel">Khôi phục</a>
+  <a href="#setup-connect-pane">Kết nối mạng</a><a href="#saved-wifi">Mạng đã lưu</a><a href="#usb-ap-settings">Mạng USB phát</a><a href="#ap-clients">Thiết bị kết nối</a><a href="#setup-status-panel">Khôi phục</a>
 </nav>
 <div class="setup-panel-grid">
   <section id="setup-connect-pane" class="setup-panel setup-panel-station">
@@ -133,6 +133,18 @@
   </section>
 </div>
 
+<section class="setup-secondary-panel" id="ap-clients" aria-labelledby="ap-clients-title">
+  <div class="setup-secondary-heading"><div><h2 id="ap-clients-title">Thiết bị kết nối Wi-Fi USB</h2><p>Danh sách lấy trực tiếp từ driver; IP và tên máy chỉ hiện khi đối chiếu được. TX/RX tính từ phía USB, không phải tốc độ Internet.</p></div><button id="ap-clients-refresh" type="button" class="secondary">Làm mới</button></div>
+  <p id="ap-clients-status" role="status" aria-live="polite">Đang đọc thiết bị…</p>
+  <div id="ap-clients-list" class="ap-clients-list"></div>
+  <details class="setup-help-details"><summary>Chặn Internet bằng MAC nhập tay</summary>
+    <form id="ap-clients-form" class="setup-form"><label for="ap-client-mac">Địa chỉ MAC</label><input id="ap-client-mac" type="text" autocomplete="off" placeholder="02:00:00:00:00:01" required maxlength="17" pattern="([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}"><button id="ap-clients-block" type="submit" class="secondary">Chặn Internet</button></form>
+  </details>
+  <h3 class="ap-blocked-title">Danh sách chặn Internet</h3><div id="ap-clients-blocked" class="ap-clients-list"></div>
+  <p class="setup-field-help">Chặn Internet giữ Wi-Fi, cấp IP và trang quản trị tại 192.168.8.1:8765. Không đuổi thiết bị khỏi Wi-Fi hoặc thay thế AP isolation. Thiết bị dùng MAC ngẫu nhiên có thể đổi địa chỉ để vượt chặn. Danh sách được lưu cho lần cấp nguồn sau; không cần SIM để quản lý.</p>
+  <p id="ap-clients-notice" class="setup-feedback" role="status" aria-live="polite"></p>
+</section>
+
 <section class="setup-secondary-panel" id="setup-status-panel">
   <div class="setup-secondary-heading">
     <div><h2>Trạng thái &amp; khôi phục</h2><p>Kiểm tra chế độ Wi-Fi cài đặt và điều khiển khi cần.</p></div>
@@ -185,6 +197,7 @@
 </section>
 
 <script src="/static/setup.js"></script>
+<script src="/static/ap_clients.js"></script>
 <script>const savedWifiActionToken={{ token|tojson }};</script>
 <script src="/static/saved_wifi.js"></script>
 </main></body></html>

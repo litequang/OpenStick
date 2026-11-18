@@ -54,13 +54,16 @@ class QuickWifi:
         self.network.nm('device', 'set', 'wlan0', 'autoconnect', 'no')
         if previous == SETUP_UUID:self.setup.network.local_services(False)
         if previous:self.network.down(previous)
+        from .ap_clients import for_backend
+        for_backend(self.setup).suspend()
         self.quick.ap_forwarding(True)  # Do not leave an AP guard on the station path.
 
     def _restore(self, previous, autoconnect, blocked):
         if previous:
             if previous == SETUP_UUID:self.setup.network.local_services(True)
             if previous in (SETUP_UUID, AP_UUID):self.quick.ap_forwarding(not blocked)
-            self.network.up(previous)
+            if previous in (AP_UUID, SETUP_UUID):self.setup.activate_ap(previous)
+            else:self.network.up(previous)
         self.network.nm('device', 'set', 'wlan0', 'autoconnect',
                         'yes' if autoconnect == 'yes' else 'no')
 

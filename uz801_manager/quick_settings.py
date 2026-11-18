@@ -28,6 +28,8 @@ ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED
            'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
 ERRORS.add('NETWORK_SAVE_FAILED')
 ERRORS |= ap_options.ERRORS
+from .ap_clients import ERRORS as CLIENT_ERRORS
+ERRORS |= CLIENT_ERRORS
 
 
 def validate_quick(value):
@@ -360,6 +362,9 @@ class QuickSettings:
                 elif action == 'usb_tether_off':
                     self.tethering.request(False, values['operation'])
                 elif action.startswith('wifi_'):self.wifi.call(action, values)
+                from .ap_clients import for_backend
+                clients = for_backend(self.hotspot)
+                if not clients.active():clients.suspend()
                 if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
                     from .network_startup import save_current
                     try:save_current(self)

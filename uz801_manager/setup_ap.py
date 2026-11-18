@@ -111,6 +111,8 @@ class SetupAP(Hotspot):
         self.lan_ready = lan_ready or (lambda: LanSettings(self.directory).private() is not None)
         # Existing Hotspot readiness callback runs without reacquiring this lock.
         self.reboot_lock = self.modem_lock_factory
+        from .ap_clients import ApClients
+        self.clients = ApClients(self.directory,network=self.network,lock_factory=self.lock_factory)
 
     def state(self):
         try:value = json.loads((self.runtime / 'setup-state.json').read_text())
@@ -305,6 +307,7 @@ class SetupAP(Hotspot):
     def stop(self):
         self.network.local_services(False)
         if self.network.active('wlan0') == SETUP_UUID:self.network.down(SETUP_UUID)
+        self.clients.suspend()
         previous = self.read('setup-ap.json').get('previous_wifi')
         if previous:
             try:self.network.up(previous)
@@ -353,6 +356,7 @@ class SetupAP(Hotspot):
             save(self.directory,wifi_role='station',station=identity,data_on=False,boot=self.boot())
 
     def try_saved(self):
+        self.clients.suspend()
         # No Internet probes: a DHCP LAN is sufficient for administration.
         if self.network.ready() and self.network.active('wlan0') not in (SETUP_UUID, AP_UUID):
             return self.network.active('wlan0')
