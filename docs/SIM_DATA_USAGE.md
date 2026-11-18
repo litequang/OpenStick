@@ -85,3 +85,16 @@ Read-only USB preflight confirmed one modem, an NM data-interface binding and
 readable sysfs counters/index. It did not verify SIM presence, Internet or byte
 accuracy. Installation and further hardware observations are recorded separately
 in the latest [session handoff](SESSION_HANDOFF.md).
+
+Installed source `69111ce` on the USB. Independent source hashes, the served
+Overview card, real authenticated Overview API telemetry and advancing collector
+timestamps with no browser open passed. The permanent checkpoint validated with
+mode 0600; no baseline/device identifiers were exported. A separate temporary
+Linux fixture exercised real passive counter reads, atomic checkpoint roundtrip
+and cleanup. No traffic was deliberately generated. Protected owner hashes,
+active network, routes, base firewall and running services were preserved; storage
+was flushed. No reboot/cold-power persistence test or measured SIM traffic load
+test has run. Actual packet/driver/carrier accuracy remains unverified.
+Both [main CI](https://github.com/litequang/OpenStick/actions/runs/44277071660) and
+[development CI](https://github.com/litequang/OpenStick/actions/runs/44277071784)
+passed for the installed source, including Windows EXE build/smoke checks.

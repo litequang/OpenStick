@@ -2,6 +2,17 @@
 
 ## 2026-11-18 latest: SIM data accounting and Overview metric
 
+**Installed source `69111ce`; both Windows branch/main CI passed.** Independent
+source hashes, served card and real authenticated Overview API usage passed.
+Collector timestamps advanced with no browser open; root-private checkpoint
+validated, baseline identifiers excluded from public projection. Passive Linux
+counter/atomic persistence fixture also passed and was cleaned. Deployment kept
+owner hashes, network, routes, firewall and services; storage flushed. No reboot,
+profile/data/AP change or deliberate SIM traffic generated. Cold-power replay,
+real traffic byte accuracy and carrier billing comparison remain NOT_TESTED.
+Private rollback source backup is under `deploy-backups/sim-usage-*`; runtime
+results remain ignored. No owner identifiers or credentials belong in Git.
+
 Owner requests passive SIM usage history and a metric beside existing Overview
 statistics. See [SIM_DATA_USAGE.md](SIM_DATA_USAGE.md). One thread reuses the
 startup worker process, independent of modem/network locks; one private writer,
@@ -13,7 +24,7 @@ complete abrupt-power-loss accounting. No quota/data-off action implemented.
 737 tests passed / one Windows symlink skip, exit 0; pip check/self-test and
 headless preview at four widths passed. Real read-only preflight found a modem
 with a connected NM data binding and readable counters, not SIM Internet PASS.
-Check the next deployment entry before claiming code is installed on the USB.
+The installation record above supersedes the earlier source-only preflight.
 
 ## 2026-11-18 latest: AP client feature installed and API/filter fixture verified
 

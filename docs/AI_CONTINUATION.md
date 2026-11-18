@@ -1,6 +1,10 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
 **18/11/2026 — thống kê dung lượng SIM trên Tổng quan.**
+Đã cài source `69111ce`, CI hai nhánh PASS. Hash/HTML/API Tổng quan thật đạt,
+worker tự tiến mẫu khi không mở browser; checkpoint riêng mode 0600 hợp lệ.
+Cấu hình chủ/mạng/route/firewall giữ nguyên, sync xong; không reboot hay tạo tải
+SIM để thử. **Chưa thử cold boot hoặc độ chính xác dung lượng với traffic thật.**
 Đọc [SIM_DATA_USAGE.md](SIM_DATA_USAGE.md) và đầu HANDOFF để biết trạng thái cài.
 Ô mới có hôm nay/tháng, chi tiết tải lên/xuống, phiên và tổng; UTC+7, tính chung
 các SIM trên USB, không nhận diện SIM. Worker cũ thêm một luồng lấy bộ đếm NM/
