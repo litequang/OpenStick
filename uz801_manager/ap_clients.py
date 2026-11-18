@@ -153,9 +153,29 @@ class ApClients:
     def fingerprint(blocked, ipv4=(), ipv6=()):
         return MARKER + hashlib.sha256(json.dumps([blocked,list(ipv4),list(ipv6)],separators=(',',':')).encode()).hexdigest()
 
+    def neighbors(self):
+        try:
+            rows=json.loads(self._run(['ip','-j','neigh','show','dev','wlan0']))
+            if isinstance(rows,list):return rows[:512]
+        except (RuntimeError,ValueError):pass
+        # postmarketOS minimal can provide BusyBox ip without -j. Read only the
+        # fixed wlan0 neighbor listing; never trigger discovery/ARP or a shell.
+        rows=[]
+        for line in self._run(['ip','neigh','show','dev','wlan0']).splitlines()[:512]:
+            parts=line.split()
+            try:
+                address=ipaddress.ip_address(parts[0])
+                if getattr(address,'scope_id',None):continue
+                if 'dev' in parts and parts[parts.index('dev')+1]!='wlan0':continue
+                link=mac(parts[parts.index('lladdr')+1])
+                state=[v for v in parts if v in ('REACHABLE','STALE','DELAY','PROBE','PERMANENT')]
+                rows.append({'dst':str(address),'lladdr':link,'state':state,'dev':'wlan0'})
+            except (ValueError,IndexError):continue
+        return rows
+
     def targets(self, blocked):
-        try:rows=json.loads(self._run(['ip','-j','neigh','show','dev','wlan0']))
-        except (RuntimeError,ValueError):raise RuntimeError('AP_CLIENTS_FIREWALL_FAILED') from None
+        try:rows=self.neighbors()
+        except RuntimeError:raise RuntimeError('AP_CLIENTS_FIREWALL_FAILED') from None
         if not isinstance(rows,list):raise RuntimeError('AP_CLIENTS_FIREWALL_FAILED')
         targets={4:set(),6:set()}
         for row in rows[:512]:
@@ -232,7 +252,7 @@ class ApClients:
                     try:
                         if path.is_file() and not path.is_symlink() and path.stat().st_size <= 65536:leases.append(path.read_text())
                     except (OSError, UnicodeError):pass
-                try:neighbors = json.loads(self._run(['ip','-j','neigh','show','dev','wlan0']))
+                try:neighbors = self.neighbors()
                 except (RuntimeError, ValueError):neighbors = []
                 correlate(rows, leases, neighbors, self.clock())
             except RuntimeError:inventory = False;error = 'AP_CLIENTS_UNAVAILABLE'

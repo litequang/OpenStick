@@ -239,3 +239,23 @@ def test_saved_filter_is_installed_before_owned_ap_activation(clients):
 @pytest.mark.parametrize('text',['unexpected-output','Station invalid (on wlan0)', 'x'*131073])
 def test_malformed_inventory_is_not_zero_clients(text):
     with pytest.raises(RuntimeError,match='AP_CLIENTS_UNAVAILABLE'):stations(text)
+
+
+def test_busybox_ip_without_json_uses_fixed_plain_neighbor_listing(clients):
+    backend,network,_=clients;normal=network.run
+    def busybox(args,**kw):
+        if args==['ip','-j','neigh','show','dev','wlan0']:
+            return subprocess.CompletedProcess(args,1,'','ip: invalid option -- j')
+        if args==['ip','neigh','show','dev','wlan0']:
+            return subprocess.CompletedProcess(args,0,
+                f'192.168.8.21 dev wlan0 lladdr {A} REACHABLE\n'
+                f'2001:db8::21 lladdr {A} STALE\n'
+                f'192.168.8.22 dev usb0 lladdr {A} REACHABLE\n'
+                '192.168.8.23 FAILED\ninvalid data\n','')
+        return normal(args,**kw)
+    network.run=busybox
+    assert backend.status()['clients'][0]['ip']=='192.168.8.21'
+    result=act(backend)
+    assert result['saved'] and result['filter_applied']
+    assert '192.168.8.21' in network.table and '2001:db8::21' in network.table
+    assert '192.168.8.22' not in network.table
