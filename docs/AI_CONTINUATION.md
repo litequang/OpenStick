@@ -1,5 +1,14 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**18/11/2026 — mới nhất: đã cài lưu/khôi phục chế độ mạng khi bật nguồn.**
+Đọc [NETWORK_STARTUP.md](NETWORK_STARTUP.md). Quick Settings lưu lựa chọn thành
+công; service mới phục hồi AP trước, chờ SIM đăng ký rồi kết nối theo quyền đã
+lưu. Không tự bật data khi tắt máy bay; setup fallback không được giành Wi-Fi
+khi đã chọn AP/tắt Wi-Fi. Đã cài, hash đúng, lưu trạng thái SIM + AP đang chạy,
+bật service boot, kiểm tra cấu hình riêng giữ nguyên và sync. Chủ cần tháo USB
+nên **CHƯA thử reboot/rút-cắm thật**. Đã báo có thể tháo. Lần cắm tới phải kiểm
+tra AP/DHCP/quản trị/Internet SIM; không nhận hardware PASS từ fixture/service.
+
 **17/11/2026 — mới nhất: đã cài FileGator 7.16.9 từ GitHub.**
 Đọc [FILEGATOR.md](FILEGATOR.md) và đầu SESSION_HANDOFF. `/website` chọn site
 → Mở trình quản lý file; upload ZIP → Unzip, không cần kiểm tra thủ công.

@@ -1,5 +1,32 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: persist Quick Settings network choice, installed, cold boot untested
+
+Owner reports unplug/replug reconnects station despite selecting SIM data + AP.
+Read-only USB inspection confirmed active SIM/AP + saved data consent, but both
+NM managed profiles had autoconnect=no and there was no manual Wi-Fi role replay.
+Implemented [NETWORK_STARTUP.md](NETWORK_STARTUP.md): durable explicit selection,
+new bounded boot worker, AP-first/delayed-SIM behavior, airplane/data vetoes,
+existing locks, setup fallback guard and explicit setup-handoff precedence.
+Successful Quick Settings actions save automatically; read/status/scan do not.
+Full suite: 652 passed, one Windows symlink-privilege skip, exit 0; JavaScript
+syntax and whitespace checks passed. Physical reboot acceptance remains pending.
+
+Installed source SHA-256 matches; saved the currently working SIM/AP under its
+existing consent and enabled the service at boot. Existing profile/website/Tunnel/
+LAN/SSH/radio contents checked unchanged; storage synced. Owner needed to unplug,
+so told them it was safe and did NOT reboot. **Cold-power/reboot replay remains
+NOT_TESTED on hardware.** Do not claim full physical acceptance. Current live
+AP/data before removal were confirmed; waiting/failure combinations are fixtures.
+
+Private source/config backup: `network-startup-1794978346134489169/before.tar.gz`
+under `/var/lib/openstick/deploy-backups/`. Transport stalled during staging;
+some client operations ended with SSH/SFTP errors. Installation eventually
+completed; final source/protected hashes and enabled/running service were checked
+independently. Do not rerun the initial installer as if nothing was installed.
+At next plug, test AP DHCP/admin and SIM-bound Internet before calling this PASS.
+The older MM/cold USB DHCP issues and FileGator visual acceptance remain open.
+
 ## 2026-11-17 latest: installed upstream FileGator
 
 Owner requested an existing GitHub panel. Installed stable FileGator 7.16.9

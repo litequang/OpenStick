@@ -5,6 +5,7 @@
   let current = null, busy = false, selected = null;
   const compact = !!document.querySelector('.quick-panel--compact');
   const errors = {
+    NETWORK_SAVE_FAILED:'Mạng có thể đã đổi nhưng chưa lưu được chế độ khởi động. Giữ USB cắm và kiểm tra lại; chưa xác nhận lưu thành công.',
     SIM_NOT_READY:'Chưa có SIM sẵn sàng và đăng ký mạng. Lắp SIM sau khi ngắt nguồn, rồi đọc lại.',
     AIRPLANE_ACTIVE:'Tắt chế độ máy bay trước. Việc đó không tự bật dữ liệu SIM.',
     MODEM_BUSY:'Modem đang có giao dịch. Đợi kết thúc SMS/USSD rồi thử lại.',
@@ -54,6 +55,11 @@
   }
   function draw(s) {
     current = s;
+    const saved=el('quick-startup-status');
+    if(saved) saved.textContent=s.startup?.saved?
+      'Đã lưu khi bật nguồn: '+({ap:'Phát Wi-Fi',station:'Nhận Wi-Fi',off:'Wi-Fi tắt'}[s.startup.wifi_role]||'Wi-Fi')+
+      ' · '+(s.startup.data_on&&s.intent?.data_allowed&&!s.intent?.airplane?'Dữ liệu SIM bật':'Dữ liệu SIM tắt')+'.':
+      'Thay đổi mạng thành công sẽ được lưu cho lần cấp nguồn sau.';
     drawMode();
     const airplane = s.intent?.airplane === true, blocked = busy || s.pending_network_trial || s.foreign_cellular_active;
     tile('quick-airplane', airplane?(compact?'Đã yêu cầu tắt':'Đã yêu cầu tắt di động'):(compact?'Cho phép di động':'Di động được cho phép'), airplane, blocked);

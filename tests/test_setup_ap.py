@@ -11,6 +11,22 @@ from uz801_manager.setup_ap import SETUP_UUID, SetupAP, validate_setup
 from uz801_manager.hotspot import AP_UUID
 
 
+def test_saved_manual_ap_or_wifi_off_blocks_station_fallback_but_explicit_handoff_wins(setup):
+    from uz801_manager.network_startup import save,load
+    backend,network,clock=setup
+    save(backend.directory,wifi_role='ap',data_on=True,boot='previous-boot')
+    network.events.clear()
+    backend.tick();clock[0]+=100;backend.tick()
+    assert not network.events and network.wifi is None
+    save(backend.directory,wifi_role='off',boot='previous-boot')
+    backend.tick();assert not network.events
+    # An already-authorized setup Save still gets processed before the guard.
+    backend.resume_handoff({'identity':'fixture-station','attempt':'fixture-attempt'})
+    current=load(backend.directory)
+    assert current['wifi_role']=='station' and current['station']=='fixture-station'
+    assert current['data_on'] is False
+
+
 class Network:
     def __init__(self):
         self.wifi = None

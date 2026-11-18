@@ -331,10 +331,13 @@ class SetupAP(Hotspot):
             self.restore_profile(intent)
             raise
 
-    def finish_station(self, identity, result):
+    def finish_station(self, identity, result, *, persist=False):
         config = self.read('setup-ap.json');config['previous_wifi'] = identity
         self.write('setup-ap.json', config)
         self.save_state(result=result, error=None, missing_since=None, station_url=self.network.station_url())
+        if persist:
+            from .network_startup import save
+            save(self.directory,wifi_role='station',station=identity,data_on=False,boot=self.boot())
 
     def try_saved(self):
         # No Internet probes: a DHCP LAN is sufficient for administration.
@@ -364,12 +367,12 @@ class SetupAP(Hotspot):
             self.restore_profile(intent)
             previous = self.try_saved()
             if previous:
-                self.finish_station(previous, 'SAVED_WIFI_CONNECTED')
+                self.finish_station(previous, 'SAVED_WIFI_CONNECTED',persist=True)
                 return
             self.start()
             self.save_state(result='AP_READY', error='WIFI_CONNECT_FAILED')
             return
-        self.finish_station(intent['identity'], 'WIFI_CONNECTED')
+        self.finish_station(intent['identity'], 'WIFI_CONNECTED',persist=True)
 
     def tick(self):
         with self.lock_factory():
@@ -404,6 +407,8 @@ class SetupAP(Hotspot):
                     if not keep:(self.directory / 'setup-pending.json').unlink(missing_ok=True)
                 return
             active = self.network.active('wlan0')
+            from .network_startup import owns_wifi
+            if owns_wifi(self.directory):return
             if active == SETUP_UUID and self.network.ready():
                 if not self.lan_ready():self.stop()
                 else:self.network.local_services(True)

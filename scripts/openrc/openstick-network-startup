@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+name="OpenStick saved network startup"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args="-m uz801_manager.network_startup"
+directory=/opt/openstick
+respawn_delay=5
+respawn_max=0
+depend() {
+    need networkmanager nftables
+    after openstick-modem openstick-hotspot openstick-lan
+    before openstick-setup
+}

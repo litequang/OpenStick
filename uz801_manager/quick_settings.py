@@ -6,7 +6,7 @@ from pathlib import Path
 import uuid
 import xml.etree.ElementTree as ET
 
-from .hotspot import AP_UUID, CELL_UUID, Hotspot, Network, network_lock
+from .hotspot import AP_UUID, CELL_UUID, Hotspot, Network, network_lock, boot_id
 from .modem_device import OperationJournal, modem_lock, system_bus
 from .network_policy import NetworkPolicy
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
@@ -25,6 +25,7 @@ ERRORS |= {'USB_NO_INTERNET', 'USB_DHCP_CONFLICT', 'USB_DHCP_RESTORE_FAILED',
 ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED',
            'WIFI_CONNECT_FAILED', 'WIFI_SCAN_FAILED', 'WIFI_RESTORE_FAILED',
            'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
+ERRORS.add('NETWORK_SAVE_FAILED')
 
 
 def validate_quick(value):
@@ -115,8 +116,9 @@ class RadioControl:
 class QuickSettings:
     def __init__(self, directory='/var/lib/openstick', *, network=None, radio=None,
                  lock_factory=network_lock, modem_lock_factory=modem_lock,
-                 hotspot=None, setup=None, journal=None, identity_matches=None, forwarding=None, tethering=None, wifi=None):
+                 hotspot=None, setup=None, journal=None, identity_matches=None, forwarding=None, tethering=None, wifi=None, boot=boot_id):
         self.directory = Path(directory)
+        self.boot = boot
         self.network = network or Network()
         self.radio = radio or RadioControl()
         self.lock_factory, self.modem_lock_factory = lock_factory, modem_lock_factory
@@ -147,7 +149,7 @@ class QuickSettings:
     def _start_shared_ap(self, control):
         """One AP with stable DHCP/gateway, independent of cellular connectivity."""
         previous = self.network.active('wlan0')
-        connected = self.network.active(control) == CELL_UUID and bool(self.network.cellular_interface(control))
+        connected = bool(control and self.network.active(control) == CELL_UUID and self.network.cellular_interface(control))
         self.ap_forwarding(connected and radio_allowed(self.directory) and data_allowed(self.directory))
         if previous == AP_UUID:return
         config = self._read('setup-ap.json')
@@ -195,13 +197,14 @@ class QuickSettings:
         return devices[0]
 
     def status(self):
+        from .network_startup import public
         intent = load_intent(self.directory)
         radio = self.radio.status()
         wifi = self.network.active('wlan0')
         controls = self.network.devices()
         cell = self.network.active(controls[0]) if len(controls) == 1 else None
         pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or self.tethering.status().get('reboot_pending'))
-        return {'intent': intent, 'radio': radio,
+        return {'intent': intent, 'radio': radio, 'startup': public(self.directory),
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
                 'mobile_data_connected': bool(cell == CELL_UUID and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
@@ -355,6 +358,10 @@ class QuickSettings:
                 elif action == 'usb_tether_off':
                     self.tethering.request(False, values['operation'])
                 elif action.startswith('wifi_'):self.wifi.call(action, values)
+                if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
+                    from .network_startup import save_current
+                    try:save_current(self)
+                    except Exception:raise RuntimeError('NETWORK_SAVE_FAILED') from None
                 result = self.status()
                 self.journal.finish(receipt, 'COMPLETED')
                 return result

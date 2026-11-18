@@ -69,6 +69,7 @@ def quick(tmp_path, monkeypatch):
     backend = QuickSettings(tmp_path, network=network, radio=radio, lock_factory=nullcontext,
                             modem_lock_factory=nullcontext, hotspot=hotspot, setup=setup, journal=journal,
                             identity_matches=lambda:True,
+                            boot=lambda:'fixture-boot',
                             forwarding=lambda allowed:network.calls.append(('forward_ap',allowed)))
     setup.network = network
     network.local_services = lambda enabled:network.calls.append(('local_services', enabled))
