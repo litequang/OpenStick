@@ -5,6 +5,11 @@
   let current = null, busy = false, selected = null;
   const compact = !!document.querySelector('.quick-panel--compact');
   const errors = {
+    AP_OPTIONS_INVALID:'Cấu hình điểm phát không khớp. Lưu lại tại Cài đặt Wi-Fi qua cổng USB trước khi bật phát.',
+    AP_OPTIONS_UNAVAILABLE:'Chưa truy cập được backend điểm phát để đặt giới hạn thiết bị. Chưa bật phát với giới hạn chưa xác nhận; kiểm tra qua USB.',
+    AP_OPTIONS_APPLY_FAILED:'Backend chưa xác nhận giới hạn/cách ly. Không giữ điểm phát mới; kiểm tra qua USB, không tự gửi lại.',
+    AP_OPTIONS_ROLLBACK_FAILED:'Chưa hoàn tác đầy đủ tùy chọn điểm phát. Giữ kết nối USB để kiểm tra.',
+    AP_LEGACY_ACTIVE:'Còn chế độ hotspot cũ tự bật. Dùng Cài đặt nhanh để dừng cơ chế cũ trước khi lưu tùy chọn nâng cao.',
     NETWORK_SAVE_FAILED:'Mạng có thể đã đổi nhưng chưa lưu được chế độ khởi động. Giữ USB cắm và kiểm tra lại; chưa xác nhận lưu thành công.',
     SIM_NOT_READY:'Chưa có SIM sẵn sàng và đăng ký mạng. Lắp SIM sau khi ngắt nguồn, rồi đọc lại.',
     AIRPLANE_ACTIVE:'Tắt chế độ máy bay trước. Việc đó không tự bật dữ liệu SIM.',

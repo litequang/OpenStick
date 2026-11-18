@@ -11,6 +11,7 @@ from .modem_device import OperationJournal, modem_lock, system_bus
 from .network_policy import NetworkPolicy
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .setup_ap import SETUP_UUID, SetupAP, SetupNetwork
+from . import ap_options
 
 ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off',
            'wifi_auto', 'wifi_saved', 'wifi_scan', 'wifi_connect', 'wifi_off')
@@ -26,6 +27,7 @@ ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED
            'WIFI_CONNECT_FAILED', 'WIFI_SCAN_FAILED', 'WIFI_RESTORE_FAILED',
            'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
 ERRORS.add('NETWORK_SAVE_FAILED')
+ERRORS |= ap_options.ERRORS
 
 
 def validate_quick(value):
@@ -161,17 +163,17 @@ class QuickSettings:
         try:
             self.hotspot._adopt_setup_ap()  # Preserves the existing cellular profile.
             if previous == SETUP_UUID:self.setup.network.local_services(False)
-            self.network.up(AP_UUID)
+            self.hotspot.activate_ap(AP_UUID)
             if self.network.active('wlan0') != AP_UUID:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
-        except Exception:
+        except Exception as error:
             self.hotspot._restore_setup_snapshot({'setup_handoff': snapshot})
             if previous == SETUP_UUID:
-                self.network.up(SETUP_UUID)
+                self.setup.activate_ap(SETUP_UUID)
                 self.setup.network.local_services(True)
             elif previous:
                 self.ap_forwarding(True)
                 self.network.up(previous)
-            raise RuntimeError('LOCAL_AP_UNAVAILABLE') from None
+            raise RuntimeError(str(error) if str(error) in ap_options.ERRORS else 'LOCAL_AP_UNAVAILABLE') from None
 
     def _matching_ap_identity(self):
         """Staged credentials must match the SIM AP before promising continuity."""

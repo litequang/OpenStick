@@ -15,6 +15,7 @@ const context={Date,console,setTimeout,URL,TextEncoder,location:{},confirm:()=>a
  if(opts.method==='POST'){
   const post=JSON.parse(opts.body);posts.push(post);
   if(post.action==='set_fallback')state.enabled=post.enabled;
+  if(post.action==='configure_ap')state.ap_options={configured:true,hidden:post.hidden,max_clients:post.max_clients,isolation:post.isolation};
  }return {ok:true,json:async()=>state}}
 };
 vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/setup.js','utf8'),context);
@@ -60,5 +61,20 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/
  assert.equal(posts.length,before+1);assert.equal(posts.at(-1).action,'connect');assert(!Object.hasOwn(posts.at(-1),'confirm'));
  elements['setup-ssid'].value='ạ'.repeat(20);elements['setup-connect'].onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
  assert.equal(posts.length,before+1);assert.equal(elements['setup-ssid'].focused,true);
- console.log('setup selection/manual entry/explicit handoff/scan/advanced state PASS');
+ const apBefore=posts.length;
+ elements['setup-ap-ssid'].value='Fictional AP';elements['setup-ap-channel'].value='6';
+ elements['setup-ap-max-clients'].value='33';
+ elements['setup-ap-form'].onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
+ assert.equal(posts.length,apBefore);assert.equal(elements['setup-ap-max-clients'].focused,true);
+ elements['setup-ap-max-clients'].value='3';elements['setup-ap-hidden'].checked=true;elements['setup-ap-isolation'].checked=true;
+ accepted=false;elements['setup-ap-form'].onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
+ assert.equal(posts.length,apBefore);
+ accepted=true;elements['setup-ap-form'].onsubmit({preventDefault(){}});await new Promise(r=>setImmediate(r));
+ assert.equal(posts.length,apBefore+1);const ap=posts.at(-1);
+ assert.equal(ap.action,'configure_ap');assert.equal(ap.hidden,true);assert.equal(ap.isolation,true);assert.equal(ap.max_clients,3);assert.equal(ap.confirm,true);
+ elements['setup-ap-hidden'].checked=false;elements['setup-ap-max-clients'].value='5';
+ interval();await new Promise(r=>setImmediate(r));
+ assert.equal(elements['setup-ap-hidden'].checked,false);assert.equal(elements['setup-ap-max-clients'].value,'5','polling preserves draft');
+ assert.equal(posts.length,apBefore+1,'polling must not activate AP or resend');
+ console.log('setup selection/manual entry/explicit handoff/scan/advanced AP staging PASS');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,5 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**18/11/2026 — mới nhất: tùy chọn AP nâng cao chỉ ở mã nguồn, CHƯA CÀI USB.**
+Đọc [AP_ADVANCED_SETTINGS.md](AP_ADVANCED_SETTINGS.md). `/setup` có Hidden SSID,
+giới hạn 1–32 client và AP isolation; lưu chỉ staging cho lần phát sau. Hook
+supplicant MaxNumSta kiểu string chạy trước mọi AP activation do OpenStick điều
+khiển, kiểm tra readback/rollback; không dùng số lease làm giới hạn association.
+Chưa có nghiệm thu phần cứng cho ba tùy chọn. Chủ yêu cầu up GitHub trước khi
+cài; không tự triển khai. USB vẫn là bản lưu/khôi phục mạng ở ghi chú trước.
+
 **18/11/2026 — mới nhất: đã cài lưu/khôi phục chế độ mạng khi bật nguồn.**
 Đọc [NETWORK_STARTUP.md](NETWORK_STARTUP.md). Quick Settings lưu lựa chọn thành
 công; service mới phục hồi AP trước, chờ SIM đăng ký rồi kết nối theo quyền đã

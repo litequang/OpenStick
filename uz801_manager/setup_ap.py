@@ -9,6 +9,7 @@ import uuid
 
 from .hotspot import AP_UUID, AP_ADDRESS, Hotspot, Network
 from .lan_access import LanSettings
+from . import ap_options
 
 SETUP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/setup-ap'))
 
@@ -20,7 +21,12 @@ def validate_setup(value):
               'set_fallback': {'enabled', 'confirm'},
               'stop': {'confirm'}, 'scan': {'confirm'}, 'connect': {'ssid', 'password', 'confirm'},
               'configure_ap': {'ssid', 'password', 'channel', 'confirm'}}
-    if action not in fields or set(value) != fields[action] | {'action'}:raise ValueError('INPUT_INVALID')
+    expected = fields.get(action, set()) | {'action'}
+    extra = set(value) - expected
+    if action == 'configure_ap' and extra == ap_options.FIELDS:
+        ap_options.validate({k: value[k] for k in extra})
+        expected |= extra
+    if action not in fields or set(value) != expected:raise ValueError('INPUT_INVALID')
     if value.get('confirm') is not True:raise ValueError('CONFIRM_REQUIRED')
     if action == 'set_fallback' and type(value['enabled']) is not bool:raise ValueError('INPUT_INVALID')
     if action == 'connect':
@@ -121,6 +127,7 @@ class SetupAP(Hotspot):
         active = self.network.active('wlan0') == SETUP_UUID and self.network.ready()
         result = {'enabled': config.get('enabled') is True, 'configured': bool(config.get('ssid')),
                   'ssid': config.get('ssid'), 'channel': config.get('channel', 6),
+                  'ap_options': ap_options.summary(config),
                   'setup_active': active, 'lan_ready': self.lan_ready(),
                   'url': 'http://' + AP_ADDRESS + ':8765/setup',
                   'busy': bool(self.read('setup-pending.json')), 'result': state.get('result'),
@@ -156,6 +163,7 @@ class SetupAP(Hotspot):
         text = (f'[connection]\nid=openstick-setup\nuuid={SETUP_UUID}\ntype=wifi\n'
                 'interface-name=wlan0\nautoconnect=false\n\n'
                 f'[wifi]\nmode=ap\nband=bg\nchannel={config["channel"]}\nssid={escaped}\n'
+                + ap_options.wifi_lines(config) +
                 'cloned-mac-address=permanent\npowersave=2\n\n'
                 f'[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\nproto=rsn;\npairwise=ccmp;\ngroup=ccmp;\npmf=1\n\n'
                 f'[ipv4]\nmethod=manual\naddress1={AP_ADDRESS}/24\nnever-default=true\n\n'
@@ -179,11 +187,16 @@ class SetupAP(Hotspot):
         original_profile = path.read_text() if path.exists() else None
         original_config = config_path.read_text() if config_path.exists() else None
         previous = self.read('setup-ap.json')
+        if ap_options.FIELDS <= set(values):
+            # A legacy kept AP could autostart outside the pre-AP hook at boot.
+            if self.read('hotspot.json').get('enabled'):raise RuntimeError('AP_LEGACY_ACTIVE')
         password = values['password'] or previous.get('password')
         if not isinstance(password, str) or not 8 <= len(password) <= 63:
             raise ValueError('INPUT_INVALID')
         updated = {**previous, 'ssid': values['ssid'], 'password': password,
                    'channel': values['channel']}
+        if ap_options.FIELDS <= set(values):
+            updated['ap_options'] = ap_options.validate({k: values[k] for k in ap_options.FIELDS})
         try:
             self._save_ap_profile(updated)  # Only stage; do not disconnect the live AP.
             self.write('setup-ap.json', updated)
@@ -256,7 +269,7 @@ class SetupAP(Hotspot):
             self.write('setup-ap.json', config)
         # Drop forwarding before AP becomes reachable. No cellular operation.
         self.network.local_services(True)
-        try:self.network.up(SETUP_UUID)
+        try:self.activate_ap(SETUP_UUID)
         except Exception:
             self.network.local_services(False)
             raise
@@ -283,7 +296,7 @@ class SetupAP(Hotspot):
                     # Preserve scan results; start() only captures cached rows
                     # when transitioning from an existing station connection.
                     self.network.local_services(True)
-                    self.network.up(SETUP_UUID)
+                    self.activate_ap(SETUP_UUID)
                 finally:
                     self.network.nm('device', 'set', 'wlan0', 'autoconnect',
                                     'yes' if previous_auto == 'yes' else 'no')

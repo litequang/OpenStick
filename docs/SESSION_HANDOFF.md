@@ -1,5 +1,23 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: advanced AP options, source only, not deployed
+
+Owner requests Hidden SSID, client limit and AP isolation completed and pushed
+before installing anything on USB. Implemented `/setup` shared AP controls,
+durable optional settings, profile propagation, pre-AP string MaxNumSta setter
+and readback, bounded DBus errors/rollback and legacy-autoconnect bypass guards.
+Every owned AP activation path uses the common hook, including new boot replay.
+Legacy clients preserve previously saved options; polling does not erase drafts.
+See [AP_ADVANCED_SETTINGS.md](AP_ADVANCED_SETTINGS.md) for implementation,
+upstream evidence and physical acceptance. All three are software supported,
+NOT HARDWARE VERIFIED. No USB connection, command, configuration, service,
+installation, radio action, network change or reboot in this task. Installed
+USB is still the previous network-startup fix; its cold-boot acceptance remains
+separately pending. Do not mistake Git HEAD for installed device source.
+680 pytest passed, one Windows symlink skip, exit 0. Chrome headless 24 layouts
+and interactions PASS, including advanced settings draft/cancel/stage; Node,
+self-test, pip check and diff check passed. All evidence here is offline/preview.
+
 ## 2026-11-18 latest: persist Quick Settings network choice, installed, cold boot untested
 
 Owner reports unplug/replug reconnects station despite selecting SIM data + AP.

@@ -19,6 +19,7 @@ from .modem_device import ModemManager, modem_lock
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .cellular_profile import FIELDS as CELLULAR_FIELDS, validate_cellular
 from .apn_profiles import ApnProfiles, ERRORS as APN_ERRORS, valid_id
+from . import ap_options
 
 AP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/hotspot'))
 CELL_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/cellular'))
@@ -33,6 +34,7 @@ HOTSPOT_ERRORS = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'NETWORK_BUSY', 'MODEM
                   'HOTSPOT_START_FAILED', 'HOTSPOT_CONFIRM_EXPIRED', 'POLICY_ACTIVE', 'SETUP_ACTIVE',
                   'HOTSPOT_OPERATION_FAILED'}
 HOTSPOT_ERRORS |= APN_ERRORS
+HOTSPOT_ERRORS |= ap_options.ERRORS
 
 
 def validate_hotspot(value):
@@ -179,7 +181,7 @@ class Hotspot:
     def __init__(self, directory='/var/lib/openstick', profiles='/etc/NetworkManager/system-connections',
                  network=None, lock_factory=network_lock, modem_lock_factory=modem_lock,
                  readiness=None, clock=time.monotonic, boot=boot_id, available=shutil.which,
-                 setup_services=None, ussd_cancel=None):
+                 setup_services=None, ussd_cancel=None, ap_backend=None):
         self.directory, self.profiles = Path(directory), Path(profiles)
         self.network = network or Network()
         self.lock_factory, self.modem_lock_factory = lock_factory, modem_lock_factory
@@ -187,6 +189,10 @@ class Hotspot:
         self.clock, self.boot, self.available = clock, boot, available
         self.setup_services = setup_services or self._setup_services
         self.ussd_cancel = ussd_cancel or self._cancel_waiting_ussd
+        self.ap_backend = ap_backend
+
+    def activate_ap(self, identity):
+        ap_options.activate(self, identity)
 
     @staticmethod
     def _cancel_waiting_ussd():
@@ -268,6 +274,8 @@ class Hotspot:
         self.network.load(ap_path)
         config.update(ssid=setup['ssid'], channel=int(profile.get('wifi', 'channel', fallback='6')),
                       enabled=False, tested=False)
+        if ap_options.options(setup) is not None:config['ap_options'] = setup['ap_options']
+        else:config.pop('ap_options', None)
         self.write('hotspot.json', config)
 
     def _restore_setup_snapshot(self, pending):
@@ -482,9 +490,12 @@ class Hotspot:
         self.profiles.mkdir(parents=True, exist_ok=True)
         ssid = values['ssid'].replace('\\', '\\\\').replace(';', '\\;')
         psk = hashlib.pbkdf2_hmac('sha1', values['password'].encode(), values['ssid'].encode(), 4096, 32).hex()
+        advanced = ap_options.options(self.read('setup-ap.json')) or ap_options.options(self.read('hotspot.json'))
+        settings = {'ap_options': advanced} if advanced else {}
         ap = (f'[connection]\nid=openstick-hotspot\nuuid={AP_UUID}\ntype=wifi\ninterface-name=wlan0\n'
               'autoconnect=false\nautoconnect-priority=100\n\n'
               f'[wifi]\nmode=ap\nband=bg\nchannel={values["channel"]}\nssid={ssid}\n'
+              + ap_options.wifi_lines(settings) +
               f'\n[wifi-security]\nkey-mgmt=wpa-psk\npsk={psk}\nproto=rsn;\npairwise=ccmp;\ngroup=ccmp;\npmf=1\n'
               f'\n[ipv4]\nmethod=shared\naddress1={AP_ADDRESS}/24\nnever-default=true\n\n[ipv6]\nmethod=disabled\n')
         gsm = 'auto-config=true' if not values['apn'] else 'auto-config=false\napn=' + values['apn']
@@ -507,7 +518,7 @@ class Hotspot:
                 continue
             self.atomic(path, data)
             self.network.load(path)
-        self.write('hotspot.json', {'ssid': values['ssid'], 'channel': values['channel'], 'apn': values['apn'], 'enabled': False})
+        self.write('hotspot.json', {'ssid': values['ssid'], 'channel': values['channel'], 'apn': values['apn'], 'enabled': False, **settings})
 
     def start(self):
         if not data_allowed(self.directory):raise RuntimeError('AIRPLANE_ACTIVE' if not radio_allowed(self.directory) else 'CELLULAR_DISABLED')
@@ -547,7 +558,7 @@ class Hotspot:
             # Replace STA only after the SIM has an actual bound Internet probe.
             phase = 'ap'
             if handoff:self.setup_services(False)
-            self.network.up(AP_UUID)
+            self.activate_ap(AP_UUID)
             if self.network.active('wlan0') != AP_UUID:raise RuntimeError('AP_START_FAILED')
             return self.status()
         except Exception as error:
@@ -559,10 +570,12 @@ class Hotspot:
                     if handoff:self._resume_setup_services()
             except Exception:raise RuntimeError('ROLLBACK_FAILED') from None
             (self.directory / 'hotspot-pending.json').unlink(missing_ok=True)
-            if str(error) in ('CELLULAR_NO_INTERNET', 'AP_START_FAILED'):raise
+            if str(error) in {'CELLULAR_NO_INTERNET', 'AP_START_FAILED'} | ap_options.ERRORS:raise
             raise RuntimeError('CELLULAR_CONNECT_FAILED' if phase == 'cellular' else 'AP_START_FAILED') from None
 
     def keep(self, attempt):
+        if ap_options.options(self.read('setup-ap.json')) or ap_options.options(self.read('hotspot.json')):
+            raise RuntimeError('AP_LEGACY_ACTIVE')  # Native autoconnect bypasses the pre-AP limit hook.
         pending = self.read('hotspot-pending.json')
         if (not pending or pending.get('attempt') != attempt or pending.get('boot') != self.boot()
                 or self.clock() >= pending.get('expires', 0) or self.network.active('wlan0') != AP_UUID):

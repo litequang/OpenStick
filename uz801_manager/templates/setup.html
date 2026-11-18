@@ -109,11 +109,24 @@
         <label for="setup-ap-channel">Kênh phát 2,4 GHz</label>
         <select id="setup-ap-channel"><option value="1">Kênh 1</option><option value="6">Kênh 6</option><option value="11">Kênh 11</option></select>
       </div>
+      <fieldset class="setup-ap-options">
+        <legend>Điểm phát nâng cao</legend>
+        <label class="setup-option" for="setup-ap-hidden"><input id="setup-ap-hidden" type="checkbox">Ẩn tên Wi-Fi (Hidden SSID)</label>
+        <p class="setup-field-help">Điện thoại cần thêm mạng thủ công bằng đúng tên và mật khẩu. Ẩn tên không thay thế bảo mật WPA2. Hãy tải thẻ kết nối trước khi áp dụng.</p>
+        <div class="setup-field">
+          <label for="setup-ap-max-clients">Số thiết bị kết nối tối đa</label>
+          <input id="setup-ap-max-clients" type="number" min="1" max="32" step="1" value="10" required aria-describedby="setup-ap-limit-help">
+          <p id="setup-ap-limit-help" class="setup-field-help">Chọn 1–32. Đây là giới hạn cấu hình, không phải cam kết USB phục vụ được 32 thiết bị. Bản cũ chưa đặt giới hạn; bấm Lưu sẽ đặt giá trị này.</p>
+        </div>
+        <label class="setup-option" for="setup-ap-isolation"><input id="setup-ap-isolation" type="checkbox">Cách ly thiết bị (AP isolation)</label>
+        <p class="setup-field-help">Yêu cầu chặn thiết bị Wi-Fi trao đổi trực tiếp với nhau; vẫn cho truy cập USB và Internet khi có nguồn mạng. Cần hai thiết bị để kiểm chứng trên USB thật.</p>
+        <p id="setup-ap-options-status" class="setup-field-help" role="status">Đang đọc cấu hình nâng cao…</p>
+      </fieldset>
       <div class="setup-impact" role="note">
         <span aria-hidden="true">✓</span>
-        <p><strong>Lưu không ngắt kết nối.</strong> Thông tin mới được dùng ở lần phát Wi-Fi USB tiếp theo; không tự bật dữ liệu SIM.</p>
+        <p><strong>Lưu không ngắt kết nối.</strong> Tên, mật khẩu và tùy chọn nâng cao dùng ở lần phát Wi-Fi USB tiếp theo. Muốn áp dụng ngay, tắt rồi bật Phát Wi-Fi tại Tổng quan; điện thoại sẽ ngắt kết nối tạm thời. Không tự bật dữ liệu SIM.</p>
       </div>
-      <button id="setup-ap-save" class="setup-primary-action" type="submit">Lưu cấu hình Wi-Fi USB</button>
+      <button id="setup-ap-save" class="setup-primary-action" type="submit" disabled>Lưu cấu hình Wi-Fi USB</button>
     </form>
     <p id="setup-ap-notice" class="setup-feedback" role="status" aria-live="polite"></p>
     <p class="setup-field-help setup-panel-footnote">Nếu đổi mật khẩu, điện thoại cần cập nhật mật khẩu Wi-Fi USB trước lần kết nối tiếp theo.</p>

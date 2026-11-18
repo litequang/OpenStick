@@ -78,6 +78,36 @@ def main():
             expect(page.locator('#setup-ap-ssid')).to_have_value('Unsaved draft')
             page.unroute('**/api/setup'); page.unroute('**/api/header')
 
+            # Advanced AP options only stage after explicit confirmation.
+            ap_writes = []
+            def ap_stage(route):
+                if route.request.method == 'POST':
+                    payload = route.request.post_data_json
+                    ap_writes.append(payload)
+                    route.fulfill(status=202, json={'configured': True, 'ssid': 'Fictional AP',
+                        'channel': 6, 'setup_active': True, 'enabled': True, 'busy': False,
+                        'url': 'http://192.0.2.1:8765/setup', 'ap_options': {
+                            'configured': True, 'hidden': payload['hidden'],
+                            'isolation': payload['isolation'], 'max_clients': payload['max_clients']}})
+                else:route.continue_()
+            page.route('**/api/setup', ap_stage)
+            page.goto(BASE + '/setup')
+            expect(page.locator('#setup-ap-save')).to_be_enabled()
+            page.locator('#setup-ap-ssid').fill('Fictional AP')
+            page.locator('#setup-ap-hidden').check(); page.locator('#setup-ap-isolation').check()
+            page.locator('#setup-ap-max-clients').fill('3')
+            page.wait_for_timeout(5200)
+            expect(page.locator('#setup-ap-hidden')).to_be_checked()
+            expect(page.locator('#setup-ap-max-clients')).to_have_value('3')
+            assert not ap_writes
+            page.once('dialog', lambda dialog: dialog.dismiss()); page.locator('#setup-ap-save').click()
+            assert not ap_writes
+            page.once('dialog', lambda dialog: dialog.accept()); page.locator('#setup-ap-save').click()
+            expect(page.locator('#setup-ap-options-status')).to_contain_text('tối đa 3')
+            assert len(ap_writes) == 1 and ap_writes[0]['hidden'] and ap_writes[0]['isolation']
+            assert ap_writes[0]['action'] == 'configure_ap' and ap_writes[0]['max_clients'] == 3
+            page.unroute('**/api/setup')
+
             # Failed and disconnected station requests must not claim success/retry.
             page.goto(BASE + '/setup')
             page.locator('#setup-connect-details summary').click()
