@@ -57,7 +57,10 @@ name are not overwritten. Rules are validated then applied as an nft transaction
 Successful changes are saved with fsync before acknowledgement. On failure,
 previous private policy and owned rules are restored; uncertain/failed rollback
 is reported explicitly. The shared network lock serializes all portal/worker
-mutations. Before an owned AP start the saved filter is prepared. AP scan/role
+mutations. Read-only inventory does not acquire that lock: a no-SIM modem wait
+must not prevent viewing clients. A concurrent Wi-Fi role change invalidates
+the sample rather than reporting a false empty AP. Before an owned AP start
+the saved filter is prepared. AP scan/role
 rollback uses the same activation hook, and entering station/off removes only
 this filter. Boot reconciliation reuses the existing worker; no extra Python
 daemon is added. Corrupt policy is not silently replaced with an empty list.
@@ -80,6 +83,30 @@ tables, orphan-filter reporting, boot replay, station cleanup, pre-AP hook,
 receipt replay rejection and malformed inventory. Browser fixtures cover layout,
 text-only untrusted names, confirmation/cancellation, block/unblock and disconnect
 without automatic resend. Fixture MACs are fictional.
+
+## Installed-device checks
+
+Installed on the real USB after owner authorization. Independent source and
+served-asset hashes, HTTP controls/API and inventory access passed. At final
+verification the AP had zero associated stations. A fictional, non-associated
+MAC was saved through the authenticated API, applied to the real nftables table,
+read back and unblocked successfully. The temporary policy and owned table were
+removed; the original absence of policy, base firewall and protected owner
+configuration hashes were verified unchanged. Storage was flushed. No reboot,
+AP/profile change, SMS/USSD request or SIM-data test was performed.
+
+The first filter check exposed BusyBox `ip` without JSON support. The backend
+now falls back to a fixed, bounded plain-neighbor parser; regression and installed
+API checks passed. The existing startup worker was temporarily stopped during
+the fixture mutation check to avoid its no-SIM readiness lock, then restarted.
+The final inventory GET also succeeded with that worker running.
+
+Full local suite: **707 passed, one Windows symlink-privilege skip, exit 0**.
+Browser fixture validation previously passed 24 layouts and confirmation,
+cancel/block/unblock/disconnect interactions. These are automated previews, not
+visual or physical packet acceptance. A pre-existing ZIP test timestamp race
+found by CI was fixed using deterministic fixture metadata, without removing
+the rollback test or changing the ZIP publisher.
 
 Real client enforcement is **NOT_TESTED** until a phone is connected and the
 owner chooses its MAC to test. Required acceptance: join/leave count is correct;

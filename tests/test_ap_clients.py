@@ -196,6 +196,19 @@ def test_pending_network_operation_blocks_writes_and_capacity_is_bounded(clients
     assert backend.config()==values
 
 
+def test_inventory_does_not_wait_for_modem_lock_and_detects_role_change(clients):
+    backend,network,_=clients
+    def busy():raise RuntimeError('NETWORK_BUSY')
+    backend.lock_factory=busy
+    assert backend.status()['count']==2
+    with pytest.raises(RuntimeError,match='NETWORK_BUSY'):act(backend)
+    identities=iter([AP_UUID,'saved-station'])
+    network.active=lambda interface:next(identities)
+    state=backend.status()
+    assert state['clients']==[] and state['count'] is None
+    assert state['error']=='NETWORK_BUSY' and not state['inventory_available']
+
+
 def test_api_auth_origin_token_input_and_read_only_get(clients):
     backend,network,_=clients
     setup=SimpleNamespace(clients=backend)

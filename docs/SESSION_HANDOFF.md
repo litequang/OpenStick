@@ -1,5 +1,24 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-18 latest: AP client feature installed and API/filter fixture verified
+
+Owner accepts Internet blocking while retaining Wi-Fi association/admin access.
+Open `/setup#ap-clients` for inventory, block/unblock and the saved offline list.
+Source/assets and protected owner hashes matched after deployment; real USB
+authenticated API save/apply/readback/unblock with a fictional MAC passed.
+Its temporary policy/filter were removed and base firewall verified restored.
+Startup worker was restarted; final HTTP inventory read passed with it running.
+Storage flushed; no reboot or AP/profile change. Final station count was zero;
+**no real client packet enforcement, association-deny or SIM Internet PASS**.
+See [AP_CLIENTS.md](AP_CLIENTS.md) for limits and physical acceptance still needed.
+BusyBox lacks `ip -j`: bounded plain-neighbor fallback is installed. Read-only
+inventory no longer waits on the no-SIM modem lock; writes retain that lock and
+role races invalidate the sample. Full suite: 707 passed / one Windows symlink
+skip, exit 0. Browser fixture preview 24 layouts/interactions passed previously.
+Runtime policy, receipts, backups and private hashes stay off GitHub. Source
+changes and CI must be handed off with actual commit/status, not implied by
+this deployment record. Earlier source-only/deployment-pending notes are history.
+
 ## 2026-11-18 latest: AP inventory / Internet-by-MAC implementation
 
 Owner authorizes implementation and installation. See [AP_CLIENTS.md](AP_CLIENTS.md).

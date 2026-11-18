@@ -239,10 +239,14 @@ class ApClients:
             self.apply((self.config() or []) if self.active() else [])
 
     def status(self):
-        with self.lock_factory():return self._status()
+        # Read-only inventory must not queue behind modem readiness (e.g. no SIM).
+        # Detect a concurrent role change instead of presenting a false empty AP.
+        return self._status()
 
     def _status(self):
-        blocked = self.config() or []; active = self.active()
+        from .setup_ap import SETUP_UUID
+        blocked = self.config() or []; identity = self.network.active('wlan0')
+        active = identity in (AP_UUID, SETUP_UUID)
         rows = []; error = None; inventory = active and bool(self.available('iw'))
         if inventory:
             try:
@@ -266,6 +270,8 @@ class ApClients:
                 if self._table() is not None:applied=False;error='AP_CLIENTS_FIREWALL_FAILED'
             except RuntimeError:applied=False;error='AP_CLIENTS_FIREWALL_FAILED'
         for row in rows:row['internet_blocked'] = row['mac'] in blocked
+        if self.network.active('wlan0') != identity:
+            rows=[];inventory=False;error='NETWORK_BUSY';applied=False
         return {'ap_active':active,'inventory_available':inventory,'clients':rows,
                 'count':len(rows) if inventory else None,'blocked':blocked,
                 'filter_applied':applied if active else False,'error':error,

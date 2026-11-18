@@ -1,5 +1,17 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**18/11/2026 — đã cài danh sách client và chặn Internet theo MAC lên USB.**
+Đọc [AP_CLIENTS.md](AP_CLIENTS.md) và đầu HANDOFF. `/setup#ap-clients` xem thiết bị,
+chặn/bỏ chặn, lưu danh sách riêng; không chặn association hoặc trang quản trị.
+Hash mã/asset, HTTP/API và cấu hình riêng đã kiểm tra. MAC giả không kết nối đã
+đạt lưu → áp dụng nft thật → đọc lại → bỏ chặn; đã dọn fixture, firewall nền và
+cấu hình chủ giữ nguyên, worker chạy lại, sync xong. Không reboot/đổi AP/profile.
+Không có client lúc nghiệm thu; **chưa thử packet/điện thoại hoặc Internet SIM**.
+Đã sửa fallback BusyBox neighbor và tránh khóa modem chặn GET inventory khi
+chưa có SIM; mutation vẫn có lock. 707 PASS / 1 Windows symlink skip, exit 0.
+Ghi chú “chưa cài/chờ deployment” bên dưới là lịch sử. Không đưa MAC/IP/tên máy
+khách hay policy runtime lên GitHub; không tự chọn MAC thật để thử chặn.
+
 **18/11/2026 — đang bổ sung danh sách client và chặn Internet theo MAC.**
 Đọc [AP_CLIENTS.md](AP_CLIENTS.md). UI ở `/setup#ap-clients`; phân biệt association
 thật từ driver với lease cũ. Bộ lọc riêng inet forward, giữ DHCP/quản trị; không
