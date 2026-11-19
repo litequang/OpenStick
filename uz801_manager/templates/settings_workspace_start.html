@@ -18,7 +18,7 @@
   {% if features.get('hotspot') %}{% set items = items + [('apn','Cấu hình APN','/sim/apn')] %}{% endif %}
 {% elif group == 'leds' %}
   {% set group_title = 'Đèn LED' %}
-  {% set items = [('leds','Tùy chỉnh LED','/settings/leds'),('theme','Bộ phong cách','/settings/leds#led-theme-picker'),('rules','Theo trạng thái mạng','/settings/leds#led-network-form'),('fixed','Chế độ cố định','/settings/leds#led-form')] %}
+  {% set items = [('leds','Tùy chỉnh LED','/settings/leds'),('theme','Bộ phong cách','/settings/leds#led-theme-picker'),('rules','Theo trạng thái mạng','/settings/leds#led-network-form'),('fixed','Chế độ cố định','/settings/leds#led-fixed-panel')] %}
 {% elif group == 'quick' %}
   {% set group_title = 'Cài đặt nhanh' %}
   {% set items = [('quick','Bảng điều khiển','/quick'),('airplane','Chế độ máy bay','/quick#quick-airplane'),('data','Dữ liệu SIM','/quick#quick-data'),('wifi','Nhận Wi-Fi','/quick#quick-receive'),('ap','Phát Wi-Fi','/quick#quick-ap'),('usb','USB tethering','/quick#quick-usb')] %}
