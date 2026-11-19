@@ -11,7 +11,7 @@
   {% set items = [('internet','Nguồn Internet','/internet'),('policy','Chính sách ưu tiên','/internet#policy-form'),('manual','Điều khiển thủ công','/internet#internet-manual')] %}
 {% elif group == 'hotspot' %}
   {% set group_title = 'Phát Wi-Fi' %}
-  {% set items = [('hotspot','Trạng thái điểm phát','/hotspot'),('hotspot-config','Cấu hình điểm phát','/hotspot#hotspot-config'),('hotspot-pending','Phiên chuyển mạng','/hotspot#hotspot-pending')] %}
+  {% set items = [('hotspot','Trạng thái điểm phát','/hotspot'),('hotspot-config','Cấu hình điểm phát','/hotspot#hotspot-config'),('hotspot-apn','APN và nguồn mạng','/hotspot#sim-apn')] %}
 {% elif group == 'network' %}
   {% set group_title = 'Mạng SIM' %}
   {% set items = [('network','Tình trạng và chế độ sóng','/modem/network')] %}
