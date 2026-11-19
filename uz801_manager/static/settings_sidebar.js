@@ -60,6 +60,13 @@
     }
     sync();
     window.addEventListener('hashchange',sync);
+    document.querySelectorAll('[data-web-tab]').forEach(button=> {
+      button.addEventListener('click',()=> {
+        const hash='#web-pane-'+button.dataset.webTab;
+        if(window.location.hash!==hash) history.replaceState(null,'',hash);
+        sync();
+      });
+    });
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();

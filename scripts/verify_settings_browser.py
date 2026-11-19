@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
+from settings_navigation_qa import audit_navigation
 
 BASE = 'http://127.0.0.1:8771'
 OUT = Path('artifacts/settings-browser')
@@ -36,6 +37,7 @@ def main():
                       'rx_bytes':1048576,'tx_bytes':2048,'rx_mbps':72.2,'tx_mbps':65,
                       'internet_blocked':'02:00:00:00:00:01' in blocked}]})
             page.route('**/api/ap/clients',client_inventory)
+            navigation = audit_navigation(page, BASE)
             for width in [320, 390, 768, 1280]:
                 page.set_viewport_size({'width': width, 'height': 844})
                 for path in ['/manage', '/setup', '/internet', '/hotspot', '/modem/network', '/settings/leds']:
@@ -211,7 +213,7 @@ def main():
         finally:
             browser.close()
     (OUT / 'report.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
-    print(json.dumps({'layouts': 24, 'interactions': 'PASS', 'device_operations': 0}))
+    print(json.dumps({'layouts': 24, 'navigation': navigation, 'interactions': 'PASS', 'device_operations': 0}))
 
 
 if __name__ == '__main__':
