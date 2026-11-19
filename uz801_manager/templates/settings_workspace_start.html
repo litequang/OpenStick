@@ -40,6 +40,7 @@
   {% if portal_has_power %}{% set items = items + [('system','Hệ thống','/settings/system')] %}{% endif %}
   {% if can_manage_lan|default(false) or lan_session|default(false) %}{% set items = items + [('access','Truy cập quản trị','/manage#manage-access')] %}{% endif %}
 {% endif %}
+<script src="/static/settings_sidebar.js" defer></script>
 <div class="settings-workspace" data-settings-group="{{ group }}">
   <aside class="settings-submenu" aria-label="Menu con của {{ group_title }}">
     <div class="settings-submenu-desktop">
