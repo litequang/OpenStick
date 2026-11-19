@@ -1,6 +1,26 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**19/11/2026 — đã rà hiệu năng toàn USB, chưa cài tối ưu mới.**
+**19/11/2026 — đã cài gói tối ưu ưu tiên và đo trước/sau USB thật.**
+Đọc [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
+Source đang cài `747f49c4486e698e9d5bbac7877f48912b43fd92`, nhánh UI/PR #7;
+chưa merge/release. Catalog metadata không quét cây file; asset portal/FileGator
+có hash, hỗ trợ numeric cachebuster thật của FileGator; stale hiển thị ngay,
+pending GET backoff, header tối đa một followup; LED 6 s, setup bỏ đọc NM thừa;
+log allowlist xoay trong worker startup, archive riêng giới hạn và backup log cũ.
+802 PASS/2 Windows skip, hai CI source cuối PASS gồm EXE; Linux log fixture PASS.
+Năm lượt File Manager: trung vị 7,911 → 1,102 s; inventory 5.517,703 → 20,252 ms.
+Cache browser thật lượt hai 11/11 JS/CSS hit, 0 byte tải lại cho các asset đó.
+CPU nền mẫu ~1 phút 14,21 → 11,65%, nhưng RAM khả dụng sau thấp hơn, chưa chứng
+minh tiết kiệm RAM; AP/đọc phần cứng còn dao động. Không tuyên bố mọi màn nhanh hơn.
+USB thật: 160 layout/8 ngang ở gói chính, FileGator 8 rộng ở source cuối,
+không override, không JS error/mutation; không ảnh/trace. Kiểm tra cuối 41 hash,
+717 file bảo vệ, mạng/route/firewall/DNS/gadget và 20 GET LAN đạt, worker/usage
+tiến, checkpoint riêng hợp lệ, tổng usage không giảm, hai log archive đúng, backup
+checksum đạt, không pending, sync xong. Chỉ restart portal và setup/LED/startup
+cần thiết, không reboot/đổi mạng/Tunnel/Nginx. Không thử thao tác file hay radio
+thật, chu kỳ nguồn hoặc điện thoại; giữ phạm vi nghiệm thu trong báo cáo.
+
+**19/11/2026 — đã rà hiệu năng toàn USB, chưa cài tối ưu mới (mốc trước triển khai).**
 Đọc [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
 Source vẫn `06d151a`, cùng nhánh UI/PR #7. Đo USB thật: RAM khả dụng 114–142 MiB
 trong lượt mở ba màn, CPU trung bình tổng bốn lõi 17,12%; zram thực dùng 51,5 MiB,

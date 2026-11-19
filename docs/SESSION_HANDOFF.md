@@ -1,6 +1,54 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-19 latest: read-only whole-device performance review completed
+## 2026-11-19 latest: measured optimization package installed
+
+Read [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
+Owner approved the prioritized package. Installed source is
+**`747f49c4486e698e9d5bbac7877f48912b43fd92`**, following initial package `3bec6b5`,
+same UI branch/PR #7; no merge/release. Lightweight catalog preserves the old
+sites/file APIs; package asset hashes/public-only caching, bounded stale/pending
+display reads, six-second LED polling and an ownership early exit reduce work.
+Fixed-log copy/truncate retention runs once a minute in the existing startup
+worker; private capped archives, same active writer inode, old service-log backup.
+No packages removed, portal/worker architecture consolidation or network changes.
+
+802 local tests PASS/two Windows skips, pip/self-test/JS PASS. Final-source
+Windows [push](https://github.com/litequang/OpenStick/actions/runs/44493694369) and
+[PR](https://github.com/litequang/OpenStick/actions/runs/44493705113) workflows PASS,
+including EXE build/self-test/smoke. Linux temporary log fixture passed real
+symlink/hardlink, writer inode/append, cap and private archive checks. Chrome
+preview uses mocked actions, not hardware acceptance.
+
+Five real USB File Manager runs before/after, with HTTP cache disabled by the
+read guard: median 7.911 → 1.102 seconds, inventory 5517.703 → 20.252 ms. A
+separate cache-enabled CDP guard verified all 11 JS/CSS reused on the second open,
+zero transferred bytes for those assets, including four FileGator bundles.
+Initial cache QA found upstream numeric filemtime queries; initial package only
+cached seven portal assets. The final source fixes those queries with regression
+coverage. Do not claim the first 7/11 check completed FileGator cache acceptance.
+
+One-minute background samples CPU 14.21 → 11.65%, processes counter 464 → 317;
+not controlled per-source attribution. Available RAM decreased to 128–136 MiB in
+the after window; no demonstrated RAM saving or long soak. Single additional AP
+readiness/summary samples were slower; do not claim all screens improved. See
+the report's full data and remaining NM/MM read latency.
+
+Real Chrome USB at initial package: 160 layouts/eight landscape, no JS errors or
+mutation. Final installed source: actual embedded FileGator at eight widths,
+same-origin headers/no second login/two AP redirects, override OFF, no screenshots.
+Independent final verification: all 41 source hashes, 717 protected owner files,
+network/routes/firewall/DNS/gadget/services match. New power/usage worker stays
+live after its required restart, usage samples advance, checkpoint private/valid,
+total usage not lost; two actual private log archives and source/log backups
+checksummed. Twenty authenticated WLAN GET routes, login requirement and USB-only
+permissions PASS; QA session signed in memory, not real phone/password login.
+No pending operation, sync done. Initial install restarted USB/LAN portals and
+setup/LED/startup workers; final one-file fix only restarted portals. No reboot,
+poweroff, network/radio/file mutation test or Tunnel/Nginx restart. Tunnel's old
+public issue remains outside this optimization scope; no fresh public-availability
+claim. Raw artifacts stay ignored; unrelated untracked files remain untouched.
+
+## 2026-11-19 historical: read-only whole-device performance review completed
 
 Read [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
 Installed source remains `06d151a`, same UI branch/PR #7, no merge/release. Current

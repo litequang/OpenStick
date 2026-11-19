@@ -1,5 +1,9 @@
 # Rà hiệu năng và phần dư trên USB — 19/11/2026
 
+**Cập nhật:** chủ đã duyệt và gói tối ưu ưu tiên đã cài. Xem
+[kết quả triển khai và so sánh trước/sau](PORTAL_OPTIMIZATION_2026_11_19.md).
+Các số và trạng thái “chưa cài” bên dưới là mốc audit trước triển khai.
+
 Đã đo trực tiếp UZ801 đang chạy source
 `06d151aacec526ef9acf7562365b62a7b33d3bd5`, sau lần gộp màn Phát Wi-Fi và nhúng
 FileGator. Đây là **báo cáo điều tra**, chưa cài tối ưu, gỡ package, dừng dịch vụ

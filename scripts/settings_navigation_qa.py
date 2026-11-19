@@ -110,7 +110,7 @@ def assert_leaf(page, path):
             expect(page.locator('#'+key)).to_have_count(int(key==expected))
         for obsolete in ['#site-upload','#site-text','#web-zip-inspect','[data-settings-link="uploads"]','[data-web-tab]']:
             expect(page.locator(obsolete)).to_have_count(0)
-        expect(page.locator('script[src="/static/website.js"]')).to_have_count(0)
+        expect(page.locator('script[src^="/static/website.js"]')).to_have_count(0)
     if path == '/manage':expect(page.locator('#lan-settings')).to_have_count(0)
 
 
