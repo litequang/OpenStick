@@ -1,5 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — đang tối ưu telemetry theo yêu cầu chủ; chưa cài bản này.**
+Đọc [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md) và đầu HANDOFF. GET snapshot có
+producer nền giới hạn/TTL, gộp đọc trùng, metric không chờ modem, dịch vụ chỉ đọc
+khi mở mục kỹ thuật. Không cache kiểm tra trước thao tác hoặc tự gửi lại POST.
+781 PASS/1 Windows skip, pip/self-test/JS PASS. Bản đang cài vẫn `045ff7e` cho tới
+ghi nhận deployment mới. Đã đo 5 lượt trước: trung vị số liệu đầu 14,359 giây.
+Không dùng số sau tối ưu khi chưa đo thật; không đổi mạng hoặc thử nguồn để đo.
+
 **19/11/2026 — đã cài trạng thái ModemManager đúng và menu nguồn trên header.**
 Đọc đầu HANDOFF và [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md).
 ModemManager có tiến trình/D-Bus nhưng OpenRC báo stopped; sửa telemetry dùng

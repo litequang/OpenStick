@@ -207,14 +207,15 @@ class QuickSettings:
         wifi = self.network.active('wlan0')
         controls = self.network.devices()
         cell = self.network.active(controls[0]) if len(controls) == 1 else None
-        pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or self.tethering.status().get('reboot_pending'))
+        tethering = self.tethering.status()
+        pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or tethering.get('reboot_pending'))
         return {'intent': intent, 'radio': radio, 'startup': public(self.directory),
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
                 'mobile_data_connected': bool(cell == CELL_UUID and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
                 'pending_network_trial': pending, 'internet_verified': False,
                 'hardware_validation': 'NOT_TESTED',
-                'usb_tethering': self.tethering.status(),
+                'usb_tethering': tethering,
                 'advanced_ap': {'wpa3': 'BLOCKED_PMF', 'hidden': 'NOT_HARDWARE_VERIFIED',
                                 'client_limit': 'NOT_HARDWARE_VERIFIED', 'isolation': 'NOT_HARDWARE_VERIFIED'}}
 

@@ -23,7 +23,7 @@
 <section><h2>Kết nối</h2><dl class="connection-list">
 {% if stable_lan_url %}<dt>Quản trị cố định</dt><dd><a href="{{ stable_lan_url }}">{{ stable_lan_url }}</a> · qua cáp USB, cùng Wi-Fi hoặc hotspot USB</dd>{% endif %}
 <dt>Modem</dt><dd id="overview-modem">Đang đọc…</dd><dt>Wi-Fi</dt><dd id="overview-wifi">Đang đọc…</dd><dt>Địa chỉ Wi-Fi</dt><dd id="overview-ip">—</dd><dt>Quản trị USB</dt><dd>172.16.42.1</dd><dt>Thời gian chạy</dt><dd id="overview-uptime">—</dd><dt>Hệ điều hành</dt><dd id="overview-os">—</dd><dt>Kernel</dt><dd id="overview-kernel">—</dd><dt>Website</dt><dd><a href="https://{{ hostname }}" target="_blank" rel="noopener">{{ hostname }}</a></dd></dl></section>
-<details class="ux-advanced"><summary>Dịch vụ và cổng (thông tin kỹ thuật)</summary><section id="services"><h2>Dịch vụ và cổng</h2><dl class="connection-list" id="service-list"></dl><p class="metric-note">Quản trị: cổng 80 qua USB. Nginx website: 127.0.0.1:8080. Cloudflare Tunnel phục vụ website công khai. Đổi Wi-Fi tại <a href="/">Kết nối Wi-Fi</a>; cài mạng di động tại <a href="/modem/network">Mạng SIM</a>.</p></section></details>
+<details class="ux-advanced" id="overview-services"><summary>Dịch vụ và cổng (thông tin kỹ thuật)</summary><section id="services"><h2>Dịch vụ và cổng</h2><p id="service-status" role="status">Mở mục này để đọc trạng thái dịch vụ.</p><dl class="connection-list" id="service-list"></dl><p class="metric-note">Quản trị: cổng 80 qua USB. Nginx website: 127.0.0.1:8080. Cloudflare Tunnel phục vụ website công khai. Đổi Wi-Fi tại <a href="/">Kết nối Wi-Fi</a>; cài mạng di động tại <a href="/modem/network">Mạng SIM</a>.</p></section></details>
 <p class="overview-foot">Số liệu lấy trực tiếp từ Linux. Sức khỏe eMMC là ước lượng do chip công bố; lượng ghi/ngày là ngoại suy theo thời gian chạy. Cước SMS cần đơn giá tại màn SMS và không thay thế hóa đơn nhà mạng.</p>
 <script>
 const overviewToken={{ token|tojson }};
@@ -95,14 +95,23 @@ function renderUsage(u){
  put('sim-usage-detail',parts.join(' · '));
  if(u.stale||u.error){el('metric-sim-usage').dataset.stale='true';el('metric-sim-usage').title=status;overviewRetained=true}
 }
-function renderOverview(data,updateHeader=true){
- if(!data?.system||!data.wifi)throw Error('INCOMPLETE_SNAPSHOT');
- const s=data.system,w=data.wifi,c=w.modem_status;overviewRetained=false;if(updateHeader){renderHeader(c);renderWifiHeader(w)}
- metric('ram',finite(s.ram?.used)&&finite(s.ram?.total),()=>{put('metric-ram',bytes(s.ram.used));put('note-ram','đã dùng trên '+bytes(s.ram.total));bar('ram',s.ram.used,s.ram.total)});
- metric('storage',finite(s.storage?.used)&&finite(s.storage?.total),()=>{put('metric-storage',bytes(s.storage.used));put('note-storage','đã dùng / '+bytes(s.storage.total)+' hệ điều hành · còn '+bytes(s.storage.free)+(finite(s.storage.emmc_total)?' · eMMC tổng '+(s.storage.emmc_total/1e9).toFixed(2)+' GB (các phân vùng khác không thuộc chỗ trống hệ điều hành)':''));bar('storage',s.storage.used,s.storage.total)});
+function renderOverviewConnections(w){
+ const c=w.modem_status;
  const signal=finite(c?.signal_percent)&&c.signal_percent>=0&&c.signal_percent<=100&&c.signal_recent===true;
  const noSignal=c&&(c.sim_present===false||c.sim_locked===true||c.registered===false);
  metric('signal',signal||noSignal,()=>{put('metric-signal',noSignal?(c.sim_present===false?'Không có SIM':c.sim_locked?'SIM khóa':'Chưa đăng ký mạng'):c.signal_percent+'%');put('note-signal',c.operator_name||'Sóng di động');bar('signal',noSignal?null:c.signal_percent,100)});
+ if(c&&typeof c.registered==='boolean')put('overview-modem',(c.registered?'Đã đăng ký mạng':'Chưa đăng ký')+' · '+portalTechnology(c.access_technologies));
+ if(typeof w.connected==='boolean'||typeof w.hotspot_active==='boolean'){
+  put('overview-wifi',w.setup_active?'Phát hotspot cài đặt':w.hotspot_active?'Phát hotspot '+(w.ssid||'USB'):w.connected?'Đã kết nối '+(w.ssid||'Wi-Fi'):'Chưa kết nối');
+  put('overview-ip',(w.ipv4||[]).join(', ')||'chưa có');
+ }
+}
+function renderOverview(data,updateHeader=true){
+ if(!data?.system||!data.wifi)throw Error('INCOMPLETE_SNAPSHOT');
+ const s=data.system,w=data.wifi;overviewRetained=false;
+ if(Object.keys(w).length){if(updateHeader){renderHeader(w.modem_status);renderWifiHeader(w)}renderOverviewConnections(w)}
+ metric('ram',finite(s.ram?.used)&&finite(s.ram?.total),()=>{put('metric-ram',bytes(s.ram.used));put('note-ram','đã dùng trên '+bytes(s.ram.total));bar('ram',s.ram.used,s.ram.total)});
+ metric('storage',finite(s.storage?.used)&&finite(s.storage?.total),()=>{put('metric-storage',bytes(s.storage.used));put('note-storage','đã dùng / '+bytes(s.storage.total)+' hệ điều hành · còn '+bytes(s.storage.free)+(finite(s.storage.emmc_total)?' · eMMC tổng '+(s.storage.emmc_total/1e9).toFixed(2)+' GB (các phân vùng khác không thuộc chỗ trống hệ điều hành)':''));bar('storage',s.storage.used,s.storage.total)});
  metric('temperature',finite(s.temperature_c),()=>{put('metric-temperature',s.temperature_c.toFixed(1)+' °C');if(s.load?.length)put('note-temperature','Tải CPU '+s.load.map(n=>n.toFixed(2)).join(' / '))});
  metric('sms',finite(s.sms?.submitted_today)&&finite(s.sms?.submitted_month),()=>{put('metric-sms',s.sms.submitted_today+' tin hôm nay');put('note-sms',s.sms.submitted_month+' tin tháng này · '+(s.sms.estimated_today_vnd==null?'chưa cài đơn giá':s.sms.estimated_today_vnd.toLocaleString('vi-VN')+' đ ước tính hôm nay')+(s.sms.unknown_today?' · '+s.sms.unknown_today+' yêu cầu chưa rõ kết quả':''))});
  renderUsage(s.sim_usage);
@@ -111,14 +120,12 @@ function renderOverview(data,updateHeader=true){
  metric('emmc',!!life||!!eol,()=>{put('metric-emmc',life?(life.max==null?'>100%':life.min+'–'+life.max+'%'):'Pre-EOL: '+eol);put('note-emmc',life?'tuổi thọ đã dùng'+(eol?' · '+eol:''):'Trạng thái do chip công bố');bar('emmc',life?(life.max??100):null,100)});
  metric('writes',finite(s.emmc?.estimated_daily_write)&&finite(s.emmc?.written_since_boot),()=>{put('metric-writes',bytes(s.emmc.estimated_daily_write)+'/ngày');put('note-writes','theo nhịp từ khởi động · '+bytes(s.emmc.written_since_boot)+' đã ghi')});
  metric('swap',finite(s.swap?.used)&&finite(s.swap?.total),()=>{put('metric-swap',bytes(s.swap.used));put('note-swap','zram '+bytes(s.swap.zram_used)+' / '+bytes(s.swap.zram_total)+' · swap khác '+bytes(s.swap.other_used)+' / '+bytes(s.swap.other_total));bar('swap',s.swap.used,s.swap.total)});
- if(c&&typeof c.registered==='boolean')put('overview-modem',(c.registered?'Đã đăng ký mạng':'Chưa đăng ký')+' · '+portalTechnology(c.access_technologies));
- if(typeof w.connected==='boolean'||typeof w.hotspot_active==='boolean'){
-  put('overview-wifi',w.setup_active?'Phát hotspot cài đặt':w.hotspot_active?'Phát hotspot '+(w.ssid||'USB'):w.connected?'Đã kết nối '+(w.ssid||'Wi-Fi'):'Chưa kết nối');
-  put('overview-ip',(w.ipv4||[]).join(', ')||'chưa có');
- }
  if(finite(s.uptime_s))put('overview-uptime',Math.floor(s.uptime_s/3600)+' giờ '+Math.floor(s.uptime_s%3600/60)+' phút');
  if(s.os)put('overview-os',s.os);if(s.kernel)put('overview-kernel',s.kernel);
- const list=el('service-list');for(const [key,value] of Object.entries(data.services||{})){
+ renderServices(data.services||{});
+}
+function renderServices(services){
+ const list=el('service-list');for(const [key,value] of Object.entries(services)){
   let target=overviewServices.get(key);
   if(!target){const name=document.createElement('dt');target=document.createElement('dd');name.textContent=key;list.append(name,target);overviewServices.set(key,target)}
   if(key==='modemmanager'){target.textContent=value===true?'đang chạy (D-Bus)':value===false?'chưa sẵn sàng trên D-Bus':'chưa xác định (không đọc được D-Bus)';delete target.dataset.stale}
@@ -126,6 +133,9 @@ function renderOverview(data,updateHeader=true){
   else if(target.textContent){target.dataset.stale='true';overviewRetained=true}else target.textContent='chưa xác định';
  }
 }
-async function refreshOverview(){if(overviewBusy)return;overviewBusy=true;el('overview-refresh').disabled=true;try{const r=await fetch('/api/wifi',{method:'POST',headers:{'Content-Type':'application/json','X-OpenStick-Token':overviewToken},body:JSON.stringify({action:'overview'})});if(!r.ok)throw Error();const end=Date.now()+60000;while(Date.now()<end){const p=await fetch('/api/state',{headers:{'X-OpenStick-Token':overviewToken}});if(!p.ok)throw Error();const value=await p.json();if(!value.busy){if(value.error)throw Error();renderOverview(value.result);rememberOverview(value.result);portalRememberHeader(value.result.wifi);overviewLoaded=true;put('overview-status','Cập nhật lúc '+new Date().toLocaleTimeString()+(overviewRetained?' · một số giá trị giữ lần đo gần nhất':'')+' · tự làm mới mỗi 15 giây');return}await new Promise(resolve=>setTimeout(resolve,700))}throw Error()}catch(e){put('overview-status',overviewLoaded?'Chưa cập nhật được; đang giữ số liệu lần gần nhất. Sẽ tự thử lại.':'Chưa đọc được số liệu. Kiểm tra USB rồi bấm Làm mới.')}finally{overviewBusy=false;el('overview-refresh').disabled=false}}
+let servicesBusy=false;
+async function refreshServices(){if(servicesBusy)return;servicesBusy=true;put('service-status','Đang kiểm tra dịch vụ…');try{const value=await portalReadTelemetry('/api/services');if(value._telemetry?.stale)throw Error();renderServices(value.services||{});put('service-status','Cập nhật lúc '+new Date().toLocaleTimeString())}catch(_){put('service-status','Chưa cập nhật được dịch vụ; số liệu cũ chưa được xác minh.');for(const target of overviewServices.values())target.dataset.stale='true'}finally{servicesBusy=false}}
+async function refreshOverview(){if(overviewBusy)return;overviewBusy=true;el('overview-refresh').disabled=true;try{const value=await portalReadTelemetry('/api/overview');if(value._telemetry?.stale)throw Error();renderOverview(value);rememberOverview(value);if(Object.keys(value.wifi||{}).length)portalRememberHeader(value.wifi);overviewLoaded=true;put('overview-status','Cập nhật lúc '+new Date().toLocaleTimeString()+(overviewRetained?' · một số giá trị giữ lần đo gần nhất':'')+' · tự làm mới mỗi 15 giây')}catch(e){put('overview-status',overviewLoaded?'Chưa cập nhật được; đang giữ số liệu lần gần nhất. Sẽ tự thử lại.':'Chưa đọc được số liệu. Kiểm tra USB rồi bấm Làm mới.')}finally{overviewBusy=false;el('overview-refresh').disabled=false}}
 el('overview-refresh').onclick=refreshOverview;setInterval(()=>{if(!document.hidden)refreshOverview()},15000);restoreOverview();refreshOverview();
+el('overview-services').ontoggle=()=>{if(el('overview-services').open)refreshServices()};setInterval(()=>{if(!document.hidden&&el('overview-services').open)refreshServices()},30000);
 </script></main></body></html>

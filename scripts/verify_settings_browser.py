@@ -50,6 +50,19 @@ def main():
                     results.append({'path': path, 'width': width, 'http': response.status, 'overflow': False})
 
             page.set_viewport_size({'width': 390, 'height': 844})
+            # A late header response must not close a form the user is editing.
+            header_ready=[False]
+            def delayed_header(route):
+                if not header_ready[0]:route.fulfill(status=503,json={'error':'STATUS_PENDING'})
+                else:route.continue_()
+            page.route('**/api/header',delayed_header)
+            page.goto(BASE+'/setup')
+            page.locator('#setup-ssid').fill('Draft while status is pending')
+            header_ready[0]=True
+            expect(page.locator('#setup-wifi-status')).to_contain_text('Đang nhận Wi-Fi')
+            expect(page.locator('#setup-connect-details')).to_have_attribute('open','')
+            expect(page.locator('#setup-ssid')).to_have_value('Draft while status is pending')
+            page.unroute('**/api/header')
             # Default preview models station mode: change Wi-Fi must be usable.
             page.goto(BASE + '/setup')
             expect(page.locator('#setup-submit')).to_be_enabled()
@@ -146,6 +159,8 @@ def main():
 
             # Failed and disconnected station requests must not claim success/retry.
             page.goto(BASE + '/setup')
+            expect(page.locator('#setup-submit')).to_be_enabled()
+            expect(page.locator('#setup-connect-details')).not_to_have_attribute('open', '')
             page.locator('#setup-connect-details summary').click()
             page.locator('#setup-ssid').fill('Fictional station')
             page.locator('#setup-password').fill('fictional-password')

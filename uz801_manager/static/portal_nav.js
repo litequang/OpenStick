@@ -106,11 +106,49 @@ function renderWifiHeader(w){
  if(w.setup_active)lines.push('Hotspot cài đặt: không cần SIM, không chia sẻ Internet.');
  detail.textContent=lines.join('\n');if(link){link.href=ap?'/setup#usb-ap-settings':'/setup';link.textContent=ap?'Cấu hình Wi-Fi phát →':'Cài đặt Wi-Fi →'}
 }
+// Only allowlisted display GETs use this helper. Never retry a mutation.
+const portalTelemetryReads=new Map();
+async function portalReadTelemetry(path){
+ if(!['/api/header','/api/overview','/api/quick','/api/services'].includes(path))throw Error('STATUS_UNAVAILABLE');
+ if(portalTelemetryReads.has(path))return portalTelemetryReads.get(path);
+ const token=document.querySelector('.portal-header')?.dataset.statusToken;if(!token)throw Error('STATUS_UNAVAILABLE');
+ const pending=(async()=>{
+  const end=Date.now()+15000;let previous=null;
+  do{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+   try{
+    const response=await fetch(path,{headers:{'X-OpenStick-Token':token},cache:'no-store',signal:controller.signal});
+    if(response.status===401){location.href='/login';throw Error('STATUS_UNAVAILABLE')}
+    const value=await response.json();
+    if(response.ok){if(!value._telemetry?.stale)return value;previous=value}
+    else if(response.status!==503||value.error!=='STATUS_PENDING')throw Error('STATUS_UNAVAILABLE');
+   }finally{clearTimeout(timer)}
+   await new Promise(resolve=>setTimeout(resolve,1000));
+  }while(Date.now()<end&&!document.hidden);
+  if(previous)return previous;
+  throw Error('STATUS_UNAVAILABLE');
+ })();
+ portalTelemetryReads.set(path,pending);
+ try{return await pending}finally{portalTelemetryReads.delete(path)}
+}
+let portalHeaderSample=null,portalHeaderAt=0,portalHeaderRequest=null;
+async function portalLoadHeader(){
+ if(portalHeaderSample&&Date.now()-portalHeaderAt<Math.max(0,5000-(portalHeaderSample._telemetry?.age_seconds||0)*1000))return portalHeaderSample;
+ if(portalHeaderRequest)return portalHeaderRequest;
+ portalHeaderRequest=(async()=>{
+  const value=await portalReadTelemetry('/api/header');portalHeaderSample=value;portalHeaderAt=Date.now();
+  renderWifiHeader(value);renderHeader(value.modem_status||null);
+  if(value._telemetry?.stale){for(const key of ['modem','sim','network','wifi'])portalFreshness(key,true)}else portalRememberHeader(value);
+  if(typeof renderOverviewConnections==='function')renderOverviewConnections(value);
+  return value;
+ })();
+ try{return await portalHeaderRequest}finally{portalHeaderRequest=null}
+}
 function setupHeaderStatus(){
  const header=document.querySelector('.portal-header'),token=header?.dataset.statusToken;if(!token)return;
  let pending=false;
- const refresh=async()=>{if(pending||document.hidden)return;pending=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-  try{const response=await fetch('/api/header',{headers:{'X-OpenStick-Token':token},signal:controller.signal});if(!response.ok)throw Error();const value=await response.json();renderWifiHeader(value);renderHeader(value.modem_status||null);portalRememberHeader(value)}catch(_){renderWifiHeader(null);renderHeader(null)}finally{clearTimeout(timer);pending=false}
+ const refresh=async()=>{if(pending||document.hidden)return;pending=true;
+  try{await portalLoadHeader()}catch(_){renderWifiHeader(null);renderHeader(null)}finally{pending=false}
  };
  refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 }

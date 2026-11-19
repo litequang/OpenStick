@@ -1,17 +1,19 @@
 (()=>{
  const token=document.querySelector('.portal-header').dataset.statusToken,e=id=>document.getElementById(id);
  const headers={'X-OpenStick-Token':token,'Content-Type':'application/json'};
- let posting=false,current=null,transition=false,lastScan=null,identityLoaded=false,wifi=null,wifiInitialized=false,stationScan=null;
+ let posting=false,current=null,transition=false,lastScan=null,identityLoaded=false,wifi=null,wifiInitialized=false,stationScan=null,readingWifi=false,readingSetup=false,wifiFormTouched=false;
+ const wifiForm=e('setup-connect-details');
+ for(const event of ['onpointerdown','onkeydown','oninput','onfocusin'])wifiForm[event]=()=>{wifiFormTouched=true};
  const connectNotice=text=>{e('setup-connect-notice').textContent=text};
  function drawWifi(s){
   wifi=s;
   const role=s.setup_active?'Đang phát Wi-Fi cài đặt':s.hotspot_active?'Đang chia sẻ Internet SIM':s.connected?'Đang nhận Wi-Fi':'Chưa kết nối Wi-Fi';
   const rate=value=>value==null?'chưa có số liệu':value+' Mbps';
   e('setup-wifi-status').textContent=`${role}\n${s.ssid?'Tên mạng: '+s.ssid+'\n':''}Địa chỉ: ${(s.ipv4||[]).join(', ')||'chưa có'}${s.connected?'\nSóng: '+(s.signal_percent==null?'chưa có số liệu':s.signal_percent+'%')+' · TX '+rate(s.tx_mbps)+' · RX '+rate(s.rx_mbps):''}`;
-  if(!wifiInitialized){e('setup-connect-details').open=!s.connected;wifiInitialized=true}
+  if(!wifiInitialized){if(!wifiFormTouched)wifiForm.open=!s.connected;wifiInitialized=true}
   if(current)draw(current);
  }
- async function refreshWifi(){try{const r=await fetch('/api/header',{headers,cache:'no-store'});if(!r.ok)throw Error();drawWifi(await r.json())}catch(_){wifi=null;e('setup-wifi-status').textContent='Chưa đọc được kết nối. Kiểm tra USB hoặc Wi-Fi rồi thử lại.';if(current)draw(current)}}
+ async function refreshWifi(){if(readingWifi)return;readingWifi=true;try{const value=await portalLoadHeader();drawWifi(value);if(value._telemetry?.stale)e('setup-wifi-status').textContent+=' · Số liệu gần nhất, đang cập nhật.'}catch(_){wifi=null;e('setup-wifi-status').textContent='Chưa đọc được kết nối. Kiểm tra USB hoặc Wi-Fi rồi thử lại.';if(current)draw(current)}finally{readingWifi=false}}
  async function stationAction(action,extra={}){
   if(posting)return;posting=true;draw(current);connectNotice(action==='scan'?'Đang tìm mạng Wi-Fi…':'Đang kết nối. Wi-Fi quản trị có thể ngắt; không gửi lại yêu cầu.');
   try{
@@ -51,7 +53,7 @@
   else if(s.result==='REBOOTING')e('setup-notice').textContent='USB \u0111\u00e3 l\u01b0u Wi-Fi v\u00e0 \u0111ang kh\u1edfi \u0111\u1ed9ng l\u1ea1i m\u1ed9t l\u1ea7n. Ch\u1edd kho\u1ea3ng 1\u20133 ph\u00fat; n\u1ebfu kh\u00f4ng n\u1ed1i \u0111\u01b0\u1ee3c m\u1ea1ng n\u00e0o, hotspot s\u1ebd ph\u00e1t l\u1ea1i.';
   else if(!s.busy&&s.result==='SCAN_READY'){transition=false;e('setup-notice').textContent='Đã quét xong. Chọn mạng, nhập mật khẩu rồi bấm Lưu & kết nối.'}
  }
- async function refresh(){try{const r=await fetch('/api/setup',{headers});if(r.status===401){location.href='/login';return}if(r.status===403&&transition){location.reload();return}if(r.ok)draw(await r.json())}catch(_){if(!transition)e('setup-notice').textContent='Chưa đọc được trạng thái. Kiểm tra kết nối rồi tải lại.'}}
+ async function refresh(){if(readingSetup)return;readingSetup=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);try{const r=await fetch('/api/setup',{headers,signal:controller.signal});if(r.status===401){location.href='/login';return}if(r.status===403&&transition){location.reload();return}if(r.ok)draw(await r.json())}catch(_){if(!transition)e('setup-notice').textContent='Chưa đọc được trạng thái. Kiểm tra kết nối rồi tải lại.'}finally{clearTimeout(timer);readingSetup=false}}
  async function act(action,extra={}){if(posting)return;posting=true;if(current)draw(current);
   if(['connect','start','scan'].includes(action)){transition=true;e('setup-notice').textContent=action==='scan'?'Đang quét: Wi-Fi USB có thể ngắt tạm thời. Nối lại cùng Wi-Fi USB sau khoảng 30 giây; danh sách sẽ tự cập nhật.':action==='connect'?'USB sẽ lưu cấu hình và khởi động lại một lần. Chờ khoảng 1–3 phút; nếu không nối được Wi-Fi nào, hãy nối lại hotspot cài đặt.':'USB sắp chuyển sang phát Wi-Fi cài đặt. Dùng thông tin đã lưu để kết nối điện thoại.'}
   else e('setup-notice').textContent='Đang lưu…';
@@ -70,5 +72,5 @@
  e('setup-ap-form').onsubmit=event=>{event.preventDefault();if(!current||posting||current.busy)return;const max=Number(e('setup-ap-max-clients').value);if(!Number.isInteger(max)||max<1||max>32){e('setup-ap-notice').textContent='Giới hạn thiết bị phải là số nguyên từ 1 đến 32.';e('setup-ap-max-clients').focus();return}if(new TextEncoder().encode(e('setup-ap-ssid').value).length>32){e('setup-ap-notice').textContent='Tên Wi-Fi vượt quá 32 byte.';return}const hidden=e('setup-ap-hidden').checked,isolation=e('setup-ap-isolation').checked;if(!confirm(`Lưu cho lần phát tiếp theo: ${hidden?'ẩn tên Wi-Fi (điện thoại cần thêm mạng thủ công)':'hiện tên Wi-Fi'}, tối đa ${max} thiết bị, cách ly ${isolation?'bật':'tắt'}? Chưa ngắt kết nối hiện tại.`))return;act('configure_ap',{ssid:e('setup-ap-ssid').value,password:e('setup-ap-password').value,channel:Number(e('setup-ap-channel').value),hidden,max_clients:max,isolation})};
  e('setup-reveal').onclick=async()=>{if(!e('setup-credentials').hidden){e('setup-credentials').hidden=true;e('setup-credentials').textContent='';e('setup-reveal').textContent='Xem thông tin kết nối';e('setup-reveal').setAttribute('aria-expanded','false');return}try{const r=await fetch('/api/setup/credentials',{headers});if(!r.ok)throw Error();const s=await r.json();e('setup-credentials').hidden=false;e('setup-reveal').textContent='Ẩn thông tin kết nối';e('setup-reveal').setAttribute('aria-expanded','true');e('setup-credentials').textContent=s.configured?`Tên Wi-Fi: ${s.ssid}\nMật khẩu Wi-Fi: ${s.password}\nTrang cài đặt: ${s.url}`:'Bật tự phát trước để tạo thông tin kết nối.'}catch(_){e('setup-notice').textContent='Chưa tải được thông tin kết nối.'}};
  e('setup-card').onclick=async()=>{try{const r=await fetch('/api/setup/card',{headers});if(!r.ok)throw Error();const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download='openstick-wifi-setup.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(_){e('setup-notice').textContent='Chưa tải được thẻ kết nối.'}};
- refresh();refreshWifi();setInterval(()=>{if(!posting&&!document.hidden){refresh();refreshWifi()}},5000);
+ refresh();refreshWifi();setInterval(()=>{if(!posting&&!document.hidden){refresh();refreshWifi()}},15000);
 })();

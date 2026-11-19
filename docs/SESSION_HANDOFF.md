@@ -1,5 +1,28 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: nonblocking telemetry implementation, pending installation
+
+Owner said to implement the performance improvements. Read
+[PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md). Added single-flight asynchronous,
+age-bounded display snapshots, GET Overview independent of the shared action
+job, lazy services, independent connection updates, browser request coalescing,
+bounded GET waits and refresh invalidation on enqueue/completion. Live backend
+preflights/locks/consent/receipts are unchanged. Four HTTP threads per listener;
+no new daemon, runtime dependency, interface or provisioning change.
+
+781 tests PASS/one Windows symlink skip, exit 0; pip/self-test/JS PASS. Additional
+browser checks include pending header vs independent metrics, lazy services and
+editing before a late Wi-Fi response. Existing Quick/usage/power preview checks
+are separate from real hardware acceptance. Installed source remains `045ff7e`
+until deployment evidence is recorded. No real reboot/poweroff command is tested.
+
+Five real pre-install Chrome runs: first data 7.640/17.951/21.103/12.766/14.359s,
+median 14.359s; DOM median 0.281s. No radio/network mutation was sent. Do not claim
+post-change speed from these baseline samples or synthetic tests. Verify source,
+GET telemetry, protected owner hashes/network/routes/firewall and counters after
+installation, then repeat the same five-browser-context benchmark. Private
+rollback/timing/SSH helpers stay ignored. Unrelated untracked files stay intact.
+
 ## 2026-11-19 latest: header power, service truth and performance audit
 
 Owner requests correct ModemManager status, a power/reset menu on the status bar,

@@ -3,6 +3,9 @@ import json
 import socket
 import subprocess
 import sys
+import threading
+import time
+from copy import deepcopy
 
 from waitress import serve
 
@@ -19,10 +22,46 @@ from .device_power import DevicePower
 
 
 class LocalWifi:
-    def __init__(self, *, run=subprocess.run):
-        self.run = run
+    def __init__(self, *, run=subprocess.run, clock=time.monotonic):
+        self.run, self.clock = run, clock
+        self.status_lock = threading.Lock()
+        self.cache_lock = threading.Lock()
+        self.status_value = None
+        self.status_at = 0
+        self.status_generation = 0
+
+    def invalidate_status(self):
+        with self.cache_lock:
+            self.status_generation += 1
+            self.status_value = None
 
     def call(self, action, **values):
+        if action == 'status':
+            # Concurrent header/legacy status reads share one bounded subprocess. This
+            # cache is display-only; all mutation paths retain their live checks.
+            with self.status_lock:
+                with self.cache_lock:
+                    if self.status_value is not None and self.clock()-self.status_at < 2:return deepcopy(self.status_value)
+                    generation = self.status_generation
+                value = self._call(action, **values)
+                with self.cache_lock:
+                    if generation == self.status_generation:self.status_value, self.status_at = value, self.clock()
+                return deepcopy(value)
+        try:return self._call(action, **values)
+        finally:
+            self.invalidate_status()
+
+    def dashboard(self):
+        # Connections arrive through the independent, shared header producer.
+        # Keep legacy call('overview') behavior for older clients.
+        from .portal_metrics import system_snapshot
+        return {'system':system_snapshot(), 'wifi':{}, 'services':{}}
+
+    def services(self):
+        from .portal_metrics import service_snapshot
+        return {'services':service_snapshot()}
+
+    def _call(self, action, **values):
         result = self.run([sys.executable, '-c', REMOTE],
                           input=json.dumps({'action': action, **values}).encode(),
                           capture_output=True, timeout=110 if action == 'connect' else 50, shell=False)
@@ -65,7 +104,7 @@ def main():
                              modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
                              lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings(), quick_backend=QuickSettings(),power_backend=DevicePower())
     with usb_socket() as sock, usb_socket(8765) as named_sock:
-        serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=120,
+        serve(app, sockets=[sock, named_sock], threads=4, channel_timeout=120,
               max_request_body_size=129 * 1048576, inbuf_overflow=65536, ident='OpenStick')
 
 

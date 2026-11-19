@@ -11,6 +11,9 @@ def register_quick_routes(app, backend, token):
     lock = threading.Lock()
     state = {'busy': False, 'operation': None, 'error': None}
     app.extensions['quick_settings'] = {'state': state}
+    from .telemetry import ReadOnlySnapshot, snapshot_response
+    status_snapshot = ReadOnlySnapshot(lambda:backend.status())
+    app.extensions['telemetry']['quick'] = status_snapshot
 
     @app.get('/quick')
     def quick_page():
@@ -18,10 +21,7 @@ def register_quick_routes(app, backend, token):
 
     @app.get('/api/quick')
     def quick_status():
-        try:
-            return jsonify(backend.status())
-        except Exception:
-            return jsonify(error='QUICK_STATUS_UNAVAILABLE'), 503
+        return snapshot_response(status_snapshot)
 
     @app.get('/api/quick/wifi')
     def quick_wifi_options():
@@ -63,6 +63,8 @@ def register_quick_routes(app, backend, token):
                 with lock:
                     state['error'] = str(error) if str(error) in ERRORS else 'QUICK_OPERATION_FAILED'
             finally:
+                from .telemetry import invalidate_display
+                invalidate_display(app,value.get('action'))
                 value.clear()
                 with lock:
                     state['busy'] = False

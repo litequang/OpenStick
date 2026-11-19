@@ -2,7 +2,7 @@
 (() => {
   const el = id => document.getElementById(id);
   const headers = {'Content-Type':'application/json', 'X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
-  let current = null, busy = false, selected = null;
+  let current = null, busy = false, selected = null, refreshing=false, refreshAgain=false;
   const compact = !!document.querySelector('.quick-panel--compact');
   const errors = {
     AP_OPTIONS_INVALID:'Cấu hình điểm phát không khớp. Lưu lại tại Cài đặt Wi-Fi qua cổng USB trước khi bật phát.',
@@ -88,7 +88,7 @@
   }
   async function readMode() {
     if(!el('quick-mode'))return;
-    try{const r=await fetch('/api/header',{headers,cache:'no-store'});if(!r.ok)throw Error();const c=(await r.json()).modem_status;if(c){modeStatus=c;drawMode();return true;}}catch(_){}drawMode();return false;
+    try{const value=await portalLoadHeader(),c=value.modem_status;if(c&&!value._telemetry?.stale){modeStatus=c;drawMode();return true;}}catch(_){}modeStatus=null;drawMode();return false;
   }
   if(el('quick-mode'))el('quick-mode').onclick=async()=>{
     if(busy||el('quick-mode').disabled)return;
@@ -115,21 +115,21 @@
       if(modeStatus?.current_mode?.join(',')!==target.join(','))throw Error('RESULT_UNKNOWN');
       notice('Đã chuyển sang '+modeName(target)+'.');
     }catch(e){notice(errors[e.message]||'Chưa xác minh được chế độ mạng. Đọc lại trạng thái; không tự gửi lại.');}
-    finally{busy=false;await refresh();drawMode();}
+    finally{busy=false;await refresh(true);drawMode();}
   };
-  async function refresh() {
+  async function refresh(force=false) {
+    if(refreshing){refreshAgain=refreshAgain||force;return}refreshing=true;
     try {
-      const r = await fetch('/api/quick', {headers, cache:'no-store'});
-      if (r.status===401) {location.href='/login';return;}
-      if (!r.ok) throw Error();
-      draw(await r.json());
-      await readMode();
+      const value=await portalReadTelemetry('/api/quick');
+      if(value._telemetry?.stale)throw Error();
+      if(!busy)draw(value);
+      readMode(); // Mode telemetry must not hold up the other Quick Settings.
       if (el('quick-notice').textContent === 'Đang đọc trạng thái…') notice('Chạm một ô để xem và xác nhận thay đổi.');
     } catch (_) {
       current = null;
       for (const id of ['quick-airplane','quick-data','quick-ap','quick-usb','quick-receive']) el(id).disabled = true;
       notice('Chưa đọc được trạng thái USB. Các công tắc đã khóa; kiểm tra kết nối rồi đọc lại.');
-    }
+    }finally{refreshing=false;if(refreshAgain){refreshAgain=false;refresh()}}
   }
   function ask(action, copy, values={}) {
     if (busy || !current) return;
@@ -152,7 +152,7 @@
       await poll(operation,action);
       chooseWifi=action==='wifi_scan';
     } catch (error) {wifiMessage=errors[error.message] || 'Chưa xác minh được kết quả. Kiểm tra trạng thái qua USB trước khi thử tiếp.';notice(wifiMessage);chooseWifi=action.startsWith('wifi_')&&error.message!=='WIFI_RESTORE_FAILED';}
-    finally {values={};busy = false; await refresh();if(chooseWifi)await showWifi(wifiMessage);}
+    finally {values={};busy = false; await refresh(true);if(chooseWifi)await showWifi(wifiMessage);}
   }
   async function poll(operation,action=null) {
     const deadline = Date.now()+210000;

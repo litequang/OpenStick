@@ -186,7 +186,8 @@ def test_lan_login_is_required_even_with_a_valid_power_token(power,tmp_path):
     assert client.get('/api/device/power',base_url=BASE,headers=headers).json['phase']=='IDLE'
 
 
-def test_async_job_keeps_power_gate_after_http_acknowledgement(power):
+@pytest.mark.parametrize('channel',['wifi','internet','hotspot'])
+def test_async_job_keeps_power_gate_after_http_acknowledgement(power,channel):
     import threading
     b,_,calls=power;readers=[0];mutex=threading.Lock();started=threading.Event();release=threading.Event()
     @contextmanager
@@ -201,15 +202,19 @@ def test_async_job_keeps_power_gate_after_http_acknowledgement(power):
     class Backend:
         def call(self,*args,**kwargs):
             started.set();assert release.wait(2);return {'connected':True}
-    app=create_hosting_app(backend=Backend(),usb_portal=True,modem_backend=object(),power_backend=b,token='fixture')
+    backend=Backend()
+    app=create_hosting_app(backend=backend,usb_portal=True,modem_backend=object(),power_backend=b,token='fixture',
+                           network_backend=backend if channel=='internet' else None,
+                           hotspot_backend=backend if channel=='hotspot' else None)
     headers={'Host':'172.16.42.1','Origin':'http://172.16.42.1','X-OpenStick-Token':'fixture'}
     client=app.test_client()
     try:
-        assert client.post('/api/wifi',headers=headers,json={'action':'status'}).status_code==202
+        assert client.post('/api/'+channel,headers=headers,json={'action':'status'}).status_code==202
         assert started.wait(1)
         with pytest.raises(RuntimeError,match='POWER_BUSY'):request(b)
         assert not b.path.exists() and not calls
-    finally:release.set();app.extensions['hosting']['thread'].join(2)
+    finally:
+        release.set();app.extensions[{'wifi':'hosting','internet':'network_policy','hotspot':'hotspot'}[channel]]['thread'].join(2)
     assert request(b)['phase']=='QUEUED'
 
 

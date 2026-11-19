@@ -12,7 +12,7 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, g, jsonify, redirect, render_template, request
 from waitress import serve
 
 WIFI_ERRORS = {'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND', 'HOTSPOT_ACTIVE', 'SETUP_ACTIVE', 'POLICY_ACTIVE', 'NETWORK_BUSY'}
@@ -248,7 +248,20 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     lock = threading.Lock()
     state = {'busy': False, 'result': {}, 'error': False}
     app.config.update(MAX_CONTENT_LENGTH=4096)
-    app.extensions['hosting'] = {'token': token, 'state': state}
+    app.extensions['hosting'] = {'token': token, 'state': state, 'backend':backend}
+    from .telemetry import ReadOnlySnapshot, snapshot_response, invalidate_display
+    header_snapshot = ReadOnlySnapshot(lambda: backend.call('status'))
+    overview_snapshot = ReadOnlySnapshot(lambda:backend.dashboard() if callable(getattr(backend,'dashboard',None)) else backend.call('overview'))
+    services_snapshot = ReadOnlySnapshot(lambda:backend.services() if callable(getattr(backend,'services',None)) else {'services':backend.call('overview').get('services',{})}, ttl=30, max_age=120)
+    app.extensions['telemetry'] = {'header':header_snapshot, 'overview':overview_snapshot, 'services':services_snapshot}
+
+    @app.after_request
+    def invalidate_header_after_action(response):
+        # Only display telemetry is cached. Backends still read real state before
+        # every operation; no receipt/auth/credentials/configuration is cached.
+        if response.status_code < 400 and hasattr(g, 'telemetry_action'):
+            invalidate_display(app, g.telemetry_action)
+        return response
 
     @app.before_request
     def guard():
@@ -264,6 +277,10 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             return jsonify(error='FORBIDDEN'), 403
         if request.path.startswith('/api/') and not secrets.compare_digest(request.headers.get('X-OpenStick-Token', ''), token):
             return jsonify(error='FORBIDDEN'), 403
+        if request.method == 'POST' and request.path in (
+                '/api/wifi','/api/modem','/api/quick','/api/setup','/api/internet','/api/hotspot'):
+            value = request.get_json(silent=True)
+            if isinstance(value,dict):g.telemetry_action = value.get('action')
 
     @app.context_processor
     def lan_address_context():
@@ -345,6 +362,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
                     state.update(error=True, result={})
                     if str(exc) in WIFI_ERRORS:state['error_code'] = str(exc)
             finally:
+                invalidate_display(app, action)
                 body.clear()  # do not retain a password in job/history state
                 with lock:
                     state['busy'] = False
@@ -358,8 +376,15 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         def header_status():
             # Read-only snapshot; do not overwrite an in-flight Wi-Fi job or
             # its result when a different page updates the shared header.
-            try:return jsonify(backend.call('status'))
-            except Exception:return jsonify(error='STATUS_UNAVAILABLE'), 503
+            return snapshot_response(header_snapshot)
+
+        @app.get('/api/overview')
+        def overview_status():
+            return snapshot_response(overview_snapshot)
+
+        @app.get('/api/services')
+        def services_status():
+            return snapshot_response(services_snapshot)
 
         @app.get('/overview')
         def overview():

@@ -134,6 +134,8 @@ def register_modem_routes(app, backend, token):
                     if action.startswith('ussd_'):
                         last_ussd.update(busy=False, error=state['error'], finished_at=time.time())
             finally:
+                from .telemetry import invalidate_display
+                invalidate_display(app,body.get('action'))
                 body.clear()
                 with lock:
                     state['busy'] = False

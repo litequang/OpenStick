@@ -18,18 +18,33 @@ def main():
     with sync_playwright() as p:
         browser=p.chromium.launch(channel='chrome',headless=True)
         try:
-            page=browser.new_page();errors=[];posts=[]
+            page=browser.new_page();errors=[];posts=[];header_ready=[False];service_reads=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             def request(route):
-                payload=route.request.post_data_json;posts.append(payload)
-                assert payload=={'action':'overview'}
-                route.fulfill(json={'accepted':True},status=202)
-            page.route('**/api/wifi',request)
-            page.route('**/api/state',lambda route:route.fulfill(json={'busy':False,'result':data}))
+                assert route.request.method=='GET'
+                route.fulfill(json=data)
+            page.route('**/api/overview',request)
+            def header(route):
+                if not header_ready[0]:route.fulfill(status=503,json={'error':'STATUS_PENDING'});return
+                route.fulfill(json={'connected':True,'ssid':'Fictional Wi-Fi','ipv4':['192.0.2.2/24'],
+                    'modem_status':{'registered':True,'sim_present':True,'signal_percent':75,'signal_recent':True,
+                                    'operator_name':'Fixture carrier','access_technologies':16384}})
+            page.route('**/api/header',header)
+            def services(route):
+                service_reads.append(True);route.fulfill(json={'services':{'modemmanager':True}})
+            page.route('**/api/services',services)
+            page.on('request',lambda request:posts.append(request.url) if request.method=='POST' else None)
             for width in [320,390,768,1280]:
                 page.set_viewport_size({'width':width,'height':844})
                 assert page.goto('http://127.0.0.1:8771/overview').status==200
                 expect(page.locator('#metric-sim-usage')).to_have_text('42.00 MiB')
+                if width==320:
+                    assert not service_reads,'Closed technical panel must not probe services'
+                    header_ready[0]=True
+                    expect(page.locator('#overview-wifi')).to_contain_text('Fictional Wi-Fi')
+                    page.locator('#overview-services>summary').click()
+                    expect(page.locator('#service-list')).to_contain_text('đang chạy (D-Bus)')
+                    assert service_reads
                 expect(page.locator('#note-sim-usage')).to_contain_text('1.25 GiB tháng này')
                 page.locator('#sim-usage-details summary').click()
                 expect(page.locator('#sim-usage-detail')).to_contain_text('Tổng từ lúc bắt đầu')
@@ -48,9 +63,9 @@ def main():
             page.locator('#overview-refresh').click()
             expect(page.locator('#sim-usage-detail')).to_contain_text('không coi là đã dùng 0 byte')
             assert not errors,errors
-            assert all(v=={'action':'overview'} for v in posts)
+            assert not posts
         finally:browser.close()
-    result={'preview_layouts':4,'interactions':'PASS','device_operations':0}
+    result={'preview_layouts':4,'interactions':'PASS','metrics_independent_of_pending_header':'PASS','lazy_services':'PASS','device_operations':0}
     (out/'report.json').write_text(json.dumps(result));print(json.dumps(result))
 
 

@@ -1,5 +1,9 @@
 # Portal performance audit — 2026-11-19
 
+**Cập nhật:** chủ đã yêu cầu thực hiện tối ưu. Mã mới và cách kiểm thử được ghi
+tại [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md). Xem đầu HANDOFF để biết đã cài/đo
+sau thay đổi hay chưa; các đoạn “chưa triển khai” bên dưới mô tả thời điểm audit.
+
 ## Kết luận từ USB thật
 
 Trang Tổng quan dựng HTML nhanh nhưng đợi dữ liệu chậm. Điểm nghẽn đã đo nằm ở

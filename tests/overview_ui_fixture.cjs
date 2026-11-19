@@ -17,12 +17,12 @@ const data={system:{ram:{used:150*1048576,total:400*1048576},storage:{used:10737
  wifi:{connected:true,ssid:'fixture',ipv4:['192.0.2.2/24'],modem_status:{operator_name:'Fixture carrier',registered:true,sim_present:true,signal_percent:64,signal_recent:true,access_technologies:16384,imsi:'not-for-browser-cache'}},
  services:{'openstick-web':true,'cloudflared':null}};
 const saved=new Map(),sessionStorage={getItem:key=>saved.get(key)||null,setItem:(key,value)=>saved.set(key,value)};
-const context={console,Date,setTimeout,setInterval:()=>0,sessionStorage,document:{hidden:false,getElementById:id=>elements[id]||null,createElement:()=>new Element()},
- fetch:async(_,options={})=>{if(failFetch)throw Error('offline fixture');if(options.method==='POST'){assert.equal(JSON.parse(options.body).action,'overview');posts++;return {ok:true};}if(busyOnce){busyOnce=false;if(onBusy)onBusy();return {ok:true,json:async()=>({busy:true,result:{}})}}return {ok:true,json:async()=>({busy:false,error:false,result:data})};}};
+const context={console,Date,setTimeout,clearTimeout,AbortController,setInterval:()=>0,sessionStorage,document:{hidden:false,getElementById:id=>elements[id]||null,createElement:()=>new Element(),querySelector:()=>({dataset:{statusToken:'fixture'}})},
+ fetch:async(url,options={})=>{if(failFetch)throw Error('offline fixture');if(options.method==='POST')posts++;assert.notEqual(options.method,'POST','opening Overview must only read');assert.equal(url,'/api/overview');if(busyOnce){busyOnce=false;if(onBusy)onBusy();return {ok:false,status:503,json:async()=>({error:'STATUS_PENDING'})}}return {ok:true,status:200,json:async()=>data};}};
 vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),context);
 vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
 (async()=>{
- await new Promise(resolve=>setImmediate(resolve));assert.equal(posts,1);
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(posts,0);
  assert.equal(elements['metric-ram'].textContent,'150 MiB');
  assert.equal(elements['metric-sim-usage'].textContent,'2.00 MiB');
  assert.match(elements['note-sim-usage'].textContent,/hôm nay.*1.00 MiB/);

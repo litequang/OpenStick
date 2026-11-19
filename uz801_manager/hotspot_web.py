@@ -70,7 +70,8 @@ def register_hotspot_routes(app, backend, token):
         def work():
             operation_error = None
             try:
-                result = backend.call(action, **{k: v for k, v in value.items() if k != 'action'})
+                from .device_power import activity
+                with activity(app):result = backend.call(action, **{k: v for k, v in value.items() if k != 'action'})
                 with lock:
                     state.update(result=result)
             except Exception as error:
@@ -87,6 +88,8 @@ def register_hotspot_routes(app, backend, token):
                         except Exception:pass
                     with lock:state['last_operation'] = operation
                 value.clear()
+                from .telemetry import invalidate_display
+                invalidate_display(app, action)
                 with lock:state['busy'] = False
         thread = threading.Thread(target=work, daemon=True)
         app.extensions['hotspot']['thread'] = thread

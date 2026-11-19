@@ -37,7 +37,8 @@ def register_network_routes(app, backend, token):
 
         def work():
             try:
-                result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
+                from .device_power import activity
+                with activity(app):result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:state['result'] = result
             except Exception as exc:
                 allowed = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'HOTSPOT_ACTIVE', 'CELLULAR_NOT_CONFIGURED', 'CELLULAR_ALREADY_ACTIVE',
@@ -45,6 +46,8 @@ def register_network_routes(app, backend, token):
                            'SWITCH_FAILED', 'ROLLBACK_FAILED', 'NETWORK_BUSY', 'DATA_DISCONNECT_FAILED'}
                 with lock:state['error'] = str(exc) if str(exc) in allowed else 'NETWORK_OPERATION_FAILED'
             finally:
+                from .telemetry import invalidate_display
+                invalidate_display(app, action)
                 body.clear()
                 with lock:state['busy'] = False
         thread = threading.Thread(target=work, daemon=True)

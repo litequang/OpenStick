@@ -405,7 +405,12 @@ def test_private_api_guards_and_read_only_open(quick):
         assert overview.data.count(b'id="quick-ap"') == 1
         assert b'quick-panel--compact' in overview.data
         assert client.get('/api/quick', base_url=base).status_code == 403
-        assert client.get('/api/quick', base_url=base, headers=headers).status_code == 200
+        response=client.get('/api/quick', base_url=base, headers=headers)
+        import time
+        end=time.monotonic()+2
+        while response.status_code==503 and time.monotonic()<end:
+            time.sleep(.005);response=client.get('/api/quick',base_url=base,headers=headers)
+        assert response.status_code==200
         assert client.get('/api/quick', base_url='http://bad.invalid', headers=headers).status_code == 403
         assert client.post('/api/quick', base_url=base, headers=headers, json={'action': 'airplane_on'}).status_code == 400
         assert not network.calls and not radio.calls

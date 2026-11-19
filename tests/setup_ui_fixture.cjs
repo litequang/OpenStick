@@ -18,6 +18,8 @@ const context={Date,console,setTimeout,URL,TextEncoder,location:{},confirm:()=>a
   if(post.action==='configure_ap')state.ap_options={configured:true,hidden:post.hidden,max_clients:post.max_clients,isolation:post.isolation};
  }return {ok:true,json:async()=>state}}
 };
+context.AbortController=AbortController;context.clearTimeout=clearTimeout;
+context.portalLoadHeader=async()=>{const response=await context.fetch('/api/header');return response.json()};
 vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/setup.js','utf8'),context);
 (async()=>{
  await new Promise(r=>setImmediate(r));assert.equal(posts.length,0);

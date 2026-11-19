@@ -143,6 +143,11 @@ def test_header_snapshot_is_private_and_does_not_overwrite_wifi_job():
     assert client.get('/api/header', headers={'Host': '172.16.42.1'}).status_code == 403
     assert client.get('/api/header', headers=headers(Origin='https://evil.invalid')).status_code == 403
     result = client.get('/api/header', headers=headers())
+    if result.status_code==503:
+        import time
+        end=time.monotonic()+2
+        while result.status_code==503 and time.monotonic()<end:
+            time.sleep(.005);result=client.get('/api/header',headers=headers())
     assert result.status_code == 200 and result.json['connected']
     assert result.headers['Cache-Control'] == 'no-store' and state == before
 
