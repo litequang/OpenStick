@@ -1,5 +1,22 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — đã cài màn con riêng và bỏ điều khiển file cũ khi có FileGator.**
+Source đang cài `66b585001ecd96403931fdcb23bf98bb20c477a1` trên nhánh
+`ui/settings-parent-child-nav-20261119`, PR #7; chưa merge main/dev, chưa release.
+Đọc [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md) và đầu HANDOFF.
+Wi-Fi nhận/đã lưu/phát/client/dự phòng, USB, usage SIM, quyền quản trị và website
+có URL riêng; chỉ hiện phần đang chọn. FileGator không còn menu/nút upload,
+kiểm tra ZIP hoặc editor cũ. Backend thao tác và xác nhận giữ nguyên.
+788 PASS/1 Windows skip, hai CI PASS; Chrome preview hai chế độ và USB thật
+đạt 176 trang/kích thước + 8 ngang, không lỗi JS. Kiểm tra USB chỉ điều hướng,
+không gửi thao tác mạng/nguồn/file/SMS. Hash 28 file nguồn, 717 file bảo vệ,
+mạng/route/firewall/gadget và quyền LAN đạt; worker/usage vẫn tiến, sync xong.
+Chủ đã tắt/rút/cắm giữa lần kiểm tra V4 cũ; dùng mốc sau thao tác đó, giữ receipt.
+Website nội bộ HTTP 200; public Cloudflare **530 trước và sau lần cài này**,
+log Tunnel có `network is unreachable`. Không đổi Tunnel/mạng để che lỗi đó.
+Không nhận public Internet, đăng nhập lại mật khẩu hay điện thoại thật là PASS.
+Các ghi chú dưới đây là lịch sử; source `4cca1fa` đã được thay bằng bản này.
+
 **19/11/2026 — đã cài tối ưu telemetry và đo trước/sau trên USB thật.**
 Đọc [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md) và đầu HANDOFF. GET snapshot có
 producer nền giới hạn/TTL, gộp đọc trùng, metric không chờ modem, dịch vụ chỉ đọc

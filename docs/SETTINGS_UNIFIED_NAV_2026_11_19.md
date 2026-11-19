@@ -1,5 +1,11 @@
 # Unified four-group USB management navigation (19 November 2026)
 
+Later on the same day, the owner requested separate child screens and removal
+of retired native controls when FileGator is present. The installed result is
+documented in [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md); its canonical
+URLs and FileGator-only layout supersede the hash destinations/native-tab
+inventory below. The shared four-category tree remains current.
+
 ## Baseline / code branch
 - Base: `3a459f6ef7252ea2bcd2d611a14e484cd6556c54` on
   `codex/uz801-v32-postmarketos`.

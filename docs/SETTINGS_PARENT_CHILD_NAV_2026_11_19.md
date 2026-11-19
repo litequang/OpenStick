@@ -1,5 +1,10 @@
 # OpenStick settings navigation — parent tabs + persistent child menu
 
+Historical design. The installed four-category tree and dedicated child-screen
+behavior are documented in [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md)
+and the latest handoff. Do not restore the retired native website controls when
+FileGator is enabled.
+
 ## Provenance and scope
 
 Base commit is exactly

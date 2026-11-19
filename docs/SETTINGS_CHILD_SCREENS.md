@@ -53,6 +53,8 @@ retries, no USB writes. The standalone usage screen is tested against upload/
 download/total fields, missing fields and stale/unavailable/error samples; it
 retains previous values rather than replacing a failed read with zero.
 
+The same navigation and interaction checks also passed with FileGator disabled.
+
 Browser fixtures are not physical phone acceptance. Real-device checks must
 remain navigation-only: no SMS/USSD, radio/data/AP/profile, tethering, LED, website
 file writes, Nginx/Tunnel reload or power command is needed for this UI change.
@@ -68,3 +70,25 @@ power receipts from a different boot are preserved, not deleted to make a gate
 pass. Installed source and final real USB results are recorded in the handoff
 after deployment. Branch remains `ui/settings-parent-child-nav-20261119`; no
 merge to main or release is authorized for this deployment.
+
+## Installed result
+
+Installed **`66b585001ecd96403931fdcb23bf98bb20c477a1`** after both
+[branch](https://github.com/litequang/OpenStick/actions/runs/44461981024) and
+[PR](https://github.com/litequang/OpenStick/actions/runs/44461985924) Windows CI
+passed, including the EXE checks. Twenty portal files were replaced, with private
+source archive/metadata/checksum first. Independent verification matched all 28
+V4 source/UI hashes, assets, 717 protected owner files, network/firewall/routes/
+DNS/gadget and service state. Worker heartbeat and SIM usage advanced; checkpoint
+private/valid, no operation pending, storage flushed. No rollback was used.
+
+Actual USB Chrome: 176 route/width cases and eight landscape cases PASS; zero
+JavaScript errors, attempted mutations or power requests. The 112 legacy POSTs
+were allowlisted reads. WLAN-bound authenticated GET checks on the device passed
+all 22 routes, login enforcement and USB-only credential-management guards;
+existing-key ephemeral QA session is not password login/phone acceptance.
+
+The public website check is **not PASS**: Cloudflare 530 was present before and
+after this install; local Nginx origin returns 200. Tunnel logs show network
+unreachable errors. No network or Tunnel configuration/service was changed to
+address that separate issue. See the latest handoff for limits and next steps.

@@ -1,5 +1,68 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: dedicated child screens installed
+
+Installed source: **`66b585001ecd96403931fdcb23bf98bb20c477a1`** on
+`ui/settings-parent-child-nav-20261119`, PR #7. No merge or release. Remote main
+and development remain `3a459f6`. Read
+[SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md). This supersedes V4's
+hash-only child links and temporarily restored native website tabs.
+
+Each Wi-Fi child, USB tethering, SIM usage and LAN administration has its own
+URL and visible screen. FileGator mode renders only website metadata, a file
+manager entry or domains; retired native upload/ZIP/editor controls and their
+controller are absent. Native fallback without FileGator remains supported.
+Shared network controllers retain hidden required DOM; unrelated saved-Wi-Fi/
+client scripts are loaded only on their matching page. Existing action APIs,
+locks, consent, revision checks, confirmation and uncertain-result rules remain.
+
+788 tests PASS/one Windows symlink-permission skip, exit 0; pip/Node/self-test
+PASS. Both exact-source Windows workflows passed, including EXE build/self-test/
+smoke: [branch CI](https://github.com/litequang/OpenStick/actions/runs/44461981024)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/44461985924).
+Chrome preview in each FileGator/native mode passed 176 layouts/eight landscape
+cases and 24 existing interaction checks. Additional fictional metadata browser
+fixtures cover four intercepted writes, cancel/no replay and usage schema/stale/
+unavailable/missing data; these are not device mutation acceptance.
+
+Chrome against the actual USB passed 176 layouts/eight landscape cases at
+320/360/390/430/768/820/1024/1280 CSS pixels: isolated child panels, one tree,
+active links, no obsolete FileGator controls, no overflow or JS error. It sent
+112 allowlisted read-only POSTs and no attempted mutation, power or file write.
+No real screenshot, trace, SMS, private website/network content or identifier
+was exported. No physical phone touch session or file operation was tested.
+
+Only USB/LAN portal services restarted; 20 source/template/asset files were
+replaced, with a checksummed private source/metadata backup under
+`/var/lib/openstick/deploy-backups/ui-v4-*`. Independent verification matched all
+28 V4 source hashes/assets, ownership/modes, 717 protected files and the active
+network/routes/firewall/DNS/gadget. Source backup members verified. Power worker
+heartbeat and usage samples advanced, private checkpoint remained valid, no
+operation pending and storage flushed. WLAN-bound authenticated GETs reached
+all 22 routes and preserved login and USB-only credential-management guards.
+QA signed an ephemeral session in device memory using the existing key; this
+is not password re-entry or a real phone login test. Temporary local QA cookies
+are removed after verification; owner password/session keys remain unchanged.
+
+The owner powered off/unplugged/replugged during final comparison of the older
+`4cca1fa` installation. Its interrupted final comparison is not claimed PASS.
+This install uses a new stable post-owner-action baseline, preserving current
+tethering intent and terminal power receipts; no receipt or journal was cleared.
+The owner's action is not our physical power-button acceptance. No reboot,
+firmware/network/radio/AP/profile/data/tethering/LED/SMS/USSD or website mutation
+was issued for this UI deployment; no rollback was needed or executed.
+
+**Separate pre-existing connectivity issue:** public HTTPS returned Cloudflare
+530 before and after this child-screen install, whereas the local Nginx website
+returned HTTP 200. The recent Tunnel log contains `network is unreachable` and
+no registration line in the sampled tail; this is not proof of a permanent
+failure or a complete diagnosis. Service process running does not prove a
+working Tunnel. Preserve current choices/configuration; do not silently enable
+SIM data or switch Wi-Fi to make this unrelated check pass. Direct PC-to-WLAN
+login probe is still unreachable from this PC; device WLAN-bound GETs work.
+
+The sections below are historical and do not name the current installed source.
+
 ## 2026-11-19 latest: nonblocking telemetry installed and measured
 
 Owner said to implement the performance improvements. Read
