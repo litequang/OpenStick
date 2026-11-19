@@ -18,9 +18,15 @@ menu item through a local hash change. Neither path sends a device action.
 The installed source must therefore include the tested follow-up fix, not the
 original requested commit alone.
 
+Real USB navigation then exposed the existing FileGator-specific hidden Upload
+tab, absent from the default preview configuration. Keep all three native tabs
+visible while retaining FileGator and its hidden duplicate native editor. Added
+a FileGator-enabled preview option and regression assertion; no uploader,
+extraction, file or service behavior is changed by this visibility correction.
+
 ## PC validation
 
-- `.venv/Scripts/python.exe -m pytest -q`: **786 PASS, one Windows symlink
+- `.venv/Scripts/python.exe -m pytest -q`: **787 PASS, one Windows symlink
   privilege skip, exit 0**. This includes the existing Node fixtures for modem,
   SMS, website, saved Wi-Fi, setup, telemetry, LED and settings actions.
   Bare `python -m pytest -q` initially exited 1 because the Windows default

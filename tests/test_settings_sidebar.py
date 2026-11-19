@@ -167,3 +167,12 @@ def test_responsive_sidebar_and_static_js_cannot_mutate_usb():
     assert "fetch(" not in js
     assert "localStorage" not in js
     assert "XMLHttpRequest" not in js
+
+
+def test_filegator_keeps_all_three_navigation_tabs_visible():
+    view = render('website.html', 'website', filegator_enabled=True)
+    tabs = re.search(r'<nav class="web-tabs".*?</nav>', view, re.S)[0]
+    assert all(f'data-web-tab="{key}"' in tabs for key in ('files', 'uploads', 'domains'))
+    assert 'display:none' not in tabs and ' hidden' not in tabs
+    assert 'id="web-filegator"' in view
+    assert 'class="web-workspace" style="display:none"' in view

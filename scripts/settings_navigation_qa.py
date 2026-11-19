@@ -82,6 +82,7 @@ def assert_layout(page, width, path):
 def audit_navigation(page, base, widths=WIDTHS):
     rows = []
     errors = []
+    filegator_seen = False
     def on_error(error):
         # Only counts/categories are exported; never page text or device values.
         errors.append(type(error).__name__)
@@ -95,6 +96,8 @@ def audit_navigation(page, base, widths=WIDTHS):
                 assert response.status == 200, (path, width, response.status)
                 page.wait_for_timeout(120)
                 assert_layout(page, width, path)
+                if path == '/website':
+                    filegator_seen = filegator_seen or bool(page.locator('#web-filegator').count())
                 rows.append({'path': path, 'width': width, 'overflow': False})
             # Switch siblings and parents from a child, without visiting the hub.
             for group, item, expected in [('sim', 'ussd', '/modem/ussd'),
@@ -132,6 +135,7 @@ def audit_navigation(page, base, widths=WIDTHS):
         assert reads['mutations_blocked'] == 0, reads
         return {'layouts': len(rows), 'landscape_widths': len(widths),
                 'widths': widths, 'navigation': 'PASS', 'website_tabs': 'PASS',
+                'filegator_layout_seen': filegator_seen,
                 'javascript_errors': len(errors), **reads}
     finally:
         page.remove_listener('pageerror', on_error)
