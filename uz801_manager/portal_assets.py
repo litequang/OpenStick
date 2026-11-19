@@ -24,8 +24,11 @@ def version_filegator_html(data, versions):
     def replace(match):
         name=match['name'].removeprefix('./')
         version=versions.get(name)
-        return match[0] if not version else match['prefix']+match['name']+'?v='+version+match['quote']
-    return re.sub(r'(?P<prefix>\b(?:src|href)=(?P<quote>["\x27]))(?P<name>(?:\./)?(?:js|css)/[A-Za-z0-9_.-]+)(?P=quote)',replace,data)
+        quote=match['quote'] or '"'
+        return match[0] if not version else match['prefix']+quote+match['name']+'?v='+version+quote
+    # The installed FileGator emits ?<filemtime>, sometimes without quotes.
+    # Replace only that numeric cachebuster, never an arbitrary query/token.
+    return re.sub(r'(?P<prefix>\b(?:src|href)\s*=\s*)(?P<quote>["\x27])?(?P<name>(?:\./)?(?:js|css)/[A-Za-z0-9_.-]+)(?:\?[0-9]+)?(?(quote)(?P=quote)|(?=[\s>]))',replace,data)
 
 
 def install_assets(app):

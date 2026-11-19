@@ -182,7 +182,7 @@ def test_plain_filegator_bundle_urls_are_versioned_without_caching_private_html(
         def __init__(self,*a,**kw):pass
         def request(self,method,path,**kw):self.path=path
         def getresponse(self):
-            reply=io.BytesIO(b'<script src="js/app.js"></script>' if self.path=='/' else b'public code')
+            reply=io.BytesIO(b'<script src="js/app.js?1794887265"></script>' if self.path=='/' else b'public code')
             reply.status=200;reply.getheaders=lambda:[('Content-Type','text/html' if self.path=='/' else 'application/javascript')]
             return reply
         def close(self):pass

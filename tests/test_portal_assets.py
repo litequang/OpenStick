@@ -42,3 +42,12 @@ def test_filegator_cache_allowlist_excludes_api_downloads_and_nonfingerprinted_a
     assert fingerprinted_filegator_asset('fonts/icon.1234abcd.woff2')
     for name in ['','index.html','js/app.js','js/../../app.1234abcd.js','configuration.php','js/config.1234abcd.php']:
         assert not fingerprinted_filegator_asset(name)
+
+
+def test_filegator_numeric_cachebusters_and_unquoted_attributes_are_replaced_only_for_known_bundles():
+    from uz801_manager.portal_assets import version_filegator_html
+    source='<link href=css/app.css?123 rel=stylesheet><script src="js/app.js?456"></script><script src="js/app.js?token=private"></script><script src="js/unknown.js?789"></script>'
+    result=version_filegator_html(source,{'css/app.css':'csshash','js/app.js':'jshash'})
+    assert 'href="css/app.css?v=csshash"' in result
+    assert 'src="js/app.js?v=jshash"' in result
+    assert 'js/app.js?token=private' in result and 'js/unknown.js?789' in result
