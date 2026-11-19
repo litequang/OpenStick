@@ -18,15 +18,15 @@
 .settings-nav a{flex:1 0 auto;min-height:44px;display:grid;place-items:center;padding:10px 14px;border-radius:10px;text-decoration:none;font-size:13px;font-weight:650;color:#b5c5da!important}
 .settings-nav a:hover{background:#253146;color:#fff!important}
 .settings-nav a[aria-current=page]{background:#284870;color:#dcecff!important;box-shadow:inset 0 0 0 1px #426b9d}
-main:has(.settings-nav){max-width:1060px!important}
-main:has(.settings-nav) :is(input:not([type=checkbox]),select,textarea){width:100%;min-width:0;min-height:46px;border:1px solid #465369;border-radius:10px;padding:11px 12px;font:inherit}
-main:has(.settings-nav) :is(button,a,input,select,summary):focus-visible{outline:3px solid #92c5ff;outline-offset:3px}
-main:has(.settings-nav) :is(.check,.checkline){display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid #354054;border-radius:10px;background:#171d28;line-height:1.6}
-main:has(.settings-nav) input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;margin:3px 0 0}
-main:has(.settings-nav) :is(label,summary){line-height:1.6}
-main:has(.settings-nav) :is(section,details,[id]){scroll-margin-top:24px}
-main:has(.settings-nav) :is(button:disabled,input:disabled,select:disabled){cursor:not-allowed}
-main:has(.settings-nav) :is(.setup-feedback,.notice,[role=status]){overflow-wrap:anywhere}
+main:has(.settings-workspace){max-width:1060px!important}
+main:has(.settings-workspace) :is(input:not([type=checkbox]),select,textarea){width:100%;min-width:0;min-height:46px;border:1px solid #465369;border-radius:10px;padding:11px 12px;font:inherit}
+main:has(.settings-workspace) :is(button,a,input,select,summary):focus-visible{outline:3px solid #92c5ff;outline-offset:3px}
+main:has(.settings-workspace) :is(.check,.checkline){display:flex;align-items:flex-start;gap:12px;padding:12px;border:1px solid #354054;border-radius:10px;background:#171d28;line-height:1.6}
+main:has(.settings-workspace) input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;margin:3px 0 0}
+main:has(.settings-workspace) :is(label,summary){line-height:1.6}
+main:has(.settings-workspace) :is(section,details,[id]){scroll-margin-top:24px}
+main:has(.settings-workspace) :is(button:disabled,input:disabled,select:disabled){cursor:not-allowed}
+main:has(.settings-workspace) :is(.setup-feedback,.notice,[role=status]){overflow-wrap:anywhere}
 .settings-local-nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
 .settings-local-nav a{padding:8px 12px;min-height:44px;border-radius:9px;border:1px solid #364257;text-decoration:none;font-size:13px;display:flex;align-items:center}
 .settings-connection{background:linear-gradient(120deg,#1a2b3a,#1d2530)!important;border-color:#39556d;display:grid;grid-template-columns:minmax(160px,1fr) 2fr;gap:8px 24px}
@@ -47,12 +47,12 @@ main:has(.settings-nav) :is(.setup-feedback,.notice,[role=status]){overflow-wrap
 @media(max-width:620px){
  .settings-nav{gap:4px;padding:6px;margin:14px 0 20px}.settings-nav a{flex-basis:29%;padding:9px 6px;font-size:12px}
  .settings-connection{grid-template-columns:1fr;gap:14px}
- main:has(.settings-nav) .page-title{align-items:flex-start}
- main:has(.settings-nav) .page-title h1{font-size:23px!important;line-height:1.3}
+ main:has(.settings-workspace) .page-title{align-items:flex-start}
+ main:has(.settings-workspace) .page-title h1{font-size:23px!important;line-height:1.3}
  .settings-actions>button{flex:1 1 180px}
- main:has(.settings-nav) section{padding:16px!important}
+ main:has(.settings-workspace) section{padding:16px!important}
 }
-@media(prefers-reduced-motion:reduce){main:has(.settings-nav) *{scroll-behavior:auto!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){main:has(.settings-workspace) *{scroll-behavior:auto!important;transition:none!important}}
 
 .quick-shortcuts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 .quick-shortcuts a{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;box-sizing:border-box;padding:10px 14px;border:1px solid #43566e;border-radius:12px;background:#202a39;color:#dcecff;text-decoration:none;font-size:13px;overflow-wrap:anywhere}
@@ -111,3 +111,86 @@ main:has(> .settings-workspace)>.settings-nav a{flex:1 0 auto;min-width:max-cont
 /* Keep hash-targeted settings panels visible below header + parent tabs. */
 .settings-workspace-content [id]{scroll-margin-top:158px!important}
 @media(max-width:759px){.settings-workspace-content [id]{scroll-margin-top:145px!important}}
+
+/* Unified management tree V4: the exact same group data serves the 2x2
+   hub and persistent detail navigation. No extra parent-tab bar. */
+.settings-category-tree{min-width:0}
+.settings-category-tree--hub{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 22px;align-items:start}
+.settings-category-tree--sidebar{display:grid;gap:9px}
+.settings-category{min-width:0;overflow:hidden;border:1px solid #39485e;border-radius:16px;background:#1c2430;color:#eaf1fc}
+.settings-category-header{display:flex;align-items:center;gap:12px;min-height:66px;padding:17px 18px;cursor:pointer;list-style:none;user-select:none}
+.settings-category-header::-webkit-details-marker{display:none}
+.settings-category-header:focus-visible{outline:3px solid #8ec3ff;outline-offset:-4px}
+.settings-category-header:hover{background:#26364a}
+.settings-category-symbol{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:11px;border:1px solid #476585;background:#24384f;color:#9cc9fa;font-size:22px}
+.settings-category-copy{display:grid;gap:4px;flex:1;min-width:0}
+.settings-category-copy strong{font-size:17px;line-height:1.25;color:#f0f5ff}
+.settings-category-copy small{font-size:11px;color:#afc3dc;font-weight:400;line-height:1.4;overflow-wrap:anywhere}
+.settings-category-chevron{font-size:23px;flex:none;color:#a4c7ef;transition:transform .18s ease}
+.settings-category[open]>.settings-category-header>.settings-category-chevron{transform:rotate(180deg)}
+.settings-category-items{padding:0 18px 14px}
+.settings-category-item{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:57px;border-top:1px solid #344358;color:#eef4ff!important;text-decoration:none;padding:12px 4px;line-height:1.3}
+.settings-category-item:first-child{border-top:0}
+.settings-category-item>span:first-child{min-width:0}
+.settings-category-item strong{display:block;color:inherit;font-size:13px;font-weight:700}
+.settings-category-item small{display:block;margin-top:4px;color:#abbfd8;font-size:11px;line-height:1.45}
+.settings-category-arrow{font-size:22px;color:#9fcfff}
+.settings-category-item:hover,.settings-category-item:focus-visible{border-radius:8px;background:#2a3d54;padding-left:10px;outline:2px solid #9acaff;outline-offset:1px}
+.settings-category-item[aria-current=page]{color:#c0dcff!important;background:#28486b;border-radius:9px;padding-left:10px}
+.settings-category-tree--sidebar .settings-category-header{padding:11px 13px;min-height:56px;gap:9px}
+.settings-category-tree--sidebar .settings-category-symbol{width:31px;height:31px;font-size:17px;border-radius:9px}
+.settings-category-tree--sidebar .settings-category-copy strong{font-size:13px}
+.settings-category-tree--sidebar .settings-category-copy small{font-size:10px;line-height:1.3}
+.settings-category-tree--sidebar .settings-category-items{padding:0 10px 10px}
+.settings-category-tree--sidebar .settings-category-item{min-height:42px;padding:9px 10px}
+.settings-category-tree--sidebar .settings-category-item strong{font-size:12px;font-weight:600}
+.settings-category-tree--sidebar .settings-category-arrow{font-size:17px}
+.settings-workspace{display:grid;grid-template-columns:minmax(250px,270px) minmax(0,1fr);gap:20px;align-items:start;margin-top:14px}
+.settings-navigation{min-width:0;position:sticky;top:91px;max-height:calc(100dvh - 108px);overflow:auto;scrollbar-width:thin}
+.settings-navigation-drawer{border:0;margin:0}
+.settings-navigation-trigger{display:none}
+.settings-workspace-content{min-width:0}
+.settings-workspace-content>.page-title:first-child{margin-top:2px}
+.settings-workspace-content :is(.manage-layout,.setup-panel-grid){min-width:0}
+.settings-workspace-content :is(.web-workspace,.web-metrics){min-width:0}
+.settings-workspace-content :is(input,textarea,select){max-width:100%}
+.settings-workspace-content [id]{scroll-margin-top:95px!important}
+.settings-workspace-content .settings-local-nav{display:none}
+.settings-workspace-content section{min-width:0}
+.manage-page>.settings-category-tree--hub{margin-top:23px}
+.manage-page>.manage-security-section{max-width:100%;margin-top:10px}
+main:has(.settings-workspace){max-width:1270px!important}
+@media(max-width:1100px){
+  .settings-workspace{grid-template-columns:205px minmax(0,1fr);gap:13px}
+  .settings-category-tree--sidebar .settings-category-header{padding:10px 9px}
+  .settings-category-tree--sidebar .settings-category-items{padding:0 6px 8px}
+  .settings-category-tree--sidebar .settings-category-copy strong{font-size:12px}
+  .settings-category-tree--sidebar .settings-category-item{padding:9px 7px}
+  .settings-workspace-content .web-workspace{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:759px){
+  .settings-category-tree--hub{grid-template-columns:minmax(0,1fr);gap:10px}
+  .settings-category-tree--hub .settings-category-header{min-height:60px;padding:14px}
+  .settings-category-tree--hub .settings-category-items{padding:0 14px 12px}
+  .settings-workspace{display:block;margin-top:10px}
+  .settings-navigation{position:sticky;top:79px;max-height:none;overflow:visible;z-index:35;margin-bottom:14px}
+  .settings-navigation-drawer{border:1px solid #466383;border-radius:14px;background:#1b2a3b;box-shadow:0 7px 18px #0004}
+  .settings-navigation-trigger{display:flex;min-height:53px;align-items:center;justify-content:space-between;gap:10px;padding:10px 13px;list-style:none;cursor:pointer}
+  .settings-navigation-trigger::-webkit-details-marker{display:none}
+  .settings-navigation-trigger span{color:#a7c9f0;font-size:11px;font-weight:600}
+  .settings-navigation-trigger strong{color:#f1f7ff;font-size:13px;text-align:right}
+  .settings-navigation-trigger::after{content:'⌄';font-size:18px;color:#a7c9f0}
+  .settings-navigation-drawer[open] .settings-navigation-trigger::after{content:'⌃'}
+  .settings-navigation-drawer>.settings-category-tree{max-height:60dvh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:0 8px 9px}
+  .settings-navigation-drawer .settings-category{border-radius:11px}
+  .settings-workspace-content [id]{scroll-margin-top:143px!important}
+  .settings-workspace-content :is(.manage-layout,.setup-panel-grid){grid-template-columns:minmax(0,1fr)}
+  .settings-workspace-content :is(.web-workspace,.web-metrics){min-width:0}
+}
+@media(max-width:420px){
+  .settings-category-tree--hub .settings-category-item{min-height:50px}
+  .settings-category-tree--hub .settings-category-header strong{font-size:15px}
+  .settings-navigation-trigger{flex-wrap:wrap;justify-content:flex-start}
+  .settings-navigation-trigger strong{text-align:left}
+}
+@media(prefers-reduced-motion:reduce){.settings-category-chevron{transition:none}}
