@@ -1,6 +1,6 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-19 latest: nonblocking telemetry implementation, pending installation
+## 2026-11-19 latest: nonblocking telemetry installed and measured
 
 Owner said to implement the performance improvements. Read
 [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md). Added single-flight asynchronous,
@@ -13,15 +13,37 @@ no new daemon, runtime dependency, interface or provisioning change.
 781 tests PASS/one Windows symlink skip, exit 0; pip/self-test/JS PASS. Additional
 browser checks include pending header vs independent metrics, lazy services and
 editing before a late Wi-Fi response. Existing Quick/usage/power preview checks
-are separate from real hardware acceptance. Installed source remains `045ff7e`
-until deployment evidence is recorded. No real reboot/poweroff command is tested.
+are separate from real hardware acceptance. Installed source is
+`461e913ca43f87e549a490472f4899a72d5af235`. Both
+[development CI](https://github.com/litequang/OpenStick/actions/runs/44447183373)
+and [main CI](https://github.com/litequang/OpenStick/actions/runs/44447183537)
+passed, including EXE build/self-test/smoke. No real reboot/poweroff command is tested.
 
 Five real pre-install Chrome runs: first data 7.640/17.951/21.103/12.766/14.359s,
-median 14.359s; DOM median 0.281s. No radio/network mutation was sent. Do not claim
-post-change speed from these baseline samples or synthetic tests. Verify source,
-GET telemetry, protected owner hashes/network/routes/firewall and counters after
-installation, then repeat the same five-browser-context benchmark. Private
-rollback/timing/SSH helpers stay ignored. Unrelated untracked files stay intact.
+median 14.359s; DOM median 0.281s. Five post-install runs: first data
+1.752/0.156/0.148/0.157/0.155s, median 0.156s; DOM median 0.121s. Quick controls
+median 14.371s before vs 0.168s after; first post-install run took 3.636s. Median
+requests until ready fell from 16 to nine. Later runs reuse server samples fresh
+within five seconds; these are not cold boots or fresh hardware reads in 0.156s.
+No browser JavaScript errors. See the telemetry report for every run and limits.
+
+Deployment plus independent verification matched all 13 source/UI hashes and
+served assets, live GETs/age metadata, independent Overview metrics and running
+ModemManager. Power was ready/IDLE, no queue/receipts; worker heartbeat and SIM
+samples advanced, private checkpoint remained valid. Protected owner hashes,
+active network, routes and firewall matched before/after; services ran and sync
+completed. Only USB/LAN portal services restarted; startup/usage/power worker kept
+running. No network/radio/data/AP/profile/gadget change, SMS/USSD, reboot or
+poweroff. Rollback sources: `deploy-backups/portal-performance-*` privately.
+
+Five groups of six concurrent GETs took 0.334–2.503s; Manage/CSS reached 2.478s.
+Telemetry 503 denotes a pending sample. Do not claim every real response is under
+one second; the blocked-producer sub-second result is a fixture. Samples became
+fresh again after load. Ten-second resource sample: no swap-in/out/major faults,
+about 165 MiB used zram, other swap zero; ten Python processes about 149 MiB summed
+RSS (shared pages included), 5.2% of one CPU core. No RAM reduction claim.
+Private timing/SSH helpers stay ignored; unrelated untracked files stay intact.
+The sections below record earlier states, not the current installed source.
 
 ## 2026-11-19 latest: header power, service truth and performance audit
 

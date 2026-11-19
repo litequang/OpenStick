@@ -1,12 +1,17 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**19/11/2026 — đang tối ưu telemetry theo yêu cầu chủ; chưa cài bản này.**
+**19/11/2026 — đã cài tối ưu telemetry và đo trước/sau trên USB thật.**
 Đọc [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md) và đầu HANDOFF. GET snapshot có
 producer nền giới hạn/TTL, gộp đọc trùng, metric không chờ modem, dịch vụ chỉ đọc
 khi mở mục kỹ thuật. Không cache kiểm tra trước thao tác hoặc tự gửi lại POST.
-781 PASS/1 Windows skip, pip/self-test/JS PASS. Bản đang cài vẫn `045ff7e` cho tới
-ghi nhận deployment mới. Đã đo 5 lượt trước: trung vị số liệu đầu 14,359 giây.
-Không dùng số sau tối ưu khi chưa đo thật; không đổi mạng hoặc thử nguồn để đo.
+Source đang cài `461e913`, CI hai nhánh PASS; 781 PASS/1 Windows skip, pip/self-test/JS
+PASS. Hash đủ 13 file/API/asset thật đạt; cấu hình riêng/mạng/route/firewall giữ
+nguyên, worker nguồn/usage vẫn tiến, sync xong. Năm lượt Chrome trước/sau: trung
+vị số liệu đầu 14,359 → 0,156 giây, lượt đầu sau cài 1,752 giây. Các lượt sau dùng
+mẫu còn mới trong 5 giây, không phải đọc lại phần cứng trong 0,156 giây. Sáu GET
+đồng thời vẫn có lượt 2,503 giây; chưa cam kết mọi thao tác dưới 1 giây. Chỉ restart
+portal USB/LAN; không đổi mạng, radio, AP, gadget, reboot hoặc thử nút nguồn thật.
+Các mục bên dưới là lịch sử; dùng trạng thái đầu tài liệu và HANDOFF làm hiện tại.
 
 **19/11/2026 — đã cài trạng thái ModemManager đúng và menu nguồn trên header.**
 Đọc đầu HANDOFF và [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md).

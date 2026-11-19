@@ -1,8 +1,10 @@
 # Portal performance audit — 2026-11-19
 
-**Cập nhật:** chủ đã yêu cầu thực hiện tối ưu. Mã mới và cách kiểm thử được ghi
-tại [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md). Xem đầu HANDOFF để biết đã cài/đo
-sau thay đổi hay chưa; các đoạn “chưa triển khai” bên dưới mô tả thời điểm audit.
+**Cập nhật:** đã cài source `461e913`, CI hai nhánh PASS. Năm lượt Chrome trên USB
+thật cho trung vị số liệu Tổng quan 14,359 → 0,156 giây; lượt đầu sau cài 1,752 giây.
+Các lượt sau dùng mẫu còn mới tối đa 5 giây. Báo cáo đầy đủ, giới hạn tải đồng thời
+và xác minh cài đặt ở [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md), đầu HANDOFF.
+Phần còn lại dưới đây là audit trước tối ưu; “chưa triển khai” là trạng thái lịch sử.
 
 ## Kết luận từ USB thật
 
