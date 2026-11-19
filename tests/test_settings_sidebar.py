@@ -61,7 +61,7 @@ def test_child_link_anchors_exist_in_destination_templates():
                        'usb-ap-settings','ap-clients','setup-status-panel'],
         'internet.html':['policy-form','internet-manual'],
         'hotspot.html':['hotspot-config','hotspot-pending'],
-        'leds.html':['led-theme-picker','led-network-form','led-form'],
+        'leds.html':['led-theme-picker','led-network-form','led-form','led-fixed-panel'],
         'manage.html':['manage-wifi','manage-sim','manage-device'],
         'quick.html':['quick-airplane','quick-data','quick-receive','quick-ap','quick-usb'],
     }
