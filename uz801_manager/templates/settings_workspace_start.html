@@ -1,55 +1,15 @@
-{# OpenStick settings workspace. Top category nav is provided by portal_chrome.html.
-   Every settings page shares the same sibling menu, even after a full navigation. #}
-{% set active_view = settings_view|default(page|default('manage')) %}
-{% set group = 'wifi' if page in ['wifi','setup'] else 'internet' if page == 'internet' else 'hotspot' if page == 'hotspot' else 'network' if page == 'network' else 'leds' if page == 'leds' else 'quick' if page == 'quick' else 'manage' %}
-{% set features = portal_settings_features|default({'wifi':true,'network':true,'internet':true,'hotspot':true,'leds':true}) %}
-{% if group == 'wifi' %}
-  {% set group_title = 'Wi-Fi' %}
-  {% set items = [('wifi-home','Kết nối hiện tại','/setup'),('connect','Kết nối Wi-Fi','/setup#setup-connect-pane'),('saved','Wi-Fi đã lưu','/setup#saved-wifi'),('ap','Wi-Fi USB phát','/setup#usb-ap-settings'),('clients','Thiết bị kết nối','/setup#ap-clients'),('recovery','Khôi phục Wi-Fi','/setup#setup-status-panel')] %}
-{% elif group == 'internet' %}
-  {% set group_title = 'Internet' %}
-  {% set items = [('internet','Nguồn Internet','/internet'),('policy','Chính sách ưu tiên','/internet#policy-form'),('manual','Điều khiển thủ công','/internet#internet-manual')] %}
-{% elif group == 'hotspot' %}
-  {% set group_title = 'Phát Wi-Fi' %}
-  {% set items = [('hotspot','Trạng thái điểm phát','/hotspot'),('hotspot-config','Cấu hình điểm phát','/hotspot#hotspot-config'),('hotspot-apn','APN và nguồn mạng','/hotspot#sim-apn')] %}
-{% elif group == 'network' %}
-  {% set group_title = 'Mạng SIM' %}
-  {% set items = [('network','Tình trạng và chế độ sóng','/modem/network')] %}
-  {% if features.get('hotspot') %}{% set items = items + [('apn','Cấu hình APN','/sim/apn')] %}{% endif %}
-{% elif group == 'leds' %}
-  {% set group_title = 'Đèn LED' %}
-  {% set items = [('leds','Tùy chỉnh LED','/settings/leds'),('theme','Bộ phong cách','/settings/leds#led-theme-picker'),('rules','Theo trạng thái mạng','/settings/leds#led-network-form'),('fixed','Chế độ cố định','/settings/leds#led-fixed-panel')] %}
-{% elif group == 'quick' %}
-  {% set group_title = 'Cài đặt nhanh' %}
-  {% set items = [('quick','Bảng điều khiển','/quick'),('airplane','Chế độ máy bay','/quick#quick-airplane'),('data','Dữ liệu SIM','/quick#quick-data'),('wifi','Nhận Wi-Fi','/quick#quick-receive'),('ap','Phát Wi-Fi','/quick#quick-ap'),('usb','USB tethering','/quick#quick-usb')] %}
-{% else %}
-  {% set group_title = 'Cài đặt' %}
-  {% set items = [('manage','Tất cả cài đặt','/manage')] %}
-  {% if features.get('wifi') %}{% set items = items + [('wifi','Wi-Fi','/manage#manage-wifi')] %}{% endif %}
-  {% if features.get('network') %}{% set items = items + [('sim','SIM & Internet','/manage#manage-sim')] %}{% endif %}
-  {% set items = items + [('device','Thiết bị & dịch vụ','/manage#manage-device')] %}
-  {% if portal_has_power %}{% set items = items + [('system','Hệ thống','/settings/system')] %}{% endif %}
-  {% if can_manage_lan|default(false) or lan_session|default(false) %}{% set items = items + [('access','Truy cập quản trị','/manage#manage-access')] %}{% endif %}
-{% endif %}
+{# One settings shell on all detail pages. The same four-category menu is
+   rendered as cards on /manage and as a persistent rail here. #}
 <script src="/static/settings_sidebar.js" defer></script>
-<div class="settings-workspace" data-settings-group="{{ group }}">
-  <aside class="settings-submenu" aria-label="Menu con của {{ group_title }}">
-    <div class="settings-submenu-desktop">
-      <p class="settings-submenu-eyebrow">MENU CON</p>
-      <h2 class="settings-submenu-title">{{ group_title }}</h2>
-      <nav class="settings-submenu-links" aria-label="Các mục {{ group_title }}">
-        {% for key,label,href in items %}
-        <a href="{{ href }}" data-settings-link="{{ key }}">{{ label }}</a>
-        {% endfor %}
-      </nav>
-    </div>
-    <details class="settings-submenu-mobile" id="settings-submenu-toggle">
-      <summary><span>Trong {{ group_title }}</span><strong id="settings-current-item">Chọn mục cài đặt</strong></summary>
-      <nav class="settings-submenu-links" aria-label="Các mục {{ group_title }} trên điện thoại">
-        {% for key,label,href in items %}
-        <a href="{{ href }}" data-settings-link="{{ key }}">{{ label }}</a>
-        {% endfor %}
-      </nav>
+<div class="settings-workspace" data-settings-workspace="true">
+  <aside class="settings-navigation" aria-label="Các mục quản lý USB">
+    <details class="settings-navigation-drawer" id="settings-submenu-toggle" open>
+      <summary class="settings-navigation-trigger">
+        <span>Danh mục cài đặt</span>
+        <strong id="settings-current-item">Chọn chức năng</strong>
+      </summary>
+      {% set menu_mode = 'sidebar' %}
+      {% include 'settings_menu.html' %}
     </details>
   </aside>
   <div class="settings-workspace-content">
