@@ -89,7 +89,7 @@ def test_critical_existing_actions_remain_in_their_original_pages():
         "setup.html": ["setup-connect", "saved-wifi", "usb-ap-settings", "ap-clients"],
         "internet.html": ["policy-form", "internet-manual"],
         "hotspot.html": ["hotspot-status", "hotspot-config"],
-        "modem.html": ["radio-mode", "ussd-state"],
+        "modem.html": ["radio-mode"],
         "cellular.html": ["cellular-form", "cellular-profiles"],
         "website.html": ["web-pane-files", "web-pane-uploads", "web-pane-domains"],
         "leds.html": ["led-network-form", "led-fixed-panel"],
@@ -99,6 +99,7 @@ def test_critical_existing_actions_remain_in_their_original_pages():
         "device_power.html": ["power-open-controls"],
         "manage.html": ["manage-access", "saved-wifi", "lan-manage"],
     }
+    assert 'id="ussd-state"' in render("modem.html", "ussd")
     for name, ids in checks.items():
         page = (
             "network" if name in ("modem.html", "cellular.html")
