@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — đã rà hiệu năng toàn USB, chưa cài tối ưu mới.**
+Đọc [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
+Source vẫn `06d151a`, cùng nhánh UI/PR #7. Đo USB thật: RAM khả dụng 114–142 MiB
+trong lượt mở ba màn, CPU trung bình tổng bốn lõi 17,12%; zram thực dùng 51,5 MiB,
+không có swap đĩa. Nút thắt File Manager: inventory 4,793 s trước navbar 5,882 s;
+profile xác nhận listing 676 mục chiếm 3,494/3,505 s, metadata đơn thuần dưới 1 ms.
+Ưu tiên metadata nhẹ, asset version/cache, giảm đọc/polling thụ động và giới hạn log.
+Package đồ họa/âm thanh là ứng viên giảm dung lượng đĩa, chưa đủ bằng chứng gỡ an toàn;
+không được coi dung lượng LLVM/Mesa là RAM đang dùng. Giữ dịch vụ mạng, FileGator,
+mDNS/NTP, worker recovery; chưa hợp nhất portal hoặc xóa fallback. Không đổi runtime,
+package, mạng hay reboot. Kiểm tra cuối: 32 source/717 file bảo vệ và trạng thái mạng
+giữ nguyên, không pending. Đây là audit ngắn, chưa benchmark tải nặng/soak hoặc sau sửa.
+
 **19/11/2026 — đã gộp Phát Wi-Fi và nhúng FileGator.**
 Source đang cài `06d151aacec526ef9acf7562365b62a7b33d3bd5`, cùng nhánh UI/PR #7,
 chưa merge/release. Đọc [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).

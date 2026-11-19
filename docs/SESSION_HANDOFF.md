@@ -1,5 +1,37 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: read-only whole-device performance review completed
+
+Read [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
+Installed source remains `06d151a`, same UI branch/PR #7, no merge/release. Current
+request was to review speed/smoothness and excess components, not silently remove
+services. No optimization or package/network/configuration change was installed.
+
+Real USB 10.48-second background and 75.59-second mixed-browser samples: available
+RAM 114–142 MiB in the latter, CPU 17.12% averaged over four cores, zram physical
+allocation 51.5 MiB, no disk swap. Short samples do not establish absence of leaks
+or long-term pressure. FileGator first ready 5.882 seconds; site inventory alone
+4.793 seconds. Separate read-only profile: 676 entries, listing 3.494 of 3.505
+seconds; registry metadata/revision under 1 ms. This scans metadata/path safety,
+not file contents. Keep write validation; make selector inventory lightweight.
+
+Other proposals: version/cache public assets only, stale display with bounded
+refresh/backoff, reduce repeated passive NM/MM subprocesses, bounded log rotation.
+Current services already include telemetry caching/coalescing; do not claim those
+as absent. Graphic/audio packages are disk-trimming candidates, not measured RAM
+waste; reverse dependencies were read, no removal transaction/boot verified.
+Keep FileGator, network/modem/recovery, Avahi and chronyd. Two portal processes
+have distinct trust boundaries; consolidation savings are estimates, not tested.
+
+All completed probes exit 0, Chrome read guard zero mutations/JS errors on three
+screens, no screenshot/private response export. Final read-only integrity check:
+32 installed source hashes and 717 protected owner files unchanged; network,
+routes, firewall, DNS, gadget and services match deployment baseline, no pending
+operation. No mutating hardware tests/actions, reboot, package install/remove or source
+change; no unit-suite rerun for this docs-only review. Raw artifacts stay ignored.
+Public Tunnel issue remains separate and unrepaired. See the report for tradeoffs
+and acceptance criteria before choosing the next implementation scope.
+
 ## 2026-11-19 latest: consolidated AP and embedded FileGator installed
 
 Installed source **`06d151aacec526ef9acf7562365b62a7b33d3bd5`**, same UI branch/PR
