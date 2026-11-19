@@ -25,7 +25,7 @@
    const frame=el('web-filegator-frame');
    if(frame.getAttribute('src')!==path){
     el('web-filegator-status').textContent='Đang mở trình quản lý file…';
-    frame.onload=()=>{let ready=false;try{ready=!!frame.contentDocument?.querySelector('#app')}catch(_){}
+    frame.onload=()=>{let ready=false;try{ready=!!frame.contentDocument?.querySelector('#app,.navbar')}catch(_){}
      el('web-filegator-status').textContent=ready?'':'Chưa mở được FileGator. Kiểm tra kết nối/đăng nhập hoặc chọn Mở riêng; không tự gửi lại thao tác file.';};
     frame.src=path;frame.hidden=false;
    }
