@@ -46,3 +46,25 @@ read directory metadata; it must not modify owner files. No real upload, unzip,
 delete, rename, network or power action is required to accept this UI change.
 The handoff records exact installed source, CI, test counts and real-device
 acceptance separately from mocked browser interactions.
+
+## Installed acceptance
+
+Final source `06d151aacec526ef9acf7562365b62a7b33d3bd5`, same UI branch/PR #7,
+not merged/released. Both final-source CI workflows passed:
+[push](https://github.com/litequang/OpenStick/actions/runs/44485344869),
+[PR](https://github.com/litequang/OpenStick/actions/runs/44485355793).
+Local suite: 790 PASS/one Windows symlink skip, exit 0. Preview: 160 layouts/eight
+landscape cases/24 existing interactions, delayed iframe/site-switch fixtures
+and consent/no-replay tests passed. Real USB navigation passed the same 160/eight
+cases on the initial consolidated source. The final source loaded actual
+FileGator at all eight widths without a second login or JS error; both old AP
+routes redirect. No browser asset override was used for final acceptance.
+
+Independent verification matched all 32 V4 source/asset hashes, 717 protected
+files, metadata, network/firewall/routes/DNS/gadget, services, advancing power/
+usage workers, private usage checkpoint and 20 authenticated WLAN-bound routes.
+Checksummed private source archives exist; storage flushed, no rollback needed.
+Only portal listeners restarted. No real owner file write/upload/unzip,
+network/radio/power action or physical phone session was tested. The iframe
+loading-error checks initially failed despite a working child UI; the final
+bounded asynchronous mount fixture and real installed check passed.

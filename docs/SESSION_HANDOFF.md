@@ -1,5 +1,56 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: consolidated AP and embedded FileGator installed
+
+Installed source **`06d151aacec526ef9acf7562365b62a7b33d3bd5`**, same UI branch/PR
+#7, no merge/release. Read [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).
+One Phát Wi-Fi menu at `/setup/ap` now combines identity, fallback, connection
+card, hotspot status and guidance. Old `/hotspot` and `/setup/recovery` redirect;
+software without setup retains its standalone hotspot page. Legacy pending-trial
+completion/rollback and all action APIs/confirmations remain. Embedded status
+reads on open/refresh and polls only pending trials, avoiding another idle poll.
+
+File manager automatically loads FileGator in a same-origin frame; optional
+Mở riêng remains. Site changes require confirmation; inventory refresh preserves
+the current frame. Only FileGator responses permit same-origin ancestors and
+only wrapper URLs permit self frames; other portal pages keep DENY. Existing
+LAN/Host/Origin/session/CSRF/fixed-root/chunk/ZIP guards are unchanged. No package
+or FileGator upstream source was replaced. Read-only QA includes a FileGator
+action allowlist and blocks file mutations before sending them.
+
+790 local tests PASS/one Windows symlink skip, exit 0; Node/pip/self-test PASS.
+Both final-source Windows workflows PASS, including EXE build/self-test/smoke:
+[push](https://github.com/litequang/OpenStick/actions/runs/44485344869),
+[PR](https://github.com/litequang/OpenStick/actions/runs/44485355793).
+Preview navigation: 160 layouts/eight landscape/24 interaction checks PASS;
+fictional metadata tests retain cancellation/no-replay and test delayed iframe
+mount/site switching/no iframe reload on inventory refresh. These are fixtures.
+
+Real USB at initial consolidated source `90a8cae`: 160 layouts/eight landscape
+PASS, no JS error or attempted mutation. Final installed source: actual upstream
+FileGator navbar loaded inside the frame at eight widths, no second login,
+same-origin headers verified, both old AP URLs redirect correctly; nine FileGator
+read requests, zero writes/power/network actions, no screenshot or trace saved.
+Candidate browser asset override was tested before CI, then repeated against the
+installed asset with override explicitly OFF. Vue replaces its initial root and
+mounts after document load; early tests caught a false loading-error notice.
+The final controller observes mounted DOM boundedly without HTTP/action replay.
+Do not claim the two failed readiness checks were full device PASS.
+
+Thirteen portal files then two one-asset corrections installed with private
+checksummed source/metadata backups. Final independent verification: all 32 V4
+source hashes/assets, 717 protected owner files, ownership/modes, network/routes/
+firewall/DNS/gadget and service state match. Worker and usage advance, checkpoint
+private/valid, 20 authenticated WLAN-bound GET routes and existing auth/USB-only
+permissions PASS; no operation pending, sync done. No rollback/reboot, real file
+write/upload/unzip, radio/data/AP/tethering/LED/SMS/USSD action or phone acceptance.
+Public Tunnel's separately recorded 530 problem was not repaired or declared
+working by this UI change. Unrelated untracked files remain untouched.
+
+Owner now requests a whole-device performance/redundancy audit. Measure current
+CPU/PSS/RAM/swap, daemons, polling and real read latencies, then propose savings
+and tradeoffs; do not silently remove services or owner data for an audit.
+
 ## 2026-11-19 latest: dedicated child screens installed
 
 Installed source: **`61125aa3dab81001232ab862679fe9bba669645e`** on

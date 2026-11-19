@@ -1,5 +1,21 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — đã gộp Phát Wi-Fi và nhúng FileGator.**
+Source đang cài `06d151aacec526ef9acf7562365b62a7b33d3bd5`, cùng nhánh UI/PR #7,
+chưa merge/release. Đọc [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).
+Chỉ còn menu Phát Wi-Fi `/setup/ap`; `/hotspot` và `/setup/recovery` chuyển về
+đây. File manager tự mở FileGator trong khung, không cần bấm thêm; Mở riêng là
+tùy chọn. Giữ xác nhận, cấu hình, phiên cũ và giới hạn bảo mật cùng origin.
+790 PASS/1 Windows skip, hai CI source cuối PASS; USB thật: 160 layout + 8 ngang
+ở bản gộp, bản cuối mở FileGator thật ở 8 kích thước, không đăng nhập lần hai,
+không lỗi JS/thao tác ghi, hai alias AP đúng. Hash 32 file nguồn, 717 file riêng,
+mạng/route/firewall/gadget/dịch vụ và 20 GET LAN đạt; worker/usage tiến, sync xong.
+Không thử file-write, radio/AP/tethering, reboot hay điện thoại thật. FileGator
+mount Vue sau load; chờ DOM tối đa 20 giây, không retry yêu cầu file. Hai lần
+kiểm tra trước đó bắt được báo lỗi tải giả, không gọi chúng là nghiệm thu PASS.
+Chủ vừa yêu cầu rà toàn USB để đề xuất tối ưu/loại phần thừa; audit tiếp theo
+chỉ đọc/đo, chưa có lựa chọn cho việc bỏ dịch vụ hoặc thay kiến trúc mới.
+
 **19/11/2026 — đã cài màn con riêng và bỏ điều khiển file cũ khi có FileGator.**
 Source đang cài `61125aa3dab81001232ab862679fe9bba669645e` trên nhánh
 `ui/settings-parent-child-nav-20261119`, PR #7; chưa merge main/dev, chưa release.
