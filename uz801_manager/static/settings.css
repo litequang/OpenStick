@@ -196,6 +196,9 @@ main:has(.settings-workspace){max-width:1270px!important}
 @media(prefers-reduced-motion:reduce){.settings-category-chevron{transition:none}}
 .settings-leaf [hidden],.website-leaf [hidden]{display:none!important}
 .settings-leaf .setup-panel-grid{grid-template-columns:minmax(0,1fr)}
+.web-embed-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.web-filegator-frame{display:block;width:100%;min-width:0;height:75vh;height:75dvh;min-height:520px;border:1px solid #3e4d60;border-radius:12px;background:#fff}
+.web-embed-panel{min-width:0}
 [data-quick-view=usb] .quick-grid .quick-tile:not(#quick-usb),[data-quick-view=usb] #quick-startup-status{display:none!important}
 [data-quick-view=usb] .quick-grid{grid-template-columns:minmax(0,360px)}
 [data-quick-view] [hidden]{display:none!important}

@@ -309,7 +309,10 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action " + form_action + "; frame-ancestors 'none'; base-uri 'none'"
         if request.path.startswith('/files/'):
             from .filegator import CONTENT_SECURITY_POLICY
+            response.headers['X-Frame-Options'] = 'SAMEORIGIN'
             response.headers['Content-Security-Policy'] = CONTENT_SECURITY_POLICY
+        elif request.path in ('/website/files','/website/uploads'):
+            response.headers['Content-Security-Policy'] += "; frame-src 'self'"
         return response
 
     @app.get('/')

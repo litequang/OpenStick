@@ -4,12 +4,12 @@ No screenshots or page contents are recorded here. Callers must block device
 mutations when using a real portal. This module only clicks navigation controls.
 """
 from playwright.sync_api import expect
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit,parse_qs
 
 WIDTHS = [320, 360, 390, 430, 768, 820, 1024, 1280]
-PATHS = ['/manage','/setup','/setup/saved','/setup/ap','/setup/clients','/setup/recovery',
+PATHS = ['/manage','/setup','/setup/saved','/setup/ap','/setup/clients',
          '/quick','/quick/usb','/modem/network','/sim/apn','/sim/usage','/modem/sms',
-         '/modem/ussd','/internet','/hotspot','/website','/website/files','/website/domains',
+         '/modem/ussd','/internet','/website','/website/files','/website/domains',
          '/settings/leds','/settings/system','/settings/access','/overview']
 GROUPS = ['connect', 'sim', 'web', 'device']
 READ_POSTS = {'/api/wifi': {'status', 'overview'},
@@ -21,9 +21,19 @@ READ_POSTS = {'/api/wifi': {'status', 'overview'},
 
 def readonly_guard(page, *, sync_sms=True):
     """Fail closed for actions; optionally withhold SMS import on a real USB."""
-    observed = {'mutations_blocked': 0, 'read_posts': 0, 'sms_sync_withheld': 0, 'blocked_routes': []}
+    observed = {'mutations_blocked': 0, 'read_posts': 0, 'filegator_reads':0, 'sms_sync_withheld': 0, 'blocked_routes': []}
     def guard(route):
         request = route.request
+        parts=urlsplit(request.url)
+        if parts.path.startswith('/files/'):
+            actions=parse_qs(parts.query).get('r',['/'])
+            if request.method in ('GET','POST') and len(actions)==1 and actions[0] in ('/','/getconfig','/getuser','/getdir','/changedir'):
+                observed['filegator_reads']+=1;route.continue_()
+            else:
+                observed['mutations_blocked']+=1
+                observed['blocked_routes'].append({'path':'/files/<site>/','action':'UNEXPECTED_FILE_OPERATION'})
+                route.abort()
+            return
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             route.continue_()
             return
@@ -45,6 +55,7 @@ def readonly_guard(page, *, sync_sms=True):
             observed['read_posts'] += 1
             route.continue_()
     page.route('**/api/**', guard)
+    page.route('**/files/**', guard)
     return observed, guard
 
 
@@ -82,8 +93,7 @@ def assert_layout(page, width, path):
 
 def assert_leaf(page, path):
     setup_views = {'/setup': ['setup-connect-pane'], '/setup/saved': ['saved-wifi'],
-                   '/setup/ap': ['usb-ap-settings','setup-recovery-panel'], '/setup/clients': ['ap-clients'],
-                   '/setup/recovery': ['setup-status-panel','setup-recovery-panel']}
+                   '/setup/ap': ['usb-ap-settings','setup-status-panel','setup-recovery-panel'], '/setup/clients': ['ap-clients']}
     if path in setup_views:
         for panel in ['setup-connect-pane','saved-wifi','usb-ap-settings','ap-clients','setup-status-panel','setup-recovery-panel']:
             assert page.locator('#'+panel).is_visible() == (panel in setup_views[path]), (path,panel,'mixed settings')
@@ -136,4 +146,4 @@ def audit_navigation(page, base, widths=WIDTHS):
                 'navigation':'PASS','isolated_child_screens':'PASS','filegator_layout_seen':filegator_seen,
                 'javascript_errors':len(errors),**reads}
     finally:
-        page.remove_listener('pageerror',on_error);page.unroute('**/api/**',guard)
+        page.remove_listener('pageerror',on_error);page.unroute('**/api/**',guard);page.unroute('**/files/**',guard)

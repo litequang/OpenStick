@@ -7,9 +7,9 @@
 {% set connect_items = connect_items + [('quick','Cài đặt nhanh','/quick','Máy bay, dữ liệu SIM, Wi-Fi và USB')] %}
 {% endif %}
 {% if menu_features.get('wifi') %}
-{% set connect_items = connect_items + [('wifi','Kết nối Wi-Fi','/setup','Quét và kết nối mạng'),('saved-wifi','Wi-Fi đã lưu','/setup/saved','Kết nối lại hoặc quên mạng'),('usb-ap','Wi-Fi USB phát','/setup/ap','Tên mạng, mật khẩu và kênh phát'),('clients','Thiết bị kết nối','/setup/clients','Danh sách và chặn thiết bị'),('recovery','Wi-Fi dự phòng','/setup/recovery','Tự phát và thông tin truy cập')] %}
+{% set connect_items = connect_items + [('wifi','Kết nối Wi-Fi','/setup','Quét và kết nối mạng'),('saved-wifi','Wi-Fi đã lưu','/setup/saved','Kết nối lại hoặc quên mạng'),('usb-ap','Phát Wi-Fi','/setup/ap','Tên mạng, bảo mật, trạng thái và dự phòng'),('clients','Thiết bị kết nối','/setup/clients','Danh sách và chặn thiết bị')] %}
 {% endif %}
-{% if menu_features.get('hotspot') %}
+{% if menu_features.get('hotspot') and not menu_features.get('wifi') %}
 {% set connect_items = connect_items + [('hotspot','Điểm phát Wi-Fi','/hotspot','Bật, tắt và nguồn Internet cho hotspot')] %}
 {% endif %}
 {% if menu_features.get('internet') %}

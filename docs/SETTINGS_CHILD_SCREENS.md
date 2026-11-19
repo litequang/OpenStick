@@ -1,5 +1,10 @@
 # Separate settings screens — 2026-11-19
 
+Later owner feedback consolidated AP/fallback/hotspot into `/setup/ap` and
+embedded FileGator directly in `/website/files`. Read
+[AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md) and the latest handoff for this
+follow-up. The older route inventory/acceptance below records the prior stage.
+
 The owner reported that child menu items merely scrolled to a section while
 unrelated settings remained on the same page. Child items now have dedicated
 URLs and show only their corresponding panels. The four parent categories and

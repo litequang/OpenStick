@@ -30,9 +30,20 @@ def main():
             page=browser.new_page(viewport={'width':390,'height':844})
             page.on('pageerror',lambda e:errors.append(type(e).__name__))
             page.route('**/api/websites',api)
+            page.route('**/files/**',lambda route:route.fulfill(content_type='text/html',body='<div id="app">FileGator preview fixture</div>',headers={'Content-Security-Policy':"default-src 'self'; frame-ancestors 'self'",'X-Frame-Options':'SAMEORIGIN'}))
             page.goto(BASE+'/website/files');expect(page.locator('#web-site')).to_be_enabled()
+            expect(page.frame_locator('#web-filegator-frame').locator('#app')).to_be_visible()
+            page.once('dialog',lambda d:d.dismiss());page.locator('#web-site').select_option('second')
+            expect(page.locator('#web-site')).to_have_value('main')
+            page.once('dialog',lambda d:d.accept())
             page.locator('#web-site').select_option('second')
             expect(page.locator('#web-filegator')).to_have_attribute('href','/files/second/')
+            expect(page.locator('#web-filegator-frame')).to_have_attribute('src','/files/second/')
+            expect(page.frame_locator('#web-filegator-frame').locator('#app')).to_be_visible()
+            # An inventory refresh must not reload an editor/upload already open.
+            page.locator('#web-filegator-frame').evaluate('(el)=>el.contentWindow.fixtureMarker=42')
+            page.locator('#web-refresh').click();expect(page.locator('#web-refresh')).to_be_enabled()
+            assert page.locator('#web-filegator-frame').evaluate('(el)=>el.contentWindow.fixtureMarker')==42
             assert page.locator('img').count()==0
             assert all(v['action']=='sites' for v in calls)
             page.goto(BASE+'/website/domains?site=second')

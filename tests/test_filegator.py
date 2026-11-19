@@ -116,3 +116,29 @@ def test_bridge_inherits_real_lan_auth_origin_and_credential_rotation(tmp_path,m
     assert b'id="web-filegator"' in page.data
     settings.configure('fixture-new-password-123')
     assert client.get('/files/main/',base_url=base).status_code==403
+
+
+def test_embedding_is_same_origin_and_only_file_manager_page_can_host_frames(tmp_path,monkeypatch):
+    from uz801_manager import filegator
+    monkeypatch.setattr(filegator,'installed',lambda:True)
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),
+                          token='fixture',usb_portal=True,modem_backend=object(),authority='127.0.0.1:8765')
+    client=app.test_client();base='http://127.0.0.1:8765'
+    # Unknown site is rejected before any upstream connection; the same header
+    # policy wraps every bridge response, including errors and streamed HTML.
+    child=client.get('/files/unknown/',base_url=base)
+    assert child.status_code==400
+    assert child.headers['X-Frame-Options']=='SAMEORIGIN'
+    assert "frame-ancestors 'self'" in child.headers['Content-Security-Policy']
+    assert "script-src 'self';" in child.headers['Content-Security-Policy']
+    for path in ['/website/files','/website/uploads']:
+        parent=client.get(path,base_url=base)
+        assert parent.status_code==200
+        assert "frame-src 'self'" in parent.headers['Content-Security-Policy']
+        assert "frame-ancestors 'none'" in parent.headers['Content-Security-Policy']
+        assert parent.headers['X-Frame-Options']=='DENY'
+    for path in ['/website','/overview','/login']:
+        other=client.get(path,base_url=base)
+        assert "frame-src 'self'" not in other.headers['Content-Security-Policy']
+        assert other.headers['X-Frame-Options']=='DENY'

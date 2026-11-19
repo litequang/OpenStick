@@ -26,7 +26,7 @@ ACTIONS = READ_ACTIONS | {'/upload', '/copyitems', '/moveitems', '/renameitem', 
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; "
-    "worker-src 'self' blob:; object-src 'none'; frame-ancestors 'none'; "
+    "worker-src 'self' blob:; object-src 'none'; frame-ancestors 'self'; "
     "base-uri 'self'; form-action 'self'")
 
 

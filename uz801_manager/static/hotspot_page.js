@@ -36,5 +36,8 @@
   }
   el('refresh').onclick=()=>{if(!busy)refresh();};
   el('keep').onclick=()=>finish('keep');el('rollback').onclick=()=>finish('stop');
-  refresh();setInterval(()=>{if(!busy&&!document.hidden)refresh();},15000);
+  // The merged AP page already polls shared Wi-Fi/header state. Keep the old
+  // trial observer alive only while a legacy trial needs completion.
+  const embedded=!!document.querySelector('[data-hotspot-embedded]');
+  refresh();setInterval(()=>{if(!busy&&!document.hidden&&(!embedded||current?.pending))refresh();},15000);
 })();

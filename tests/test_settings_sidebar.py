@@ -187,5 +187,15 @@ def test_filegator_has_separate_pages_and_no_retired_upload_or_editor_controls()
         assert 'id="site-upload"' not in view and 'id="site-text"' not in view
         assert 'web-zip-inspect' not in view and 'data-settings-link="uploads"' not in view
         assert ('id="web-filegator"' in view)==(page=='files')
+        assert ('id="web-filegator-frame"' in view)==(page=='files')
         assert ('id="web-domain-panel"' in view)==(page=='domains')
         assert ('id="web-summary"' in view)==(page=='summary')
+
+
+def test_access_point_has_one_menu_with_fallback_and_status_in_the_same_screen():
+    hub=render('manage.html','manage')
+    assert hub.count('href="/setup/ap"')==1
+    assert 'href="/setup/recovery"' not in hub and 'href="/hotspot"' not in hub
+    view=render('setup.html','wifi',setup_view='ap')
+    assert 'id="setup-status-panel" hidden' not in view
+    assert 'id="hotspot-pending"' in view and 'id="setup-ap-form"' in view

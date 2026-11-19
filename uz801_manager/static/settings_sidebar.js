@@ -3,7 +3,7 @@
 (() => {
   const legacy={
     '/setup#saved-wifi':'/setup/saved','/setup#usb-ap-settings':'/setup/ap',
-    '/setup#ap-clients':'/setup/clients','/setup#setup-status-panel':'/setup/recovery',
+    '/setup#ap-clients':'/setup/clients','/setup#setup-status-panel':'/setup/ap',
     '/manage#manage-access':'/settings/access','/manage#lan-manage':'/settings/access',
     '/overview#sim-usage-details':'/sim/usage','/quick#quick-usb':'/quick/usb',
     '/website#web-pane-files':'/website/files','/website#web-pane-uploads':'/website/uploads',

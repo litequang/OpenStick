@@ -74,24 +74,27 @@ def test_each_setup_leaf_loads_only_its_controller_and_keeps_other_panels_hidden
     import re
     internet=Saved()
     app=create_hosting_app(backend=Wifi(),usb_portal=True,modem_backend=object(),
-                          setup_backend=object(),network_backend=internet,token='fixture')
+                          setup_backend=object(),hotspot_backend=object(),network_backend=internet,token='fixture')
     client=app.test_client()
     cases={
         '/setup':('setup-connect-pane','setup.js'),
         '/setup/saved':('saved-wifi','saved_wifi.js'),
         '/setup/ap':('usb-ap-settings','setup.js'),
-        '/setup/clients':('ap-clients','ap_clients.js'),
-        '/setup/recovery':('setup-status-panel','setup.js')}
+        '/setup/clients':('ap-clients','ap_clients.js')}
     for path,(panel,asset) in cases.items():
         response=client.get(path,base_url=BASE)
         assert response.status_code==200
         for key in ['setup-connect-pane','saved-wifi','usb-ap-settings','ap-clients','setup-status-panel']:
             tag=re.search(r'<section\b[^>]*\bid="'+key+r'"[^>]*>',response.text)[0]
-            assert (' hidden' in tag)==(key!=panel),(path,key)
+            visible=key==panel or path=='/setup/ap' and key=='setup-status-panel'
+            assert (' hidden' in tag)==(not visible),(path,key)
         for script in ['setup.js','saved_wifi.js','ap_clients.js']:
             assert ('src="/static/'+script+'"' in response.text)==(script==asset)
         assert client.get(path,base_url='http://wrong.example').status_code==403
     assert internet.seen==[]
+    assert client.get('/setup/recovery',base_url=BASE).location=='/setup/ap'
+    assert client.get('/hotspot',base_url=BASE).location=='/setup/ap'
+    assert client.get('/hotspot',base_url='http://wrong.example').status_code==403
     assert client.get('/setup/unknown',base_url=BASE).status_code==404
 
 

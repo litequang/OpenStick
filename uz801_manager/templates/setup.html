@@ -13,7 +13,7 @@
 
 <div class="setup-page-heading">
   <p class="ux-eyebrow">QUẢN LÝ MẠNG WI-FI</p>
-  <h1>{{ {'connect':'Kết nối Wi-Fi','saved':'Wi-Fi đã lưu','ap':'Wi-Fi USB phát','clients':'Thiết bị kết nối','recovery':'Wi-Fi dự phòng & truy cập'}[setup_view] }}</h1>
+  <h1>{{ {'connect':'Kết nối Wi-Fi','saved':'Wi-Fi đã lưu','ap':'Phát Wi-Fi','clients':'Thiết bị kết nối','recovery':'Phát Wi-Fi'}[setup_view] }}</h1>
   <p>Chọn mục khác trong danh mục cài đặt để chuyển chức năng.</p>
 </div>
 
@@ -149,13 +149,13 @@
   <p id="ap-clients-notice" class="setup-feedback" role="status" aria-live="polite"></p>
 </section>
 
-<section class="setup-secondary-panel" id="setup-status-panel"{% if setup_view != 'recovery' %} hidden{% endif %}>
+<section class="setup-secondary-panel" id="setup-status-panel"{% if setup_view not in ['ap','recovery'] %} hidden{% endif %}>
   <div class="setup-secondary-heading">
-    <div><h2>Trạng thái &amp; khôi phục</h2><p>Kiểm tra chế độ Wi-Fi cài đặt và điều khiển khi cần.</p></div>
+    <div><h2>Dự phòng khi chưa kết nối Wi-Fi</h2><p>Cùng mạng Wi-Fi USB ở trên, dùng để quản trị khi chưa có nguồn Internet.</p></div>
   </div>
   <div id="setup-state" class="setup-current-status" role="status" aria-live="polite">Đang kiểm tra…</div>
   <details class="ux-advanced setup-advanced">
-    <summary>Điều khiển nâng cao <span class="setup-summary-hint">Tự động &amp; thủ công</span></summary>
+    <summary>Cài đặt tự phát dự phòng <span class="setup-summary-hint">Tùy chọn nâng cao</span></summary>
     <div class="setup-control-list">
       <div class="setup-control-row">
         <div class="setup-control-copy">
@@ -199,6 +199,7 @@
   </details>
 </section>
 
+{% if setup_view == 'ap' and (portal_settings_features|default({})).get('hotspot') %}{% set hotspot_embedded = true %}{% include 'hotspot_content.html' %}{% endif %}
 {% if setup_view in ['connect','ap','recovery'] %}<script src="/static/setup.js"></script>{% endif %}
 {% if setup_view == 'clients' %}<script src="/static/ap_clients.js"></script>{% endif %}
 {% if setup_view == 'saved' %}<script>const savedWifiActionToken={{ token|tojson }};</script>
