@@ -238,7 +238,7 @@ networks.onchange=()=>{if(networks.value)document.getElementById('ssid').value=n
 </script></html>'''
 
 
-def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None, led_backend=None, quick_backend=None):
+def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770, hostname='example.invalid', usb_portal=False, modem_backend=None, authority=None, lan_auth=None, lan_settings=None, lan_changed=lambda: None, site_backend=None, hotspot_backend=None, network_backend=None, setup_backend=None, led_backend=None, quick_backend=None, power_backend=None):
     if (not isinstance(hostname, str) or len(hostname) > 253
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
@@ -271,6 +271,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         return {'stable_lan_url': LAN_URL if usb_portal and (lan_auth is not None or lan_settings is not None) else None,
                 'portal_has_website': usb_portal and site_backend is not None,
                 'portal_has_quick': usb_portal and quick_backend is not None,
+                'portal_has_power':usb_portal and power_backend is not None,
                 'portal_settings_features': {'wifi': setup_backend is not None,
                                              'network': modem_backend is not None,
                                              'internet': network_backend is not None,
@@ -335,7 +336,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
 
         def work():
             try:
-                result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
+                from .device_power import activity
+                with activity(app):result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:
                     state.update(result=result)
             except Exception as exc:
@@ -415,6 +417,9 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
     if usb_portal and quick_backend is not None:
         from .quick_web import register_quick_routes
         register_quick_routes(app, quick_backend, token)
+    if usb_portal and power_backend is not None:
+        from .power_web import register_power_routes
+        register_power_routes(app,power_backend,token)
     return app
 
 

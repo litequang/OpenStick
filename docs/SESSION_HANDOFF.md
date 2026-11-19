@@ -1,5 +1,27 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: resumed normal device power buttons
+
+Owner resumed unfinished power work after yesterday's disconnection. Read
+[DEVICE_POWER.md](DEVICE_POWER.md). `/manage` links to `/settings/system`:
+explicitly confirmed normal reboot/poweroff, five-second grace/cancel, deadline,
+boot/worker-generation binding, durable receipts and no uncertain-command replay.
+Existing API/file and background Wi-Fi/modem/quick jobs share a transition gate;
+final preparation takes network/modem/site locks and checkpoints SIM usage under
+its mutex. No force flags or arbitrary command endpoint. No power action on GET.
+Windows backup app remains separate. Poweroff is OS shutdown, not cutting USB 5 V.
+
+766 tests passed / one Windows symlink skip, exit 0; pip check/self-test/JS passed.
+Four headless preview layouts and confirm/dismiss/cancel/disconnect passed.
+USB returned and is SSH reachable; no power module/request yet at preflight.
+Real init support and private temporary Linux file-lock/mock-dispatch fixture
+passed. **No real power command has been run; no physical power-cycle PASS.**
+Do not infer installed code from Git HEAD: record deployment separately after
+source hashes, HTTP status/assets and protected owner/network/firewall checks.
+The prior installed source is `69111ce`. Do not include private runtime receipts,
+backups or any owner identifiers/credentials in Git. Two unrelated untracked
+files (`docs/HYBRID_COMPATIBILITY_MATRIX.md`, `hosting_launcher.py`) stay untouched.
+
 ## 2026-11-18 latest: SIM data accounting and Overview metric
 
 **Installed source `69111ce`; both Windows branch/main CI passed.** Independent

@@ -15,6 +15,7 @@ from .network_policy import NetworkPolicy
 from .setup_ap import SetupAP
 from .leds import LedSettings
 from .quick_settings import QuickSettings
+from .device_power import DevicePower
 
 
 class LocalWifi:
@@ -62,7 +63,7 @@ def main():
     app = create_hosting_app(backend=LocalWifi(), hostname=hostname, usb_portal=True,
                              authority=('172.16.42.1', '172.16.42.1:8765', LAN_AUTHORITY),
                              modem_backend=ArchivedModem(ModemManager()), lan_settings=LanSettings(address=wifi_ipv4),
-                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings(), quick_backend=QuickSettings())
+                             lan_changed=lan_changed, site_backend=StaticSite(), hotspot_backend=Hotspot(), network_backend=NetworkPolicy(), setup_backend=SetupAP(), led_backend=LedSettings(), quick_backend=QuickSettings(),power_backend=DevicePower())
     with usb_socket() as sock, usb_socket(8765) as named_sock:
         serve(app, sockets=[sock, named_sock], threads=2, channel_timeout=120,
               max_request_body_size=129 * 1048576, inbuf_overflow=65536, ident='OpenStick')

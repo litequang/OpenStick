@@ -256,7 +256,7 @@ def test_partial_inventory_and_changed_link_are_unknown_not_idle(tmp_path):
 def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypatch):
     from contextlib import contextmanager
     import signal
-    from uz801_manager import network_startup,ap_clients
+    from uz801_manager import network_startup,ap_clients,device_power
     events=[]
     @contextmanager
     def background():
@@ -264,6 +264,8 @@ def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypa
         try:yield
         finally:events.append('collector_closed')
     monkeypatch.setattr(usage,'background',background)
+    from contextlib import nullcontext
+    monkeypatch.setattr(device_power,'background',lambda checkpoint:nullcontext(None))
     monkeypatch.setattr(signal,'signal',lambda *args:None)
     monkeypatch.setattr(network_startup,'NetworkStartup',lambda:SimpleNamespace(tick=lambda:events.append('startup_tick')))
     monkeypatch.setattr(ap_clients,'ApClients',lambda:SimpleNamespace(tick=lambda:events.append('clients_tick')))

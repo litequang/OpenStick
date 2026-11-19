@@ -174,13 +174,18 @@ class NetworkStartup:
 def main():
     import signal
     from .sim_usage import background
+    from .device_power import background as power_background
     def terminate(signum, frame):raise SystemExit(0)
     signal.signal(signal.SIGTERM, terminate)
     backend=NetworkStartup()
     from .ap_clients import ApClients
     clients=ApClients()
-    with background():
+    with background() as usage, power_background(usage.checkpoint if usage else lambda:False) as power:
         while True:
+            try:power_pending=bool(power and power.pending())
+            except RuntimeError:power_pending=False  # Corrupt power state never kills saved-network replay.
+            if power_pending:
+                time.sleep(1);continue
             try:clients.tick()
             except Exception:pass
             try:backend.tick()

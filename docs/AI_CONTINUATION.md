@@ -1,5 +1,14 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — tiếp tục nút nguồn, kiểm tra trước khi cài.**
+Đọc [DEVICE_POWER.md](DEVICE_POWER.md) và đầu HANDOFF. `/settings/system` có
+khởi động lại/tắt hệ điều hành, xác nhận riêng, hủy lúc chờ; không cắt điện USB 5 V.
+766 PASS / 1 Windows skip, Chrome preview 4 layout PASS. Linux fixture chỉ dùng
+executor giả, **chưa chạy reboot/poweroff thật**. USB đã nhận lại; bản đang cài
+vẫn là SIM usage `69111ce` cho tới khi có ghi nhận deployment mới. Không tự thử
+nút nguồn, không thay mạng/website/Tunnel để nghiệm thu. Các file runtime riêng
+và thông tin truy cập phải ở ngoài Git. Xem HANDOFF để biết trạng thái cuối.
+
 **18/11/2026 — thống kê dung lượng SIM trên Tổng quan.**
 Đã cài source `69111ce`, CI hai nhánh PASS. Hash/HTML/API Tổng quan thật đạt,
 worker tự tiến mẫu khi không mở browser; checkpoint riêng mode 0600 hợp lệ.

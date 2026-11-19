@@ -100,6 +100,15 @@ class Wifi:
         raise RuntimeError('NETWORK_OPERATION_FAILED')
 
 
+class Power:
+    """Preview only: no physical power backend and no executor."""
+    def activity(self):
+        from contextlib import nullcontext
+        return nullcontext()
+    def status(self):return {'available':False,'pending':False,'phase':'IDLE','action':None,'operation':None,'error':None}
+    def call(self,*args,**kwargs):raise RuntimeError('POWER_UNAVAILABLE')
+
+
 class Setup:
     def status(self, credentials=False):
         value = {'enabled': True, 'configured': True, 'setup_active': False, 'lan_ready': True,
@@ -124,7 +133,7 @@ def main():
         app=create_hosting_app(backend=Wifi(),modem_backend=ArchivedModem(Modem(),archive),
               hotspot_backend=Hotspot(),network_backend=Policy(),site_backend=StaticSite(site,lock_path=None),
               usb_portal=True,authority='127.0.0.1:8771',hostname='example.invalid',setup_backend=Setup(),
-              lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds(),quick_backend=Quick())
+              lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds(),quick_backend=Quick(),power_backend=Power())
         @app.after_request
         def demo_banner(response):
             if response.mimetype=='text/html':

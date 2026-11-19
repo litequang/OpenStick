@@ -153,6 +153,7 @@ class Collector:
         self.state = None;self.last_flush = None;self.last_wall = None;self.last_mono = None
         self.dirty = False;self.status = 'unknown';self.error = None
         self.observed = False
+        self.mutex = threading.RLock()
 
     def load(self, now):
         if self.state is not None:return
@@ -171,6 +172,9 @@ class Collector:
             self.dirty = True
 
     def flush(self, force=False):
+        with self.mutex:return self._flush(force)
+
+    def _flush(self, force=False):
         if not self.state or not self.dirty or not self.observed:return
         mono = self.monotonic()
         if not force and self.last_flush is not None and mono-self.last_flush < CHECKPOINT:return
@@ -181,6 +185,16 @@ class Collector:
         self.last_flush = mono;self.dirty = False
 
     def sample(self):
+        with self.mutex:return self._sample()
+
+    def checkpoint(self):
+        if not self.mutex.acquire(timeout=12):return False
+        try:
+            self._flush(force=True)
+            return not self.observed or not self.dirty
+        finally:self.mutex.release()
+
+    def _sample(self):
         now = self.clock();mono = self.monotonic()
         if not stamp(now):raise ValueError('CLOCK_INVALID')
         try:self.load(now)
@@ -289,7 +303,7 @@ def background():
                     stop.wait(PERIOD)
             finally:collector.flush(force=True)
         thread = threading.Thread(target=collect, name='sim-usage', daemon=True);thread.start()
-        yield
+        yield collector
     finally:
         stop.set()
         if thread:thread.join(timeout=12)

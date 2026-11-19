@@ -57,7 +57,8 @@ def register_quick_routes(app, backend, token):
 
         def work():
             try:
-                backend.call(value['action'], **{k: v for k, v in value.items() if k != 'action'})
+                from .device_power import activity
+                with activity(app):backend.call(value['action'], **{k: v for k, v in value.items() if k != 'action'})
             except Exception as error:
                 with lock:
                     state['error'] = str(error) if str(error) in ERRORS else 'QUICK_OPERATION_FAILED'

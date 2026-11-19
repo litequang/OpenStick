@@ -113,7 +113,8 @@ def register_modem_routes(app, backend, token):
 
         def work():
             try:
-                result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
+                from .device_power import activity
+                with activity(app):result = backend.call(action, **{k: v for k, v in body.items() if k != 'action'})
                 with lock:
                     if action == 'status' and last_ussd:
                         result = {**result, 'last_ussd': dict(last_ussd)}
