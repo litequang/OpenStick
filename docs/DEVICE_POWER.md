@@ -67,6 +67,13 @@ power request. Unknown results require inspection, not automatic retries.
   and at-most-once dispatch through a **mock executor**, then was removed.
   **Zero real reboot/poweroff commands were executed.**
 
+- Installed source **`1d479fa`**, development/main CI PASS. Independent USB
+  verification matched all 12 source/UI hashes, served the Manage link and System
+  page/JS, and read an available, IDLE power API with an advancing worker heartbeat.
+  No live power request/receipt was created. SIM samples still advance, checkpoint
+  is valid/private, protected owner files/network/routes/firewall are unchanged,
+  services run and storage was flushed. No real power command was sent.
+
 Read the latest [session handoff](SESSION_HANDOFF.md) for installation evidence.
 Physical shutdown/reboot, LED behavior and post-power-cycle network restoration
 remain NOT_TESTED for these new buttons. Do not test them automatically during

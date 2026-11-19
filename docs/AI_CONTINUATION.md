@@ -1,13 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**19/11/2026 — tiếp tục nút nguồn, kiểm tra trước khi cài.**
-Đọc [DEVICE_POWER.md](DEVICE_POWER.md) và đầu HANDOFF. `/settings/system` có
-khởi động lại/tắt hệ điều hành, xác nhận riêng, hủy lúc chờ; không cắt điện USB 5 V.
-766 PASS / 1 Windows skip, Chrome preview 4 layout PASS. Linux fixture chỉ dùng
-executor giả, **chưa chạy reboot/poweroff thật**. USB đã nhận lại; bản đang cài
-vẫn là SIM usage `69111ce` cho tới khi có ghi nhận deployment mới. Không tự thử
-nút nguồn, không thay mạng/website/Tunnel để nghiệm thu. Các file runtime riêng
-và thông tin truy cập phải ở ngoài Git. Xem HANDOFF để biết trạng thái cuối.
+**19/11/2026 — đã cài nút nguồn lên USB.**
+Đọc [DEVICE_POWER.md](DEVICE_POWER.md) và đầu HANDOFF. Source `1d479fa` đã cài;
+CI hai nhánh PASS. `/manage` → `/settings/system` có khởi động lại/tắt hệ điều hành,
+xác nhận riêng, chờ 5 giây/hủy; không cắt điện USB 5 V. Hash đủ 12 file, trang/API/JS
+thật, worker sẵn sàng và tiến heartbeat đã kiểm tra. Không có yêu cầu/receipt nguồn;
+worker thống kê SIM vẫn tiến mẫu, checkpoint riêng hợp lệ. Hash cấu hình chủ,
+website/Tunnel/SSH, mạng/route/firewall giữ nguyên; dịch vụ chạy và sync xong.
+766 PASS / 1 Windows skip; Chrome preview 4 layout PASS. Linux fixture chỉ dùng
+executor giả. **Chưa chạy reboot/poweroff thật, chưa nghiệm thu chu kỳ nguồn/LED
+hoặc mạng sau chu kỳ nguồn cho hai nút mới.** Không tự thử nút nguồn để nghiệm thu.
+Runtime và thông tin truy cập phải ở ngoài Git; xem HANDOFF cho giới hạn kiểm thử.
 
 **18/11/2026 — thống kê dung lượng SIM trên Tổng quan.**
 Đã cài source `69111ce`, CI hai nhánh PASS. Hash/HTML/API Tổng quan thật đạt,

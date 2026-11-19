@@ -1,9 +1,11 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-19 latest: resumed normal device power buttons
+## 2026-11-19 latest: normal device power buttons installed
 
-Owner resumed unfinished power work after yesterday's disconnection. Read
-[DEVICE_POWER.md](DEVICE_POWER.md). `/manage` links to `/settings/system`:
+**Installed source `1d479fac99ffb11e7960d58e32f53d015378394f`; both branch/main
+Windows CI passed.** [Development CI](https://github.com/litequang/OpenStick/actions/runs/44438576639)
+and [main CI](https://github.com/litequang/OpenStick/actions/runs/44438576764).
+Read [DEVICE_POWER.md](DEVICE_POWER.md). `/manage` links to `/settings/system`:
 explicitly confirmed normal reboot/poweroff, five-second grace/cancel, deadline,
 boot/worker-generation binding, durable receipts and no uncertain-command replay.
 Existing API/file and background Wi-Fi/modem/quick jobs share a transition gate;
@@ -13,14 +15,26 @@ Windows backup app remains separate. Poweroff is OS shutdown, not cutting USB 5 
 
 766 tests passed / one Windows symlink skip, exit 0; pip check/self-test/JS passed.
 Four headless preview layouts and confirm/dismiss/cancel/disconnect passed.
-USB returned and is SSH reachable; no power module/request yet at preflight.
 Real init support and private temporary Linux file-lock/mock-dispatch fixture
 passed. **No real power command has been run; no physical power-cycle PASS.**
-Do not infer installed code from Git HEAD: record deployment separately after
-source hashes, HTTP status/assets and protected owner/network/firewall checks.
-The prior installed source is `69111ce`. Do not include private runtime receipts,
-backups or any owner identifiers/credentials in Git. Two unrelated untracked
-files (`docs/HYBRID_COMPATIBILITY_MATRIX.md`, `hosting_launcher.py`) stay untouched.
+
+The first transactional install failed its short HTTP-readiness window and
+restored previous source/services. A second deployment with a longer readiness
+window succeeded. Independent verification checked all 12 source/asset hashes,
+Manage link, real System HTML/buttons/JS and authenticated GET-only power status:
+ready, IDLE, heartbeat advancing. No live power queue or operation receipts exist.
+SIM accounting samples still advance and its root-private checkpoint is valid.
+Protected owner files, active network, routes and firewall matched before/after;
+services are running and storage was flushed. Only portal/startup services were
+restarted; no board reboot, radio/data/AP/profile or USB gadget action was made.
+Private rollback source backup is under `deploy-backups/device-power-*`.
+
+Physical reboot/shutdown completion, LED behavior and network restoration after
+these buttons remain NOT_TESTED. Do not infer poweroff completion from HTTP loss,
+do not test power automatically and do not replay unknown commands. No private
+runtime receipts, backups or owner identifiers/credentials belong in Git.
+Two unrelated untracked files (`docs/HYBRID_COMPATIBILITY_MATRIX.md`,
+`hosting_launcher.py`) stay untouched. Preview process has been stopped.
 
 ## 2026-11-18 latest: SIM data accounting and Overview metric
 
