@@ -1,5 +1,6 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Tổng quan</title></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>Tổng quan</h1><button id="overview-refresh" class="secondary">Làm mới</button></div>
 <p class="ux-page-intro">Tình trạng hiện tại của USB. Các thông số tự làm mới mỗi 15 giây khi mở màn.</p>
 {% if portal_has_quick %}
@@ -138,4 +139,5 @@ async function refreshServices(){if(servicesBusy)return;servicesBusy=true;put('s
 async function refreshOverview(){if(overviewBusy)return;overviewBusy=true;el('overview-refresh').disabled=true;try{const value=await portalReadTelemetry('/api/overview');if(value._telemetry?.stale)throw Error();renderOverview(value);rememberOverview(value);if(Object.keys(value.wifi||{}).length)portalRememberHeader(value.wifi);overviewLoaded=true;put('overview-status','Cập nhật lúc '+new Date().toLocaleTimeString()+(overviewRetained?' · một số giá trị giữ lần đo gần nhất':'')+' · tự làm mới mỗi 15 giây')}catch(e){put('overview-status',overviewLoaded?'Chưa cập nhật được; đang giữ số liệu lần gần nhất. Sẽ tự thử lại.':'Chưa đọc được số liệu. Kiểm tra USB rồi bấm Làm mới.')}finally{overviewBusy=false;el('overview-refresh').disabled=false}}
 el('overview-refresh').onclick=refreshOverview;setInterval(()=>{if(!document.hidden)refreshOverview()},15000);restoreOverview();refreshOverview();
 el('overview-services').ontoggle=()=>{if(el('overview-services').open)refreshServices()};setInterval(()=>{if(!document.hidden&&el('overview-services').open)refreshServices()},30000);
-</script></main></body></html>
+</script></div></div>
+</main></body></html>
