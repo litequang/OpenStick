@@ -3,6 +3,7 @@
 <title>OpenStick — Web Hosting</title></head><body><main class="web-panel">
 {% include 'portal_chrome.html' %}
 <link rel="stylesheet" href="/static/website.css">
+{% include 'settings_workspace_start.html' %}
 <div class="web-heading"><div><p class="web-eyebrow">OPENSTICK HOSTING</p><h1>Không gian website</h1><p>Quản lý website tĩnh, bộ mã và tên miền trên USB.</p></div><button id="web-create">＋ Tạo website</button></div>
 <div id="web-status" class="notice" role="status" aria-live="polite">Đang đọc website…</div>
 <div id="web-recovery" hidden><p class="web-note">Có lần giải nén chưa hoàn tất. Các thao tác ghi đang khóa để giữ bản sao khôi phục. Hãy giữ nguyên USB.</p><button id="web-recover-zip" class="secondary">Khôi phục trước lần giải nén dở</button></div>
@@ -41,4 +42,5 @@
 <dialog id="web-site-dialog" aria-labelledby="web-site-title"><form id="web-site-form"><h2 id="web-site-title">Tạo website</h2><label for="web-site-name">Tên website<input id="web-site-name" required maxlength="60" autocomplete="off"></label><label for="web-site-domains">Tên miền, mỗi dòng một tên<textarea id="web-site-domains" rows="4" placeholder="web.example.com&#10;www.example.com" spellcheck="false"></textarea></label><p id="web-site-help" class="web-note">Có thể để trống tên miền và tải bộ mã trước. Lưu ở đây chưa thay đổi Nginx, Tunnel hoặc DNS.</p><div class="web-dialog-actions"><button type="button" id="web-site-cancel" class="secondary">Hủy</button><button type="submit">Lưu website</button></div></form></dialog>
 <dialog id="web-path-dialog" aria-labelledby="web-path-title"><form id="web-path-form"><h2 id="web-path-title">Thao tác file</h2><label for="web-target">Đường dẫn đích<input id="web-target" required maxlength="240" autocomplete="off"></label><p id="web-path-help" class="web-note"></p><div class="web-dialog-actions"><button type="button" id="web-path-cancel" class="secondary">Hủy</button><button type="submit">Xác nhận</button></div></form></dialog>
 <p class="web-note web-footer">Tối đa 8 website tĩnh. Website hiện tại được giữ tại thư mục cũ; website mới có thư mục riêng. Mở panel không tự xuất bản hoặc thay đổi kết nối mạng.</p>
-<script src="/static/website.js"></script></main></body></html>
+<script src="/static/website.js"></script></div></div>
+</main></body></html>
