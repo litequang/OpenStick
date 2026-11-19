@@ -67,9 +67,14 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  }
  context.renderHeader({...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0});
  assert.equal(elements['chip-network'].dataset.bars,'4');
- assert.equal(elements['chip-network-label'].textContent,'4G');
- assert.equal(elements['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(elements['chip-network-label'].textContent,'Tìm mạng');
+ assert.equal(elements['chip-sim-label'].textContent,'Chưa đăng ký');
  assert.equal(elements['chip-network'].dataset.stale,'true');
+ context.renderHeader({...data.wifi.modem_status,registered:false,operator_name:'VIETTEL',access_technologies:0});
+ assert.equal(elements['chip-sim-label'].textContent,'Chưa đăng ký','a rejected/scanned carrier is not registered');
+ assert.equal(elements['chip-network'].dataset.state,'warning');
+ assert(!elements['network-status'].textContent.includes('VIETTEL'));
+ assert.match(elements['network-status'].textContent,/chưa có kết nối/);
  context.portalRememberHeader({modem_status:{...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0}});
  const warmSignal=Object.fromEntries(Object.keys(elements).map(id=>[id,new Element()]));
  const signalContext={console,Date,sessionStorage,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,AbortController,
@@ -79,8 +84,8 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),signalContext);
  signalContext.setupHeaderStatus();
  assert.equal(warmSignal['chip-network'].dataset.bars,'4');
- assert.equal(warmSignal['chip-network-label'].textContent,'4G');
- assert.equal(warmSignal['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(warmSignal['chip-network-label'].textContent,'Tìm mạng');
+ assert.equal(warmSignal['chip-sim-label'].textContent,'Chưa đăng ký');
  for(const changes of [{sim_present:false},{sim_locked:true}]){
   context.renderHeader({...data.wifi.modem_status,...changes});
   assert.equal(elements['chip-network'].dataset.bars,'unknown');

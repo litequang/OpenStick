@@ -201,7 +201,9 @@ class ModemManager:
             status = {'state': STATES.get(state, 'unknown'), 'sim_present': present,
                       'sim_missing': failed_reason == 2, 'sim_locked': present and not unlocked,
                       'secondary_lock': {3: 'pin2', 5: 'puk2'}.get(unlock),
-                      'operator_name': str(operator)[:80] if operator is not None else None,
+                      # Some UZ801 firmware keeps a scanned/rejected carrier
+                      # name after deregistration. It is not a serving network.
+                      'operator_name': str(operator)[:80] if registered and operator is not None else None,
                       'registration_state': int(registration) if registration is not None else None,
                       'access_technologies': int(technology) if technology is not None else None,
                       'signal_percent': signal, 'signal_recent': recent,

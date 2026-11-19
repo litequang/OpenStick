@@ -154,6 +154,16 @@ def test_signal_and_registration_are_read_only_and_missing_data_is_unknown(make_
     assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
 
 
+@pytest.mark.parametrize('state', [6, 7])
+def test_unregistered_scanned_operator_is_not_a_serving_network(make_modem, state):
+    bus = Bus(state=state)
+    bus.props[THREEGPP].update(RegistrationState=0, OperatorName='VIETTEL')
+    status = make_modem(bus).call('status')
+    assert status['operator_name'] is None
+    assert not status['registered'] and not status['can_send']
+    assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
+
+
 def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
     bus = Bus(session=3)
     with pytest.raises(RuntimeError, match='USSD_SESSION_STATE'):

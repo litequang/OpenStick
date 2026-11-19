@@ -1,0 +1,76 @@
+# SIM data and misleading serving-network display — 2026-11-19
+
+## Observed on the connected UZ801 V3.2
+
+- Local SIM home operator was MobiFone. Saved and actual radio modes both
+  remained LTE-only. No band mask or saved radio preference was changed.
+- Initially the modem was home-registered on LTE, but NetworkManager had no
+  cellular IP, gateway or DNS. The AP remained active.
+- One explicit data activation succeeded and passed a small HTTPS check bound
+  to the cellular interface. It subsequently disconnected. This was not a
+  successful sustained restoration or phone acceptance test.
+- During loss of registration the modem reported other carrier names, including
+  Viettel, with an empty operator code and idle/searching registration states.
+  These observations do **not** demonstrate successful roaming registration.
+- A later read exposed network rejection error 14, without a rejecting operator
+  identifier. ModemManager defines it as packet service not allowed in that
+  PLMN; the legacy GPRS name also applies to LTE. It does not identify the cause
+  of the earlier disconnect or establish an account/coverage problem.
+- A bounded explicit home-operator registration request had an unknown result;
+  it was not repeatedly submitted. A subsequent request restoring automatic
+  home registration completed and returned to MobiFone. No persistent network
+  lock was added. One data request stopped before transmission with NETWORK_BUSY;
+  a later explicit attempt completed.
+- Later the modem had a connected, non-suspended bearer, cellular IPv4 and DNS,
+  with no reported bearer error or kernel link error. Nevertheless, two small
+  HTTPS endpoints timed out using both provider DNS and system DNS; two public
+  IP ICMP checks also failed. Registration and a bearer alone are not Internet
+  acceptance. End-to-end Internet remained unverified/unreliable at this point.
+- Forwarding, the AP shared-network NAT and DHCP processes were present.
+  NetworkManager, ModemManager and the radio worker were running. No reboot,
+  modem service restart, package removal, firmware change, SMS or USSD was used.
+
+Raw probes, receipts, addresses and runtime configuration stay in ignored local
+artifacts or private device storage. This report contains no subscriber identity,
+real SSID/MAC, password, message content or owner website details.
+
+## Optimization comparison
+
+The installed optimization from `06d151a` to `747f49c` did not remove services or
+packages. Modem transport, quick data operations and network-policy logic were
+unchanged. The startup loop gained bounded fixed-log retention; setup passive
+reads and LED polling were reduced. Deployment restarted the portal and the
+necessary setup/LED/startup workers. That comparison does not by itself rule out
+all software defects, nor prove that the optimization caused this incident.
+
+Startup recovery is a bounded boot replay. After its `done` receipt it does not
+continuously reconnect a subsequently dropped cellular session. No new automatic
+activation/retry loop is introduced by the display correction below.
+
+## Display correction
+
+Only publish `operator_name` as a serving carrier while the modem is registered.
+The header independently rejects carrier names from unregistered samples,
+including cached samples from older servers. It labels that state **Chưa đăng
+ký / Tìm mạng**, keeps previous signal readings explicitly stale, and does not
+show an active 4G connection merely because an older sample used LTE. Confirmed
+registered carrier changes still invalidate previous signal readings.
+
+Validation: targeted modem/header suite **60 passed**, full suite **804 passed,
+2 Windows platform skips**, both exit 0. Fixtures test stale/scanned carrier names
+and navigation cache; they are not visual or physical-device UI acceptance.
+
+## Remaining isolation work
+
+Confirm whether this same SIM has working data in a phone at the same location,
+with its actual Local plan/APN. Preserve the existing APN until there is evidence
+to replace it; do not copy another carrier's APN or enable roaming as a guess.
+If the SIM works there, compare one controlled USB data attempt and sanitized
+registration/bearer/route counters. Investigate reconnection separately from
+carrier-name presentation. Do not claim a permanent fix from a single 204 reply.
+
+Primary references:
+
+- [ModemManager network error definitions](https://raw.githubusercontent.com/linux-mobile-broadband/ModemManager/1.24.2/include/ModemManager-enums.h)
+- [ModemManager 3GPP registration](https://www.freedesktop.org/software/ModemManager/api/latest/gdbus-org.freedesktop.ModemManager1.Modem.Modem3gpp.html)
+- [NetworkManager GSM settings: home-only and network-id differ](https://networkmanager.dev/docs/api/latest/settings-gsm.html)
