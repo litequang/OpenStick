@@ -132,7 +132,7 @@ def test_adaptive_bottom_dock_and_unified_settings_hub():
         assert 'class="manage-topnav"' not in html
         for name in ['manage-wifi', 'manage-sim', 'manage-device', 'saved-wifi']:
             assert f'id="{name}"' in html
-        for href in ['/', '/modem/network', '/overview']:
+        for href in ['/setup', '/modem/network', '/overview']:
             assert f'href="{href}"' in html
 
 
