@@ -1,0 +1,71 @@
+{# Single source of truth for the four management cards and child navigation. #}
+{% set menu_mode = menu_mode|default('sidebar') %}
+{% set menu_features = portal_settings_features|default({'wifi':true,'network':true,'internet':true,'hotspot':true,'leds':true}) %}
+{% set menu_active = 'connect' if page in ['wifi','setup','quick','internet','hotspot'] else 'sim' if page in ['network','sms','ussd'] else 'web' if page == 'website' else 'device' %}
+{% set connect_items = [] %}
+{% if portal_has_quick|default(false) %}
+{% set connect_items = connect_items + [('quick','Cài đặt nhanh','/quick','Máy bay, dữ liệu SIM, Wi-Fi và USB')] %}
+{% endif %}
+{% if menu_features.get('wifi') %}
+{% set connect_items = connect_items + [('wifi','Kết nối Wi-Fi','/setup','Quét và kết nối mạng'),('saved-wifi','Wi-Fi đã lưu','/setup#saved-wifi','Kết nối lại hoặc quên mạng'),('usb-ap','Wi-Fi USB phát','/setup#usb-ap-settings','Tên mạng, mật khẩu và kênh phát'),('clients','Thiết bị kết nối','/setup#ap-clients','Danh sách và chặn thiết bị')] %}
+{% endif %}
+{% if menu_features.get('hotspot') %}
+{% set connect_items = connect_items + [('hotspot','Điểm phát Wi-Fi','/hotspot','Bật, tắt và nguồn Internet cho hotspot')] %}
+{% endif %}
+{% if menu_features.get('internet') %}
+{% set connect_items = connect_items + [('internet','Nguồn Internet','/internet','Ưu tiên Wi-Fi hoặc SIM và dự phòng')] %}
+{% endif %}
+{% if portal_has_quick|default(false) %}
+{% set connect_items = connect_items + [('usb-tether','Chia sẻ qua USB','/quick#quick-usb','Cấp Internet cho PC qua USB Ethernet')] %}
+{% endif %}
+
+{% set sim_items = [] %}
+{% if menu_features.get('network') %}
+{% set sim_items = sim_items + [('network','Mạng SIM','/modem/network','Sóng và chế độ mạng 3G/4G'),('sms','Tin nhắn SMS','/modem/sms','Xem, soạn và gửi/nhận tin'),('ussd','USSD','/modem/ussd','Gửi mã nhà mạng và xem kết quả')] %}
+{% if menu_features.get('hotspot') %}
+{% set sim_items = sim_items + [('apn','Cấu hình APN','/sim/apn','Cấu hình mạng dữ liệu di động')] %}
+{% endif %}
+{% set sim_items = sim_items + [('usage','Dung lượng SIM','/overview#sim-usage-details','Thống kê sử dụng dữ liệu')] %}
+{% endif %}
+
+{% set web_items = [] %}
+{% if portal_has_website|default(false) %}
+{% set web_items = [('website','Quản lý website','/website','Website, bộ mã và trạng thái xuất bản'),('files','File manager','/website#web-pane-files','Tạo, sửa và quản lý tệp'),('uploads','Tải lên và giải nén','/website#web-pane-uploads','File, thư mục và ZIP'),('domains','Tên miền','/website#web-pane-domains','Gán tên miền cho website')] %}
+{% endif %}
+
+{% set device_items = [('overview','Sức khỏe thiết bị','/overview','RAM, nhiệt độ, eMMC và dịch vụ')] %}
+{% if menu_features.get('leds') %}
+{% set device_items = device_items + [('leds','Đèn trạng thái','/settings/leds','Chọn style LED theo trạng thái mạng')] %}
+{% endif %}
+{% if portal_has_power|default(false) %}
+{% set device_items = device_items + [('power','Hệ thống và nguồn','/settings/system','Khởi động lại hoặc tắt an toàn')] %}
+{% endif %}
+{% if portal_lan_enabled|default(false) or can_manage_lan|default(false) or lan_session|default(false) %}
+{% set device_items = device_items + [('access','Truy cập quản trị','/manage#manage-access','Mật khẩu và quyền quản trị qua Wi-Fi')] %}
+{% endif %}
+
+{% set menu_groups = [('connect','Kết nối & Internet','Wi-Fi nhận/phát, hotspot và USB','manage-wifi',connect_items),
+                       ('sim','SIM & liên lạc','SIM, APN, SMS và USSD','manage-sim',sim_items),
+                       ('web','Website & dịch vụ','Website, tệp và tên miền','manage-services',web_items),
+                       ('device','Thiết bị & bảo mật','Sức khỏe, LED, nguồn và truy cập','manage-device',device_items)] %}
+<nav class="settings-category-tree settings-category-tree--{{ menu_mode }}" aria-label="Danh mục quản lý OpenStick" data-current-group="{{ menu_active }}">
+  {% for group_id,group_title,group_description,group_anchor,group_items in menu_groups %}
+  {% if group_items %}
+    <details class="settings-category" id="{{ group_anchor }}" data-settings-section="{{ group_id }}"{% if menu_mode == 'hub' or group_id == menu_active %} open{% endif %}>
+      <summary class="settings-category-header">
+        <span class="settings-category-symbol" aria-hidden="true">{{ {'connect':'⌁','sim':'▥','web':'▤','device':'⚙'}[group_id] }}</span>
+        <span class="settings-category-copy"><strong>{{ group_title }}</strong><small>{{ group_description }}</small></span>
+        <span class="settings-category-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="settings-category-items">
+        {% for item_id,item_title,item_href,item_description in group_items %}
+        <a class="settings-category-item" href="{{ item_href }}" data-settings-link="{{ item_id }}" data-settings-parent="{{ group_id }}">
+          <span><strong>{{ item_title }}</strong>{% if menu_mode == 'hub' %}<small>{{ item_description }}</small>{% endif %}</span>
+          <span class="settings-category-arrow" aria-hidden="true">›</span>
+        </a>
+        {% endfor %}
+      </div>
+    </details>
+  {% endif %}
+  {% endfor %}
+</nav>
