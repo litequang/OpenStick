@@ -117,7 +117,7 @@ def test_overview_is_private_and_all_navigation_destinations_work(tmp_path):
         assert response.headers['Cache-Control'] == 'no-store'
     management = client.get('/manage', headers={'Host': '172.16.42.1'}).text
     assert 'aria-current="page"' in management
-    assert all(f'href="{path}"' in management for path in ['/', '/modem/network', '/modem/sms', '/modem/ussd'])
+    assert all(f'href="{path}"' in management for path in ['/overview', '/modem/network', '/modem/sms', '/modem/ussd'])
     assert 'href="/internet"' not in management  # backend is absent in this fixture
     assert client.get('/overview', headers={'Host': 'evil.invalid'}).status_code == 403
     assert client.get('/manage', headers={'Host': 'evil.invalid'}).status_code == 403
