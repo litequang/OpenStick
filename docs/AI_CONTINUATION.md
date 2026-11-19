@@ -1,11 +1,13 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**19/11/2026 — sửa trạng thái ModemManager và đưa nguồn lên header; chờ cài.**
+**19/11/2026 — đã cài trạng thái ModemManager đúng và menu nguồn trên header.**
 Đọc đầu HANDOFF và [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md).
 ModemManager có tiến trình/D-Bus nhưng OpenRC báo stopped; sửa telemetry dùng
 NameHasOwner trên bus daemon, lỗi đọc là unknown. Header có menu Nguồn, xác nhận
 tắt/khởi động lại, đóng khi bấm ngoài/icon khác/Escape. 772 PASS/1 skip; Chrome
-preview 4 layout PASS. Source đang cài vẫn `1d479fa` cho tới ghi nhận mới.
+preview 4 layout PASS. Đã cài source `045ff7e`, CI hai nhánh PASS; hash đủ 7 file,
+HTML/header/asset và API Overview thật xác nhận modemmanager=true. Power IDLE,
+heartbeat/usage vẫn tiến; cấu hình riêng/mạng/route/firewall giữ nguyên, sync xong.
 Đã đo USB/Chrome: HTML nhanh, dữ liệu đầu 9–11 giây; không coi hiệu ứng/RAM là
 nguyên nhân khi chưa có bằng chứng. Các thử nghiệm tối ưu đã tách khỏi source;
 chưa cài kiến trúc cache/collector/thread mới, chưa gửi lệnh nguồn thật.

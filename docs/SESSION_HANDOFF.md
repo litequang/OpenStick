@@ -14,7 +14,19 @@ one controller/ID set per page. No power action on opening, and no polling load
 until the menu opens or a request is being observed. No factory reset.
 772 PASS/one Windows symlink skip, exit 0; pip/JS checks PASS; preview Chrome at
 four widths plus Overview/menu exclusivity/confirmation/cancel/unknown PASS.
-Installation of this update is pending; installed source remains `1d479fa`.
+**Installed source `045ff7e602dae886f9d14740ff32295aef1089f9`.** Both Windows CI
+runs passed, including EXE build/self-test/smoke:
+[development CI](https://github.com/litequang/OpenStick/actions/runs/44443159562),
+[main CI](https://github.com/litequang/OpenStick/actions/runs/44443160070).
+Deployment and independent verification matched all seven source/UI hashes,
+real Overview header power controls and served assets. The real read-only
+Overview job reports `services.modemmanager=true`. Power is ready/IDLE with
+advancing heartbeat, no queue/receipts or real power commands. SIM samples still
+advance and the private checkpoint remains valid. Owner file hashes, active
+network, routes and firewall matched; services run and storage was flushed.
+Only USB/LAN portal services restarted; existing startup/usage/power worker kept
+running. No physical reboot/poweroff acceptance. Private rollback source backup
+is under `deploy-backups/header-status-power-*`; preview process was stopped.
 
 Read [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md). Real USB and
 headless Chrome baseline found DOM 0.123s vs first Overview data 9.157s; header
@@ -29,7 +41,7 @@ from the source for now. No cache/collector/HTTP-thread redesign is installed.
 Do not confuse this update with implementing the proposed performance phases.
 No radio/profile/data/route/gadget or board power change was made for the audit.
 Private timings/resources/rollback helpers stay ignored; unrelated untracked
-files remain untouched. Record installation evidence separately after deployment.
+files remain untouched. Timing artifacts are private and not included in Git.
 
 ## 2026-11-19 latest: normal device power buttons installed
 

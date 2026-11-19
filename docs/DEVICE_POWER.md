@@ -58,6 +58,14 @@ power request. Unknown results require inspection, not automatic retries.
 
 ## Validation and installation status
 
+- Header-menu update installed as **`045ff7e`**, branch/main CI PASS. Local suite
+  **772 passed / one Windows symlink skip, exit 0**. Preview verifies four widths,
+  direct Overview use, outside/other-icon/Escape closing, explicit confirmation,
+  cancellation and unknown outcome without resubmission. Independent USB hash,
+  header/asset/status checks passed, no real power command sent. ModemManager's
+  service telemetry now reflects D-Bus ownership rather than OpenRC bookkeeping;
+  the real Overview reports it running. No performance architecture change yet;
+  see [the performance audit](PORTAL_PERFORMANCE_AUDIT.md).
 - Local suite: **766 passed, one Windows symlink-privilege skip, exit 0**.
   Tests cover confirmation, authentication including LAN login, passive GETs,
   duplicate IDs, cancel/expiry, boot/worker changes, command timeout, durable-write

@@ -100,3 +100,8 @@ thành “đã dừng”. Dịch vụ đang chạy cũng không tự chứng min
 
 Xem [SESSION_HANDOFF.md](SESSION_HANDOFF.md) để phân biệt bản sửa trạng thái/nút
 nguồn đã cài với giai đoạn tối ưu hiệu năng còn đề xuất.
+
+Bản sửa trạng thái/nút nguồn **`045ff7e` đã cài**, test 772 PASS/1 skip, CI hai
+nhánh PASS. Hash/asset/header và Overview API thật đã xác nhận trạng thái
+ModemManager đúng. Chưa thay kiến trúc hiệu năng; không coi bản sửa này là đã
+giải quyết xong độ trễ 9–11 giây của Tổng quan.
