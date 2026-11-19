@@ -18,11 +18,11 @@ let result={},failSend=false;
 let status={state:'failed',sim_missing:true,sim_present:false,sim_locked:false,registered:false,
  sms_available:false,can_send:false,ussd_available:false,can_ussd:false,ussd_state:0,
  can_enable:false,can_set_mode:false,supported_modes:[[4,0],[8,0],[12,8],[12,4]],current_mode:[8,0]};
-const context={console,Date,setTimeout,clearTimeout,Uint8Array,
+const context={console,Date,setTimeout,clearTimeout,AbortController,Uint8Array,
  window:{confirm:()=>true,addEventListener:()=>{}},
  crypto:{getRandomValues:webcrypto.getRandomValues.bind(webcrypto)},setInterval:()=>0,
  Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},
- document:{hidden:false,getElementById:id=>elements[id]||null,
+ document:{hidden:false,querySelector:()=>({dataset:{statusToken:'fixture'}}),getElementById:id=>elements[id]||null,
  createElement:()=>new Element(),createTextNode:text=>({textContent:text})},
  fetch:async(url,options={})=>{
   if(options.method==='POST'){
@@ -35,6 +35,7 @@ const context={console,Date,setTimeout,clearTimeout,Uint8Array,
    if(body.action==='ussd_cancel'){status={...status,ussd_state:1};result={cancelled:true};}
    return {ok:true};
   }
+  if(url==='/api/modem/status')return {ok:true,status:200,json:async()=>status};
   return {ok:true,json:async()=>({busy:false,error:null,result})};
  }};
 vm.createContext(context);
@@ -43,7 +44,7 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
 (async()=>{
  await new Promise(resolve=>setImmediate(resolve));
  for(const id of ['sms-fields','ussd-fields','mode-fields'])if(elements[id])assert(elements[id].disabled);
- assert.equal(posts.length,1);assert.equal(posts[0].action,'status');
+ assert.equal(posts.length,0,'opening a modem settings page only reads GET telemetry');
  if(section==='network'){
   assert(elements['radio-mode'].options.some(o=>o.textContent==='Chỉ 4G'));
   assert(elements['radio-mode'].options.some(o=>o.textContent==='Chỉ 3G'));

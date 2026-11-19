@@ -9,9 +9,9 @@
  const bytes=v=>v==null?'—':v>=1048576?(v/1048576).toFixed(1)+' MiB':v>=1024?(v/1024).toFixed(1)+' KiB':v+' B';
  errors.AP_CLIENTS_OFFLOAD_UNSUPPORTED='Đang có flow offload ngoài bộ lọc này. Chưa xác nhận chặn Internet; cần kiểm tra qua USB.';
  function operationId(){const b=crypto.getRandomValues(new Uint8Array(16));b[6]=(b[6]&15)|64;b[8]=(b[8]&63)|128;const h=Array.from(b,v=>v.toString(16).padStart(2,'0')).join('');return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`}
- function controls(){el('refresh').disabled=busy||reading;el('block').disabled=busy||!state;for(const b of document.querySelectorAll('#ap-clients-list button,#ap-clients-blocked button'))b.disabled=busy||!state}
+ function controls(){el('refresh').disabled=busy;el('block').disabled=busy||!state;for(const b of document.querySelectorAll('#ap-clients-list button,#ap-clients-blocked button'))b.disabled=busy||!state}
  function button(address,blocked){const b=node('button',blocked?'Bỏ chặn':'Chặn Internet','secondary');b.type='button';b.onclick=()=>act(blocked?'unblock':'block',address);return b}
- function draw(s){
+ function draw(s){globalThis.portalRememberSettings?.('clients',s);
   state=s;el('list').replaceChildren();el('blocked').replaceChildren();
   el('status').textContent=!s.ap_active?'USB chưa phát Wi-Fi. Danh sách chặn vẫn được lưu; chưa áp dụng vào Wi-Fi nhận mạng.':!s.inventory_available?'Chưa đọc được thiết bị từ driver; không coi đây là danh sách rỗng.':`${s.count} thiết bị đang kết nối. ${s.blocked.length? (s.filter_applied?'Danh sách chặn đã có trong firewall.':'Danh sách chặn CHƯA được xác nhận áp dụng.'):'Chưa chặn thiết bị nào.'}`;
   if(s.error)el('notice').textContent=errors[s.error]||'Chưa xác nhận được trạng thái.';
@@ -29,7 +29,7 @@
   if(busy||reading)return;reading=true;controls();
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
   try{const r=await fetch('/api/ap/clients',{headers,cache:'no-store',signal:controller.signal});if(r.status===401){location.href='/login';return}const s=await r.json();if(!r.ok)throw Error(errors[s.error]||'Chưa đọc được danh sách.');draw(s)}
-  catch(e){state=null;el('list').replaceChildren();el('status').textContent='Danh sách hiện tại chưa xác định. Bấm Làm mới để kiểm tra.';el('notice').textContent=e instanceof TypeError||e.name==='AbortError'?'Mất kết nối hoặc hết thời gian đọc. Không có lệnh chặn nào được gửi.':e.message}
+  catch(e){if(!state)el('list').replaceChildren();el('status').textContent='Danh sách hiện tại chưa xác định. Bấm Làm mới để kiểm tra.';el('notice').textContent=e instanceof TypeError||e.name==='AbortError'?'Mất kết nối hoặc hết thời gian đọc. Không có lệnh chặn nào được gửi.':e.message}
   finally{clearTimeout(timer);reading=false;controls()}
  }
  async function act(action,address){
@@ -44,5 +44,6 @@
  }
  el('refresh').onclick=refresh;
  el('form').onsubmit=e=>{e.preventDefault();act('block',document.getElementById('ap-client-mac').value.trim())};
- refresh();setInterval(()=>{if(!document.hidden)refresh()},15000);
+ const rememberedClients=globalThis.portalRestoreSettings?.('clients');if(rememberedClients)try{draw(rememberedClients);globalThis.portalSettingsNote?.(el('status'))}catch(_){}
+ refresh();setInterval(()=>{if(!document.hidden)refresh()},60000);
 })();

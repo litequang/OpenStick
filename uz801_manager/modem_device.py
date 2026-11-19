@@ -98,6 +98,22 @@ class RadioPreference:
         finally:
             os.close(fd)
 
+    def load_bands(self):
+        try:
+            value = json.loads((self.directory / 'radio-bands.json').read_text())
+            validate_action({'action':'bands', 'confirm':True, 'selection':value})
+            return value
+        except (OSError, ValueError, TypeError):return None
+
+    def save_bands(self, selection):
+        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        temporary = self.directory / 'radio-bands.tmp'
+        with temporary.open('w') as output:
+            os.chmod(temporary, 0o600)
+            json.dump(selection, output);output.flush();os.fsync(output.fileno())
+        os.replace(temporary, self.directory / 'radio-bands.json')
+        self._sync_directory()
+
 
 @contextmanager
 def modem_lock():
@@ -134,8 +150,14 @@ class ModemManager:
 
     def call(self, action, **values):
         validate_action({'action': action, **values})
-        if action in ('enable', 'mode', 'send', 'ussd_start', 'ussd_reply') and not radio_allowed():
+        # Display reads do not own the mutation mutex. Every write still reads
+        # fresh SIM/session/capabilities under its lock before executing.
+        if action == 'status':return self._call(action, values)
+        if action in ('enable', 'mode', 'bands', 'roaming', 'send', 'ussd_start', 'ussd_reply') and not radio_allowed():
             raise RuntimeError('AIRPLANE_ACTIVE')
+        if action in ('roaming', 'bands'):
+            from .hotspot import network_lock
+            with network_lock(), self.lock_factory():return self._call(action, values)
         with self.lock_factory():
             return self._call(action, values)
 
@@ -198,6 +220,12 @@ class ModemManager:
             technology = optional(MODEM, 'AccessTechnologies')
             operator = optional(THREEGPP, 'OperatorName') if THREEGPP in interfaces else None
             registration = optional(THREEGPP, 'RegistrationState') if THREEGPP in interfaces else None
+            from .radio_network import band_choices, roaming_status, set_roaming
+            from .hotspot import Hotspot
+            owner = Hotspot()
+            supported_bands = optional(MODEM, 'SupportedBands')
+            current_bands = optional(MODEM, 'CurrentBands')
+            choices = band_choices(supported_bands)
             status = {'state': STATES.get(state, 'unknown'), 'sim_present': present,
                       'sim_missing': failed_reason == 2, 'sim_locked': present and not unlocked,
                       'secondary_lock': {3: 'pin2', 5: 'puk2'}.get(unlock),
@@ -213,6 +241,10 @@ class ModemManager:
                       'can_enable': present and unlocked and state == 3,
                       'supported_modes': modes, 'current_mode': current_mode,
                       'saved_mode': self.radio.load(),
+                      'band_choices': choices, 'current_bands': [int(n) for n in current_bands] if current_bands is not None else None,
+                      'saved_bands': self.radio.load_bands(), 'roaming': roaming_status(owner),
+                      'can_set_bands': present and unlocked and state >= 6 and bool(choices),
+                      'can_set_roaming': present and unlocked and state >= 6 and THREEGPP in interfaces,
                       'can_set_mode': present and unlocked and state >= 6 and bool(modes),
                       'mobile_data': 'UNVERIFIED_NOT_CONFIGURED', 'verification': 'UNVERIFIED'}
             if action == 'status':
@@ -228,6 +260,23 @@ class ModemManager:
                 raise RuntimeError('SIM_REQUIRED')
             if not unlocked:
                 raise RuntimeError('SIM_LOCKED')
+            if action in ('bands', 'roaming'):
+                if state < 6:raise RuntimeError('NOT_REGISTERED')
+                if session in (2, 3):raise RuntimeError('USSD_SESSION_STATE')
+                if action == 'bands':
+                    choice = next((c for c in choices if c['id'] == values['selection']), None)
+                    if choice is None:raise RuntimeError('UNSUPPORTED')
+                    invoke(path, MODEM, 'SetCurrentBands', 'au', (choice['bands'],), timeout=60)
+                    self.radio.save_bands(values['selection'])
+                    return {'saved':True, 'bands_requested':choice['bands']}
+                if state in (9, 10, 11):raise RuntimeError('CELLULAR_ALREADY_ACTIVE')
+                if THREEGPP not in interfaces:raise RuntimeError('UNSUPPORTED')
+                home = ''
+                if not values['allowed']:
+                    try:home = str(get(SERVICE + '.Sim', 'OperatorIdentifier', sim))
+                    except Exception:raise RuntimeError('HOME_NETWORK_UNAVAILABLE') from None
+                return set_roaming(owner, values['allowed'], home,
+                    lambda operator: invoke(path, THREEGPP, 'Register', 's', (operator,), timeout=120))
             if action == 'enable':
                 if state == 3:
                     invoke(path, MODEM, 'Enable', 'b', (True,), timeout=60)
@@ -375,6 +424,10 @@ def watch_radio():
     attempts = 0
     mode_attempts = 0
     applied = None
+    band_attempts = 0
+    applied_bands = None
+    roaming_attempts = 0
+    roaming_applied = False
     airplane_reconciled = False
     while True:
         try:
@@ -382,6 +435,10 @@ def watch_radio():
                 # Re-enable must replay the owner's saved mode even when the
                 # modem lost its runtime setting during this radio-off cycle.
                 applied = None
+                applied_bands = None
+                band_attempts = 0
+                roaming_applied = False
+                roaming_attempts = 0
                 mode_attempts = 0
                 if not airplane_reconciled:
                     from .quick_settings import QuickSettings
@@ -402,6 +459,20 @@ def watch_radio():
                     mode_attempts += 1
                     modem.call('mode', allowed=preference[0], preferred=preference[1], confirm=True)
                 applied = preference
+            bands = status.get('saved_bands')
+            if (bands and bands != applied_bands and band_attempts < 3
+                    and status.get('can_set_bands') and status['ussd_state'] not in (2, 3)):
+                band_attempts += 1
+                modem.call('bands', selection=bands, confirm=True)
+                applied_bands = bands
+            # A fresh SIM home operator is read for each replay, never inferred
+            # from the currently serving (possibly roaming) operator.
+            if (status.get('roaming', {}).get('home_locked') and not roaming_applied
+                    and roaming_attempts < 3 and status.get('can_set_roaming')
+                    and status['ussd_state'] not in (2, 3)):
+                roaming_attempts += 1
+                modem.call('roaming', allowed=False, confirm=True)
+                roaming_applied = True
         except Exception:
             pass  # No raw modem/SIM/message data in service logs.
         time.sleep(30)

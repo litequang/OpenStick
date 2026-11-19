@@ -6,7 +6,7 @@ const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[
 let state={pending:false,hotspot_active:false,cellular_connected:false,enabled:false},interval,confirmed=false;
 const writes=[],tick=()=>new Promise(r=>setImmediate(r));
 const context={console,Date,setTimeout,setInterval:fn=>{interval=fn},location:{},window:{confirm:()=>confirmed},
- document:{hidden:false,getElementById:id=>elements[id],querySelector:()=>({dataset:{statusToken:'fixture'}})},
+ document:{hidden:false,getElementById:id=>elements[id],querySelector:selector=>selector==='.portal-header'?{dataset:{statusToken:'fixture'}}:null},
  fetch:async(url,options={})=>{
   if(options.method==='POST'){const value=JSON.parse(options.body);writes.push(value);state={...state,pending:false};return {ok:true};}
   if(url==='/api/hotspot/state')return {ok:true,json:async()=>({busy:false,last_operation:{action:writes.at(-1)?.action},result:state})};

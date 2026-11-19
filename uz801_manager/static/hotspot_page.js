@@ -12,10 +12,11 @@
     try{
       const r=await fetch('/api/hotspot/summary',{headers,cache:'no-store'});
       if(r.status===401){location.href='/login';return;}if(!r.ok)throw Error();current=await r.json();
+      globalThis.portalRememberSettings?.('hotspot',current);
       el('status').textContent='Wi-Fi USB: '+(current.hotspot_active?'đang phát':current.setup_active?'đang phát quản trị':'chưa phát')+'\nDữ liệu SIM: '+(current.cellular_connected?'đã kết nối (Internet cần kiểm tra riêng)':'chưa kết nối');
       el('pending').hidden=!current.pending;el('legacy-note').hidden=!current.enabled;
       el('countdown').textContent=current.pending?'Còn khoảng '+current.seconds_remaining+' giây để giữ phiên.':'';
-    }catch(_){current=null;el('status').textContent='Chưa đọc được trạng thái. Kiểm tra kết nối rồi bấm Đọc lại.';}
+    }catch(_){el('status').textContent=current?'Trạng thái lần gần nhất · chưa đọc được cập nhật.':'Chưa đọc được trạng thái. Kiểm tra kết nối rồi bấm Đọc lại.';}
     controls();
   }
   async function finish(action){
@@ -36,5 +37,9 @@
   }
   el('refresh').onclick=()=>{if(!busy)refresh();};
   el('keep').onclick=()=>finish('keep');el('rollback').onclick=()=>finish('stop');
-  refresh();setInterval(()=>{if(!busy&&!document.hidden)refresh();},15000);
+  // The merged AP page already polls shared Wi-Fi/header state. Keep the old
+  // trial observer alive only while a legacy trial needs completion.
+  const embedded=!!document.querySelector('[data-hotspot-embedded]');
+  const rememberedHotspot=globalThis.portalRestoreSettings?.('hotspot');if(rememberedHotspot){current=rememberedHotspot;el('status').textContent='Wi-Fi USB: '+(current.hotspot_active?'đang phát':current.setup_active?'đang phát quản trị':'chưa phát')+' · dữ liệu lần gần nhất';}
+  refresh();setInterval(()=>{if(!busy&&!document.hidden&&(!embedded||current?.pending))refresh();},15000);
 })();

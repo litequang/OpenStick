@@ -6,20 +6,22 @@
  let state=null,busy=false,reading=false,attempt=null,acceptedAt=0,revision=0;
  function identity(){const a=crypto.getRandomValues(new Uint8Array(16));a[6]=(a[6]&15)|64;a[8]=(a[8]&63)|128;const s=[...a].map(n=>n.toString(16).padStart(2,'0')).join('');return [s.slice(0,8),s.slice(8,12),s.slice(12,16),s.slice(16,20),s.slice(20)].join('-')}
  function draw(s){
+  globalThis.portalRememberSettings?.('power',s);
   state=s;const labels={IDLE:'Sẵn sàng.',QUEUED:'Đã lưu yêu cầu; chờ '+s.delay_seconds+' giây trước khi chuẩn bị.',WAITING_BUSY:'Đang chờ thao tác đang chạy hoàn tất; yêu cầu có thời hạn.',DISPATCHING:'Đang chuyển yêu cầu cho hệ điều hành. Không rút nguồn.',DISPATCHED:'Hệ điều hành đã nhận yêu cầu. Đang chờ kết nối thay đổi; chưa xác nhận USB đã tắt/khởi động xong.',CANCELLED:'Yêu cầu đã được hủy; chưa gửi lệnh nguồn.',EXPIRED:'Hết thời gian chờ; không gửi lệnh nguồn.',FAILED:'Chưa gửi lệnh nguồn: '+(errors[s.error]||'không thể chuẩn bị.'),UNKNOWN:'Không rõ kết quả. Không tự gửi lại lệnh.',BOOT_CHANGED:'USB đã có phiên khởi động mới kể từ yêu cầu trước.'};
   el('state').textContent=!s.available&&!s.pending?'Bộ điều khiển chưa sẵn sàng. '+(labels[s.phase]||''):labels[s.phase]||'Chưa xác định trạng thái.';
   for(const id of ['reboot','off'])el(id).disabled=busy||!s.available||s.pending;
-  el('cancel').hidden=!['QUEUED','WAITING_BUSY'].includes(s.phase);el('cancel').disabled=busy;
+  el('cancel').hidden=!['QUEUED','WAITING_BUSY'].includes(s.phase);el('cancel').disabled=busy||s._display_cached===true;
   if(attempt&&s.operation===attempt)el('notice').textContent=s.error?errors[s.error]||'Chưa xác nhận kết quả.':'Trạng thái yêu cầu đã được đọc lại; không gửi thêm lệnh.';
  }
  async function refresh(){
   if(reading||busy)return;reading=true;const version=revision,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6000);
   try{const r=await fetch('/api/device/power',{headers,cache:'no-store',signal:controller.signal});if(r.status===401){location.href='/login';return}const s=await r.json();if(version!==revision)return;if(!r.ok)throw Error(errors[s.error]||'Chưa đọc được trạng thái.');draw(s)}
-  catch(e){for(const id of ['reboot','off','cancel'])el(id).disabled=true;state=null;el('state').textContent=acceptedAt?'Đã mất liên lạc với USB; chưa xác nhận tắt/khởi động hoàn tất. Trang chỉ kiểm tra lại, không gửi lặp.':'Chưa đọc được bộ điều khiển. Kiểm tra kết nối rồi bấm Kiểm tra lại.'}
+  catch(e){if(state&&!acceptedAt&&!attempt){state={...state,_display_cached:true};draw(state);globalThis.portalSettingsNote?.(el('state'))}else{for(const id of ['reboot','off','cancel'])el(id).disabled=true;state=null;el('state').textContent=acceptedAt?'Đã mất liên lạc với USB; chưa xác nhận tắt/khởi động hoàn tất. Trang chỉ kiểm tra lại, không gửi lặp.':'Chưa đọc được bộ điều khiển. Kiểm tra kết nối rồi bấm Kiểm tra lại.'}}
   finally{clearTimeout(timer);reading=false}
  }
  async function act(action){
   if(busy||!state)return;
+  if(state._display_cached){try{const r=await fetch('/api/device/power',{headers,cache:'no-store'});if(!r.ok)throw Error();draw(await r.json())}catch(_){el('notice').textContent='Chưa đọc được trạng thái nguồn hiện tại. Kiểm tra kết nối rồi thử lại.';return}}
   if(action!=='cancel'&&(!state.available||state.pending))return;
   const text=action==='reboot'?'Khởi động lại USB? Website, Tunnel và mọi kết nối sẽ bị ngắt. Cấu hình đã lưu được giữ lại.':'Tắt hệ điều hành USB an toàn? Website, Tunnel và mọi kết nối sẽ dừng. Muốn bật lại phải rút/cắm nguồn USB.';
   if(action!=='cancel'&&!confirm(text))return;
@@ -32,6 +34,7 @@
  }
  el('reboot').onclick=()=>act('reboot');el('off').onclick=()=>act('poweroff');el('cancel').onclick=()=>act('cancel');el('refresh').onclick=refresh;
  chip.addEventListener('toggle',()=>{if(chip.open)refresh()});
+ const rememberedPower=globalThis.portalRestoreSettings?.('power');if(rememberedPower)try{draw(rememberedPower);globalThis.portalSettingsNote?.(el('state'))}catch(_){}
  if(el('open-controls'))el('open-controls').onclick=event=>{event.stopPropagation();chip.open=true;chip.querySelector('summary').focus()};
  setInterval(()=>{if(!document.hidden&&(chip.open||acceptedAt)&&(!acceptedAt||Date.now()-acceptedAt<120000))refresh()},3000);
 })();

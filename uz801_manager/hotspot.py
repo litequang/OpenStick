@@ -503,6 +503,15 @@ class Hotspot:
                 f'autoconnect=false\n\n[gsm]\n{gsm}\nhome-only=true\n'
                 '\n[ipv4]\nmethod=auto\nroute-metric=600\ndns-priority=600\n'
                 '\n[ipv6]\nmethod=auto\nroute-metric=600\ndns-priority=600\n')
+        # Rebuilding AP/profile settings must preserve the owner's roaming lock.
+        existing_cell = self.profiles / 'openstick-cellular.nmconnection'
+        if existing_cell.exists():
+            from .radio_network import profile_state
+            _, _, previous = profile_state(self)
+            roaming = previous.getboolean('gsm', 'home-only', fallback=False)
+            home = previous.get('gsm', 'network-id', fallback='')
+            if home and not re.fullmatch(r'[0-9]{5,6}', home):raise RuntimeError('HOTSPOT_NOT_CONFIGURED')
+            cell = cell.replace('home-only=true\n', 'home-only='+('true' if roaming or home else 'false')+'\n'+('network-id='+home+'\n' if home else ''))
         # Save/load only. Never activate a profile or change radio settings here.
         for name, data in [('openstick-hotspot', ap), ('openstick-cellular', cell)]:
             path = self.profiles / (name + '.nmconnection')

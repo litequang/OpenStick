@@ -10,6 +10,20 @@ def register_network_routes(app, backend, token):
     lock = threading.Lock()
     state = {'busy': False, 'result': {}, 'error': None}
     app.extensions['network_policy'] = {'state': state}
+    from .telemetry import ReadOnlySnapshot, snapshot_response
+    display = ReadOnlySnapshot(lambda:backend.call('status'))
+    app.extensions['telemetry']['policy'] = display
+
+    @app.get('/api/internet/status')
+    def internet_display():
+        return snapshot_response(display)
+
+    profiles_display = ReadOnlySnapshot(lambda:backend.call('profiles'))
+    app.extensions['telemetry']['saved_profiles'] = profiles_display
+
+    @app.get('/api/wifi/profiles')
+    def wifi_profiles_display():
+        return snapshot_response(profiles_display)
 
     @app.get('/internet')
     def internet_page():
