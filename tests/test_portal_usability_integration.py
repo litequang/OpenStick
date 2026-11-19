@@ -123,7 +123,8 @@ def test_adaptive_bottom_dock_and_unified_settings_hub():
                      'grid-template-columns:repeat(7,minmax(0,1fr))',
                      '.portal-nav-sim', '.portal-nav-website']:
         assert required in css
-    app = create_hosting_app(backend=Wifi(), modem_backend=object(), usb_portal=True, token='fixture')
+    app = create_hosting_app(backend=Wifi(), modem_backend=object(), usb_portal=True,
+                             setup_backend=object(), network_backend=object(), token='fixture')
     with app.test_client() as client:
         management = client.get('/manage', base_url=BASE)
         assert management.status_code == 200
