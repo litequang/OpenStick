@@ -1,5 +1,36 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-19 latest: header power, service truth and performance audit
+
+Owner requests correct ModemManager status, a power/reset menu on the status bar,
+then a source audit of slow portal entry. The service is running/owns D-Bus even
+though OpenRC status is false. Read-only `NameHasOwner` on the bus daemon now
+drives this service's display; unavailable/failed bus reads are distinct from
+stopped. No service start/restart is needed for this correction.
+
+Header **Nguồn** exposes confirmed normal reboot/poweroff, with outside/other
+icon/Escape close behavior. System keeps instructions and a shortcut; there is
+one controller/ID set per page. No power action on opening, and no polling load
+until the menu opens or a request is being observed. No factory reset.
+772 PASS/one Windows symlink skip, exit 0; pip/JS checks PASS; preview Chrome at
+four widths plus Overview/menu exclusivity/confirmation/cancel/unknown PASS.
+Installation of this update is pending; installed source remains `1d479fa`.
+
+Read [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md). Real USB and
+headless Chrome baseline found DOM 0.123s vs first Overview data 9.157s; header
+8.727s, overview job 11.158s; concurrent status calls delayed CSS/Manage ~3.7s.
+Two synchronous HTTP threads, repeated header reads in header/Quick/Overview,
+subprocess overhead and overlapping polling are evidence-backed bottlenecks.
+Ten-second sample had no swap-in/out/major faults; used swap was zram, other
+used swap zero. This is point-in-time evidence, not a p95/load certification.
+
+Performance architecture experiments have been archived privately and removed
+from the source for now. No cache/collector/HTTP-thread redesign is installed.
+Do not confuse this update with implementing the proposed performance phases.
+No radio/profile/data/route/gadget or board power change was made for the audit.
+Private timings/resources/rollback helpers stay ignored; unrelated untracked
+files remain untouched. Record installation evidence separately after deployment.
+
 ## 2026-11-19 latest: normal device power buttons installed
 
 **Installed source `1d479fac99ffb11e7960d58e32f53d015378394f`; both branch/main

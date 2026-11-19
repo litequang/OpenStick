@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from uz801_manager.portal_metrics import save_tariff, service_snapshot, system_snapshot
+from uz801_manager.portal_metrics import modemmanager_available, save_tariff, service_snapshot, system_snapshot
 
 
 @pytest.fixture
@@ -110,4 +110,41 @@ def test_service_inspection_only_uses_fixed_read_only_commands():
         calls.append(args)
         assert kwargs['timeout'] == 4 and args[0] == 'rc-service' and args[-1] == 'status'
         return subprocess.CompletedProcess(args, 0)
-    assert all(service_snapshot(run).values()) and len(calls) == 6
+    assert all(service_snapshot(run,modem_probe=lambda:True).values()) and len(calls) == 5
+
+
+@pytest.mark.parametrize('owned',[True,False])
+def test_modemmanager_queries_bus_daemon_without_activation_or_introspection(owned):
+    calls=[]
+    class Bus:
+        def get_object(self,name,path,**kw):
+            calls.append((name,path,kw));return self
+        def get_dbus_method(self,method,interface):
+            calls.append((method,interface));return self.query
+        def query(self,name,**kw):
+            calls.append((name,kw));return owned
+        def close(self):calls.append('closed')
+    assert modemmanager_available(Bus) is owned
+    assert calls==[('org.freedesktop.DBus','/org/freedesktop/DBus',{'introspect':False}),
+                   ('NameHasOwner','org.freedesktop.DBus'),
+                   ('org.freedesktop.ModemManager1',{'timeout':2}),'closed']
+
+
+def test_modemmanager_bus_error_is_unknown_and_connection_is_closed():
+    closed=[]
+    class Bus:
+        def get_object(self,*args,**kwargs):raise TimeoutError('private error')
+        def close(self):closed.append(True)
+    assert modemmanager_available(Bus) is None
+    assert closed==[True]
+
+
+@pytest.mark.parametrize('owned',[True,False,None])
+def test_modemmanager_bus_state_overrides_stopped_openrc_without_starting_service(owned):
+    calls=[]
+    def run(args,**kw):
+        calls.append(args);return subprocess.CompletedProcess(args,3)
+    value=service_snapshot(run,modem_probe=lambda:owned)
+    assert value['modemmanager'] is owned
+    assert all(args==['rc-service',args[1],'status'] and args[1]!='modemmanager' for args in calls)
+    assert len(calls)==5

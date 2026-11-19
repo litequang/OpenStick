@@ -1,6 +1,6 @@
 /* Only explicit, confirmed POSTs. Polls never repeat power commands. */
 (()=>{
- const el=id=>document.getElementById('power-'+id);if(!el('state'))return;
+ const el=id=>document.getElementById('power-'+id),chip=document.getElementById('chip-power');if(!el('state')||!chip)return;
  const headers={'Content-Type':'application/json','X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
  const errors={POWER_UNAVAILABLE:'Bộ điều khiển chưa sẵn sàng hoặc hệ thống chưa hỗ trợ.',POWER_BUSY:'USB đang có thao tác khác; chờ hoàn tất rồi thử lại.',POWER_PENDING:'Đã có yêu cầu nguồn đang chờ.',POWER_STATE_INVALID:'Trạng thái điều khiển bị lỗi; cần kiểm tra qua USB.',POWER_SAVE_FAILED:'Chưa lưu được yêu cầu; không tự gửi lại.',POWER_RESULT_UNKNOWN:'Chưa rõ lệnh đã thực hiện hay chưa; không tự gửi lại.',ALREADY_ATTEMPTED:'Mã yêu cầu này đã được dùng; không gửi lại.',POWER_NOT_CANCELLABLE:'Đã qua giai đoạn có thể hủy.',NETWORK_TRIAL_PENDING:'Hoàn tất hoặc hủy bước thử cấu hình mạng trước.',USAGE_CHECKPOINT_FAILED:'Chưa lưu được thống kê SIM; chưa yêu cầu tắt/khởi động lại.'};
  let state=null,busy=false,reading=false,attempt=null,acceptedAt=0,revision=0;
@@ -31,5 +31,7 @@
   finally{clearTimeout(timer);busy=false;if(state)draw(state);refresh()}
  }
  el('reboot').onclick=()=>act('reboot');el('off').onclick=()=>act('poweroff');el('cancel').onclick=()=>act('cancel');el('refresh').onclick=refresh;
- refresh();setInterval(()=>{if(!document.hidden&&(!acceptedAt||Date.now()-acceptedAt<120000))refresh()},3000);
+ chip.addEventListener('toggle',()=>{if(chip.open)refresh()});
+ if(el('open-controls'))el('open-controls').onclick=event=>{event.stopPropagation();chip.open=true;chip.querySelector('summary').focus()};
+ setInterval(()=>{if(!document.hidden&&(chip.open||acceptedAt)&&(!acceptedAt||Date.now()-acceptedAt<120000))refresh()},3000);
 })();

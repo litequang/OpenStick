@@ -25,10 +25,28 @@ def main():
             for width in [320,390,768,1280]:
                 page.set_viewport_size({'width':width,'height':844})
                 assert page.goto('http://127.0.0.1:8771/settings/system').status==200
+                assert page.locator('.portal-header #chip-power').count()==1
+                page.locator('#chip-power>summary').click()
                 expect(page.locator('#power-reboot')).to_be_enabled()
                 assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth'),width
+                assert page.locator('.portal-header').evaluate('(el)=>el.scrollWidth<=el.clientWidth'),width
                 assert not writes
                 if width==390:page.screenshot(path=str(out/'system-390.png'),full_page=True)
+            page.locator('#chip-modem>summary').click()
+            expect(page.locator('#chip-power')).not_to_have_attribute('open','')
+            page.locator('#chip-power>summary').click()
+            expect(page.locator('#chip-modem')).not_to_have_attribute('open','')
+            page.locator('h1').click()
+            expect(page.locator('#chip-power')).not_to_have_attribute('open','')
+            page.locator('#power-open-controls').click()
+            expect(page.locator('#chip-power')).to_have_attribute('open','')
+            page.keyboard.press('Escape')
+            expect(page.locator('#chip-power')).not_to_have_attribute('open','')
+            assert not writes
+            # Same controls work directly on Overview, without visiting System.
+            assert page.goto('http://127.0.0.1:8771/overview').status==200
+            page.locator('#chip-power>summary').click()
+            expect(page.locator('#power-off')).to_be_enabled()
             page.once('dialog',lambda dialog:dialog.dismiss());page.locator('#power-off').click()
             assert not writes
             page.once('dialog',lambda dialog:dialog.accept());page.locator('#power-reboot').click()
@@ -43,7 +61,7 @@ def main():
             page.wait_for_timeout(3500);assert len(writes)==3
             assert not errors,errors
         finally:browser.close()
-    result={'preview_layouts':4,'confirmation_cancel_unknown':'PASS','real_power_commands':0}
+    result={'preview_layouts':4,'header_popover_exclusivity':'PASS','overview_power_menu':'PASS','confirmation_cancel_unknown':'PASS','real_power_commands':0}
     (out/'report.json').write_text(json.dumps(result));print(json.dumps(result))
 
 

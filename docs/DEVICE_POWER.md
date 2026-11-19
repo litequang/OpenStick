@@ -1,9 +1,13 @@
 # Device power controls — 2026-11-19
 
-**Quản lý → Hệ thống** (`/settings/system`) provides **Khởi động lại USB** and
-**Tắt USB an toàn**. Each requires a click and explicit confirmation. Website,
+The **Nguồn** icon on the header/status bar opens **Khởi động lại USB** and
+**Tắt USB an toàn**, including directly on Overview. **Quản lý → Hệ thống**
+(`/settings/system`) keeps instructions and a shortcut to this menu. Reset here
+means normal reboot, never factory reset. Each requires a click and explicit confirmation. Website,
 Tunnel, Wi-Fi, tethering and modem sessions will be interrupted. Finish uploads,
 unzip and editing first. Opening the page/status polling never requests power.
+The power menu reads status only when opened or observing an accepted request;
+clicking outside, opening another status icon or pressing Escape closes it.
 Cancel is available during the five-second queue window and while waiting for
 busy operations, until command preparation takes the exclusive transition lock.
 

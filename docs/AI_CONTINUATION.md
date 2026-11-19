@@ -1,5 +1,15 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**19/11/2026 — sửa trạng thái ModemManager và đưa nguồn lên header; chờ cài.**
+Đọc đầu HANDOFF và [PORTAL_PERFORMANCE_AUDIT.md](PORTAL_PERFORMANCE_AUDIT.md).
+ModemManager có tiến trình/D-Bus nhưng OpenRC báo stopped; sửa telemetry dùng
+NameHasOwner trên bus daemon, lỗi đọc là unknown. Header có menu Nguồn, xác nhận
+tắt/khởi động lại, đóng khi bấm ngoài/icon khác/Escape. 772 PASS/1 skip; Chrome
+preview 4 layout PASS. Source đang cài vẫn `1d479fa` cho tới ghi nhận mới.
+Đã đo USB/Chrome: HTML nhanh, dữ liệu đầu 9–11 giây; không coi hiệu ứng/RAM là
+nguyên nhân khi chưa có bằng chứng. Các thử nghiệm tối ưu đã tách khỏi source;
+chưa cài kiến trúc cache/collector/thread mới, chưa gửi lệnh nguồn thật.
+
 **19/11/2026 — đã cài nút nguồn lên USB.**
 Đọc [DEVICE_POWER.md](DEVICE_POWER.md) và đầu HANDOFF. Source `1d479fa` đã cài;
 CI hai nhánh PASS. `/manage` → `/settings/system` có khởi động lại/tắt hệ điều hành,

@@ -1,17 +1,15 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Hệ thống</title></head><body><main>
 {% include 'portal_chrome.html' %}
-<div class="page-title"><h1>Hệ thống</h1><button type="button" class="secondary" id="power-refresh">Kiểm tra lại</button></div>
+<div class="page-title"><h1>Hệ thống</h1></div>
 <p class="ux-page-intro">Khởi động lại hoặc tắt hệ điều hành trên USB. Chỉ thực hiện sau khi bạn bấm nút và xác nhận.</p>
 <section aria-labelledby="power-title"><h2 id="power-title">Nguồn thiết bị</h2>
 <p>Website, Cloudflare Tunnel, Wi-Fi, Internet chia sẻ qua USB và các phiên SMS/USSD sẽ bị ngắt. Hãy hoàn tất tải file, giải nén và lưu công việc trước.</p>
-<div class="row"><button id="power-reboot" type="button" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2 5M20 12l-4-5"/></svg> Khởi động lại USB</button><button id="power-off" type="button" class="secondary" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2v10M6 5a9 9 0 1 0 12 0"/></svg> Tắt USB an toàn</button></div>
-<p id="power-state" role="status" aria-live="polite">Đang kiểm tra bộ điều khiển…</p>
-<button id="power-cancel" type="button" class="secondary" hidden>Hủy yêu cầu đang chờ</button>
-<p id="power-notice" class="setup-feedback" role="status" aria-live="polite"></p>
+<p>Bấm biểu tượng <strong>Nguồn</strong> ở thanh trạng thái phía trên để chọn tắt hoặc khởi động lại. “Khởi động lại” không xóa cấu hình và không khôi phục cài đặt gốc.</p>
+<button id="power-open-controls" type="button">Mở menu nguồn</button>
 </section>
 <section><h2>Sau khi thao tác</h2>
 <p><strong>Khởi động lại:</strong> USB thử chạy lại bằng cấu hình đã lưu. Trang chỉ tự kiểm tra kết nối trở lại, không gửi lại lệnh khởi động.</p>
 <p><strong>Tắt USB:</strong> hệ điều hành yêu cầu tắt an toàn, nhưng cổng USB vẫn cấp điện 5 V. Muốn bật lại, rút USB rồi cắm lại nguồn. Đèn có thể vẫn sáng tùy phần cứng.</p>
 <p>Mất kết nối trang quản trị không đủ để khẳng định USB đã tắt hoàn toàn. Nếu báo không rõ kết quả, không rút nguồn ngay hoặc bấm gửi lặp liên tục.</p>
 <a href="/manage">← Quản lý thiết bị</a></section>
-<script src="/static/device_power.js" defer></script></main></body></html>
+</main></body></html>

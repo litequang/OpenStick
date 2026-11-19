@@ -126,7 +126,7 @@ function setupStatusPopovers(root=document){
 }
 if(typeof window!=='undefined')window.addEventListener('DOMContentLoaded',()=>{
  const logout=document.querySelector('.access-banner form[action="/logout"]');
- logout?.addEventListener('submit',()=>{try{sessionStorage.removeItem(portalScopedCacheKey(PORTAL_HEADER_CACHE));sessionStorage.removeItem(portalScopedCacheKey('openstick-overview-display-v1'))}catch(_){}});
+ logout?.addEventListener('submit',()=>{try{sessionStorage.removeItem(portalScopedCacheKey(PORTAL_HEADER_CACHE));sessionStorage.removeItem(portalScopedCacheKey('openstick-overview-display-v2'))}catch(_){}});
  setupStatusPopovers();
  setupHeaderStatus();
  const nav=document.getElementById('portal-nav');if(!nav)return;

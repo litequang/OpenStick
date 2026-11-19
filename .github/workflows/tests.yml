@@ -20,6 +20,7 @@ jobs:
       - run: node --check uz801_manager/static/setup.js
       - run: node --check uz801_manager/static/ap_clients.js
       - run: node --check uz801_manager/static/device_power.js
+      - run: node --check uz801_manager/static/portal_nav.js
       - run: node --check uz801_manager/static/internet.js
       - run: node --check uz801_manager/static/website.js
       - run: python -m uz801_manager --self-test

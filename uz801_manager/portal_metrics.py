@@ -138,9 +138,31 @@ def save_tariff(unit_vnd, directory=Path('/var/lib/openstick')):
     return {'saved': True, 'unit_vnd': unit_vnd}
 
 
-def service_snapshot(run=subprocess.run):
+def modemmanager_available(bus_factory=None):
+    """Check ownership on the bus daemon only; never activate ModemManager."""
+    bus = None
+    try:
+        if bus_factory is None:
+            import dbus
+            bus_factory = lambda: dbus.SystemBus(private=True)
+        bus = bus_factory()
+        daemon = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus', introspect=False)
+        query = daemon.get_dbus_method('NameHasOwner', 'org.freedesktop.DBus')
+        return bool(query('org.freedesktop.ModemManager1', timeout=2))
+    except Exception:
+        return None  # Failure to query the bus is not evidence of a stopped service.
+    finally:
+        if bus is not None:
+            try:bus.close()
+            except Exception:pass
+
+
+def service_snapshot(run=subprocess.run, *, modem_probe=modemmanager_available):
     result = {}
     for name in ('openstick-web', 'openstick-wifi', 'cloudflared', 'modemmanager', 'rmtfs', 'chronyd'):
+        if name == 'modemmanager':
+            result[name] = modem_probe()
+            continue
         try:
             result[name] = run(['rc-service', name, 'status'], capture_output=True, timeout=4).returncode == 0
         except (OSError, subprocess.SubprocessError):

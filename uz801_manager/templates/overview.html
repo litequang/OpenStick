@@ -29,7 +29,7 @@
 const overviewToken={{ token|tojson }};
 const el=id=>document.getElementById(id),put=(id,text)=>{el(id).textContent=text};
 let overviewBusy=false,overviewLoaded=false,overviewRetained=false;
-const OVERVIEW_DISPLAY_CACHE='openstick-overview-display-v1';
+const OVERVIEW_DISPLAY_CACHE='openstick-overview-display-v2';
 const overviewKnown=new Set(),overviewServices=new Map(),finite=value=>typeof value==='number'&&Number.isFinite(value);
 const bytes=value=>value==null?'chưa có dữ liệu':value>=1073741824?(value/1073741824).toFixed(2)+' GiB':(value/1048576).toFixed(0)+' MiB';
 const usageBytes=value=>value>=1073741824?(value/1073741824).toFixed(2)+' GiB':value>=1048576?(value/1048576).toFixed(2)+' MiB':value>=1024?(value/1024).toFixed(1)+' KiB':Math.round(value)+' B';
@@ -49,7 +49,7 @@ function rememberOverview(data){
  for(const key of ['uptime_s','os','kernel'])if(fresh[key]!=null&&fresh[key]!=='')system[key]=fresh[key];
  const wifi={...(previous.wifi||{}),...(portalDisplayWifi(data.wifi)||{})};
  const modem=portalDisplayModem(data.wifi.modem_status);if(modem)wifi.modem_status=modem;
- const services={...(previous.services||{})};for(const [key,value] of Object.entries(data.services||{}))if(typeof value==='boolean')services[key]=value;
+ const services={...(previous.services||{})};for(const [key,value] of Object.entries(data.services||{}))if(typeof value==='boolean'||key==='modemmanager')services[key]=value;
  portalWriteCache(OVERVIEW_DISPLAY_CACHE,{system,wifi,services});
 }
 function restoreOverview(){
@@ -121,7 +121,8 @@ function renderOverview(data,updateHeader=true){
  const list=el('service-list');for(const [key,value] of Object.entries(data.services||{})){
   let target=overviewServices.get(key);
   if(!target){const name=document.createElement('dt');target=document.createElement('dd');name.textContent=key;list.append(name,target);overviewServices.set(key,target)}
-  if(typeof value==='boolean'){target.textContent=value?'đang chạy':'đã dừng';delete target.dataset.stale}
+  if(key==='modemmanager'){target.textContent=value===true?'đang chạy (D-Bus)':value===false?'chưa sẵn sàng trên D-Bus':'chưa xác định (không đọc được D-Bus)';delete target.dataset.stale}
+  else if(typeof value==='boolean'){target.textContent=value?'đang chạy':'đã dừng';delete target.dataset.stale}
   else if(target.textContent){target.dataset.stale='true';overviewRetained=true}else target.textContent='chưa xác định';
  }
 }
