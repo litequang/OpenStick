@@ -1,5 +1,6 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Đèn thông báo</title></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>Đèn thông báo</h1><button id="led-refresh" class="secondary" type="button">Đọc lại</button></div>
 <p>Chọn trạng thái mạng, chọn style ánh sáng rồi lưu. USB tự áp dụng quy tắc đã lưu khi trạng thái thay đổi. Ba LED là các kênh bật/tắt riêng, không hỗ trợ làm mờ liên tục.</p>
 <p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
@@ -38,4 +39,5 @@
 <p class="metric-note">Mặc định khôi phục trạng thái trước lần lưu tùy chỉnh đầu tiên. Đèn không có độ sáng liên tục; hoạt động Wi-Fi của driver không xác nhận Internet.</p></details>
 <p class="metric-note">Đọc lại sẽ bỏ các lựa chọn chưa lưu.</p>
 <script>const ledToken={{ token|tojson }};</script><script src="/static/leds.js"></script>
+</div></div>
 </main></body></html>
