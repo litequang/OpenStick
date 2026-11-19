@@ -3,6 +3,7 @@
 <title>OpenStick — Tin nhắn</title><link rel="stylesheet" href="/static/sms.css"></head>
 <body class="sms-page" data-sms-view="list"><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div id="sms-app" data-token="{{ token }}">
 <p id="sms-notice" class="sms-notice" role="status">Đang tải tin nhắn…</p>
 <div id="sms-list-view">
@@ -38,4 +39,5 @@
 </section>
 </div>
 <script src="/static/sms_conversations.js"></script>
+</div></div>
 </main></body></html>
