@@ -107,3 +107,7 @@ main:has(> .settings-workspace)>.settings-nav a{flex:1 0 auto;min-width:max-cont
  .settings-submenu-mobile>summary strong{text-align:left}
 }
 @media(prefers-reduced-motion:reduce){.settings-submenu-links a{transition:none}}
+
+/* Keep hash-targeted settings panels visible below header + parent tabs. */
+.settings-workspace-content [id]{scroll-margin-top:158px!important}
+@media(max-width:759px){.settings-workspace-content [id]{scroll-margin-top:145px!important}}
