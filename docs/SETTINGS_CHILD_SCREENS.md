@@ -73,7 +73,7 @@ merge to main or release is authorized for this deployment.
 
 ## Installed result
 
-Installed **`66b585001ecd96403931fdcb23bf98bb20c477a1`** after both
+Initial child-screen source **`66b585001ecd96403931fdcb23bf98bb20c477a1`** was installed after both
 [branch](https://github.com/litequang/OpenStick/actions/runs/44461981024) and
 [PR](https://github.com/litequang/OpenStick/actions/runs/44461985924) Windows CI
 passed, including the EXE checks. Twenty portal files were replaced, with private
@@ -92,3 +92,15 @@ The public website check is **not PASS**: Cloudflare 530 was present before and
 after this install; local Nginx origin returns 200. Tunnel logs show network
 unreachable errors. No network or Tunnel configuration/service was changed to
 address that separate issue. See the latest handoff for limits and next steps.
+
+Final installed source is **`61125aa3dab81001232ab862679fe9bba669645e`**:
+the shared Wi-Fi notice is outside hidden panels so failed reads/credential
+access/scan progress stay visible. Both final-source workflows passed:
+[branch CI](https://github.com/litequang/OpenStick/actions/runs/44479868249),
+[PR CI](https://github.com/litequang/OpenStick/actions/runs/44479878037).
+Fifty affected tests and preview navigation/interactions passed again, including
+a credentials-denied fixture. The five Wi-Fi children on real USB passed ten
+layouts (320/1280 pixels); an intercepted HTTP 403 verified the visible error,
+with no real credential read or device mutation. Independent source/protected/
+network/service/worker/usage/LAN/backup verification passed again after this
+one-template install and storage was flushed.

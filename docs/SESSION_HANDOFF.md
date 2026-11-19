@@ -2,7 +2,7 @@
 
 ## 2026-11-19 latest: dedicated child screens installed
 
-Installed source: **`66b585001ecd96403931fdcb23bf98bb20c477a1`** on
+Installed source: **`61125aa3dab81001232ab862679fe9bba669645e`** on
 `ui/settings-parent-child-nav-20261119`, PR #7. No merge or release. Remote main
 and development remain `3a459f6`. Read
 [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md). This supersedes V4's
@@ -18,22 +18,29 @@ locks, consent, revision checks, confirmation and uncertain-result rules remain.
 
 788 tests PASS/one Windows symlink-permission skip, exit 0; pip/Node/self-test
 PASS. Both exact-source Windows workflows passed, including EXE build/self-test/
-smoke: [branch CI](https://github.com/litequang/OpenStick/actions/runs/44461981024)
-and [PR CI](https://github.com/litequang/OpenStick/actions/runs/44461985924).
+smoke: [branch CI](https://github.com/litequang/OpenStick/actions/runs/44479868249)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/44479878037).
 Chrome preview in each FileGator/native mode passed 176 layouts/eight landscape
 cases and 24 existing interaction checks. Additional fictional metadata browser
 fixtures cover four intercepted writes, cancel/no replay and usage schema/stale/
 unavailable/missing data; these are not device mutation acceptance.
 
-Chrome against the actual USB passed 176 layouts/eight landscape cases at
+Chrome against the actual USB at `66b5850` passed 176 layouts/eight landscape cases at
 320/360/390/430/768/820/1024/1280 CSS pixels: isolated child panels, one tree,
 active links, no obsolete FileGator controls, no overflow or JS error. It sent
 112 allowlisted read-only POSTs and no attempted mutation, power or file write.
 No real screenshot, trace, SMS, private website/network content or identifier
 was exported. No physical phone touch session or file operation was tested.
 
+Final `61125aa` moves the shared Wi-Fi notice outside hidden child panels so
+credentials/read/scan errors remain visible. This one-template correction passed
+50 affected tests and the full CI. Preview navigation/interactions passed again,
+including a denied-credentials fixture. On real USB HTML, all five Wi-Fi children
+passed at 320/1280 pixels (ten layouts); an intercepted HTTP 403 produced a visible
+error, no credentials were read from the device and no write was attempted.
+
 Only USB/LAN portal services restarted; 20 source/template/asset files were
-replaced, with a checksummed private source/metadata backup under
+replaced, then the one-template correction, with checksummed private source/metadata backups under
 `/var/lib/openstick/deploy-backups/ui-v4-*`. Independent verification matched all
 28 V4 source hashes/assets, ownership/modes, 717 protected files and the active
 network/routes/firewall/DNS/gadget. Source backup members verified. Power worker

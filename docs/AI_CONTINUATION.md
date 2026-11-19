@@ -1,7 +1,7 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
 **19/11/2026 — đã cài màn con riêng và bỏ điều khiển file cũ khi có FileGator.**
-Source đang cài `66b585001ecd96403931fdcb23bf98bb20c477a1` trên nhánh
+Source đang cài `61125aa3dab81001232ab862679fe9bba669645e` trên nhánh
 `ui/settings-parent-child-nav-20261119`, PR #7; chưa merge main/dev, chưa release.
 Đọc [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md) và đầu HANDOFF.
 Wi-Fi nhận/đã lưu/phát/client/dự phòng, USB, usage SIM, quyền quản trị và website
@@ -11,6 +11,9 @@ kiểm tra ZIP hoặc editor cũ. Backend thao tác và xác nhận giữ nguyê
 đạt 176 trang/kích thước + 8 ngang, không lỗi JS. Kiểm tra USB chỉ điều hướng,
 không gửi thao tác mạng/nguồn/file/SMS. Hash 28 file nguồn, 717 file bảo vệ,
 mạng/route/firewall/gadget và quyền LAN đạt; worker/usage vẫn tiến, sync xong.
+Sau kiểm tra toàn bộ ở `66b5850`, bản `61125aa` chuyển thông báo Wi-Fi ra ngoài
+phần ẩn; CI hai nhánh PASS, 10 layout Wi-Fi và lỗi đọc thông tin kết nối được
+kiểm tra lại trên HTML USB thật (response lỗi mô phỏng, không đọc mật khẩu).
 Chủ đã tắt/rút/cắm giữa lần kiểm tra V4 cũ; dùng mốc sau thao tác đó, giữ receipt.
 Website nội bộ HTTP 200; public Cloudflare **530 trước và sau lần cài này**,
 log Tunnel có `network is unreachable`. Không đổi Tunnel/mạng để che lỗi đó.
