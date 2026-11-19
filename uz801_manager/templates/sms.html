@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=resizes-content">
-<title>OpenStick — Tin nhắn</title><link rel="stylesheet" href="/static/sms.css"></head>
+<title>OpenStick — Tin nhắn</title><link rel="stylesheet" href="{{ portal_asset('sms.css') }}"></head>
 <body class="sms-page" data-sms-view="list"><main>
 {% include 'portal_chrome.html' %}
 {% include 'settings_workspace_start.html' %}
@@ -38,6 +38,6 @@
   </div>
 </section>
 </div>
-<script src="/static/sms_conversations.js"></script>
+<script src="{{ portal_asset('sms_conversations.js') }}"></script>
 </div></div>
 </main></body></html>

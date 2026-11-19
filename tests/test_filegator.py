@@ -142,3 +142,58 @@ def test_embedding_is_same_origin_and_only_file_manager_page_can_host_frames(tmp
         other=client.get(path,base_url=base)
         assert "frame-src 'self'" not in other.headers['Content-Security-Policy']
         assert other.headers['X-Frame-Options']=='DENY'
+
+
+def test_only_public_fingerprinted_filegator_assets_can_be_cached(tmp_path,monkeypatch):
+    from uz801_manager import filegator
+    register=filegator.register_filegator
+    class Connection:
+        cookie=False
+        def __init__(self,*a,**kw):pass
+        def request(self,*a,**kw):pass
+        def getresponse(self):
+            reply=io.BytesIO(b'fixture');reply.status=200
+            reply.getheaders=lambda:[('Content-Type','application/javascript')]+([('Set-Cookie','filegator=private')] if self.cookie else [])
+            return reply
+        def close(self):pass
+    monkeypatch.setattr(filegator,'register_filegator',lambda app,panel:register(app,panel,enabled=True,connection=Connection))
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),token='fixture',usb_portal=True)
+    c=app.test_client();base='http://172.16.42.1'
+    r=c.get('/files/main/js/app.1234abcd.js',base_url=base);assert r.data==b'fixture'
+    assert 'immutable' in r.headers['Cache-Control']
+    for path in ['/files/main/','/files/main/?r=/getdir','/files/main/js/app.js',
+                 '/files/main/js/app.1234abcd.js?r=/download','/files/unknown/js/app.1234abcd.js']:
+        r=c.get(path,base_url=base);r.get_data();assert r.headers['Cache-Control']=='no-store'
+    Connection.cookie=True
+    r=c.get('/files/main/js/app.1234abcd.js',base_url=base);r.get_data()
+    assert r.headers['Cache-Control']=='no-store'
+
+
+def test_plain_filegator_bundle_urls_are_versioned_without_caching_private_html(tmp_path,monkeypatch):
+    import hashlib
+    from uz801_manager import filegator
+    package=tmp_path/'package';(package/'dist/js').mkdir(parents=True)
+    (package/'dist/js/app.js').write_bytes(b'public code')
+    version=hashlib.sha256(b'public code').hexdigest()[:24]
+    monkeypatch.setattr(filegator,'MARKER',package/'installed.json')
+    register=filegator.register_filegator
+    class Connection:
+        def __init__(self,*a,**kw):pass
+        def request(self,method,path,**kw):self.path=path
+        def getresponse(self):
+            reply=io.BytesIO(b'<script src="js/app.js"></script>' if self.path=='/' else b'public code')
+            reply.status=200;reply.getheaders=lambda:[('Content-Type','text/html' if self.path=='/' else 'application/javascript')]
+            return reply
+        def close(self):pass
+    monkeypatch.setattr(filegator,'register_filegator',lambda app,panel:register(app,panel,enabled=True,connection=Connection))
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),usb_portal=True)
+    c=app.test_client();base='http://172.16.42.1'
+    html=c.get('/files/main/',base_url=base)
+    assert html.status_code==200 and 'js/app.js?v='+version in html.text
+    assert html.headers['Cache-Control']=='no-store'
+    assert 'immutable' in c.get('/files/main/js/app.js?v='+version,base_url=base).headers['Cache-Control']
+    for suffix in ['', '?v=old', '?v='+version+'&r=/getconfig']:
+        r=c.get('/files/main/js/app.js'+suffix,base_url=base);r.get_data()
+        assert r.headers['Cache-Control']=='no-store'

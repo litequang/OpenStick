@@ -179,13 +179,17 @@ def main():
     signal.signal(signal.SIGTERM, terminate)
     backend=NetworkStartup()
     from .ap_clients import ApClients
+    from .log_retention import LogRetention
     clients=ApClients()
+    logs=LogRetention()
     with background() as usage, power_background(usage.checkpoint if usage else lambda:False) as power:
         while True:
             try:power_pending=bool(power and power.pending())
             except RuntimeError:power_pending=False  # Corrupt power state never kills saved-network replay.
             if power_pending:
                 time.sleep(1);continue
+            try:logs.tick()
+            except Exception:pass  # Log retention must never interrupt network/power recovery.
             try:clients.tick()
             except Exception:pass
             try:backend.tick()

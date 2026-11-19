@@ -12,7 +12,7 @@ import re
 import shutil
 import subprocess
 
-from flask import Response, jsonify, request, stream_with_context
+from flask import Response, g, jsonify, request, stream_with_context
 from werkzeug.exceptions import HTTPException
 
 from .static_site import SiteError
@@ -46,6 +46,8 @@ def provision_root(root):
 
 def register_filegator(app, panel, *, enabled=None, connection=HTTPConnection):
     available = installed if enabled is None else lambda: enabled
+    from .portal_assets import filegator_versions, version_filegator_html
+    versions = filegator_versions(MARKER.parent/'dist')
 
     @app.context_processor
     def filegator_context():
@@ -127,6 +129,12 @@ def register_filegator(app, panel, *, enabled=None, connection=HTTPConnection):
                         return jsonify(data='Done')
                     return Response(data, status=status, headers=outgoing)
 
+                if not asset and action=='/' and reply.status==200 and next((v for k,v in outgoing if k.lower()=='content-type'),'').startswith('text/html'):
+                    data=reply.read(2*1048576+1)
+                    if len(data)>2*1048576:raise SiteError('FILEGATOR_RESPONSE_TOO_LARGE')
+                    upstream.close();upstream=None
+                    return Response(version_filegator_html(data.decode('utf-8'),versions),status=200,headers=outgoing)
+
             def chunks():
                 try:
                     while True:
@@ -136,6 +144,10 @@ def register_filegator(app, panel, *, enabled=None, connection=HTTPConnection):
                         yield data
                 finally:
                     upstream.close()
+            from .portal_assets import fingerprinted_filegator_asset
+            g.filegator_public_asset = bool(asset and (
+                (not request.query_string and fingerprinted_filegator_asset(asset)) or
+                (asset in versions and request.args.to_dict(flat=False)=={'v':[versions[asset]]})))
             return Response(stream_with_context(chunks()), status=reply.status, headers=outgoing)
         except SiteError as error:
             if upstream:upstream.close()

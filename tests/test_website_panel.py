@@ -44,6 +44,28 @@ def archive(items):
     return stream
 
 
+def test_catalog_never_walks_website_tree_and_preserves_registry_revision(panel,monkeypatch):
+    old=panel.call({'action':'sites'})
+    monkeypatch.setattr(SiteFiles,'listing',lambda self:pytest.fail('Catalog must not enumerate website files'))
+    value=panel.call({'action':'catalog'})
+    assert value['revision']==old['revision']
+    assert value['sites'][0]['name']==old['sites'][0]['name']
+    assert value['sites'][0]['bytes'] is None and value['sites'][0]['entries'] is None
+    assert value['sites'][0]['protected'] is True
+    with pytest.raises(SiteError,match='INPUT_INVALID'):panel.call({'action':'catalog','site':'../../etc'})
+    (panel.directory).mkdir(exist_ok=True)
+    (panel.directory/'sites.json').write_text('{broken')
+    with pytest.raises(SiteError,match='REGISTRY_INVALID'):panel.call({'action':'catalog'})
+
+
+def test_catalog_keeps_token_and_origin_checks_before_registry_read(panel,monkeypatch):
+    monkeypatch.setattr(WebsitePanel,'read',lambda self:pytest.fail('Unauthorized read'))
+    app=create_hosting_app(backend=object(),usb_portal=True,token='fixture',site_backend=panel.default,hostname=panel.hostname)
+    c=app.test_client();base='http://172.16.42.1'
+    assert c.post('/api/websites',base_url=base,json={'action':'catalog'}).status_code==403
+    assert c.post('/api/websites',base_url=base,json={'action':'catalog'},headers={'X-OpenStick-Token':'fixture','Origin':'http://evil.invalid'}).status_code==403
+
+
 def test_registry_creation_is_private_and_isolated_without_touching_legacy_site(panel):
     initial = panel.call({'action':'sites'})
     assert not panel.directory.exists(), 'Reading the panel must not initialize private state'

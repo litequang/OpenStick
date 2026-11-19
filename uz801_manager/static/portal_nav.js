@@ -113,32 +113,38 @@ async function portalReadTelemetry(path){
  if(portalTelemetryReads.has(path))return portalTelemetryReads.get(path);
  const token=document.querySelector('.portal-header')?.dataset.statusToken;if(!token)throw Error('STATUS_UNAVAILABLE');
  const pending=(async()=>{
-  const end=Date.now()+15000;let previous=null;
+  const end=Date.now()+15000;let delay=1000;
   do{
    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
    try{
     const response=await fetch(path,{headers:{'X-OpenStick-Token':token},cache:'no-store',signal:controller.signal});
     if(response.status===401){location.href='/login';throw Error('STATUS_UNAVAILABLE')}
     const value=await response.json();
-    if(response.ok){if(!value._telemetry?.stale)return value;previous=value}
+    // The server already started a bounded refresh. Render its retained sample
+    // immediately with the existing stale indicator instead of polling it 15x.
+    if(response.ok)return value;
     else if(response.status!==503||value.error!=='STATUS_PENDING')throw Error('STATUS_UNAVAILABLE');
    }finally{clearTimeout(timer)}
-   await new Promise(resolve=>setTimeout(resolve,1000));
+   if(document.hidden||Date.now()+delay>=end)break;
+   await new Promise(resolve=>setTimeout(resolve,delay));delay=Math.min(4000,delay*2);
   }while(Date.now()<end&&!document.hidden);
-  if(previous)return previous;
   throw Error('STATUS_UNAVAILABLE');
  })();
  portalTelemetryReads.set(path,pending);
  try{return await pending}finally{portalTelemetryReads.delete(path)}
 }
-let portalHeaderSample=null,portalHeaderAt=0,portalHeaderRequest=null;
-async function portalLoadHeader(){
+let portalHeaderSample=null,portalHeaderAt=0,portalHeaderRequest=null,portalHeaderFollowup=null;
+async function portalLoadHeader(followup=false){
  if(portalHeaderSample&&Date.now()-portalHeaderAt<Math.max(0,5000-(portalHeaderSample._telemetry?.age_seconds||0)*1000))return portalHeaderSample;
  if(portalHeaderRequest)return portalHeaderRequest;
  portalHeaderRequest=(async()=>{
   const value=await portalReadTelemetry('/api/header');portalHeaderSample=value;portalHeaderAt=Date.now();
   renderWifiHeader(value);renderHeader(value.modem_status||null);
   if(value._telemetry?.stale){for(const key of ['modem','sim','network','wifi'])portalFreshness(key,true)}else portalRememberHeader(value);
+  // One delayed read per ordinary refresh, never an unbounded stale retry loop.
+  if(value._telemetry?.stale&&value._telemetry?.refreshing&&!followup&&portalHeaderFollowup===null){
+   portalHeaderFollowup=setTimeout(()=>{portalHeaderFollowup=null;if(!document.hidden)portalLoadHeader(true).catch(()=>{})},2000);
+  }
   if(typeof renderOverviewConnections==='function')renderOverviewConnections(value);
   return value;
  })();

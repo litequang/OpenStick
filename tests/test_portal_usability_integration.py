@@ -89,7 +89,7 @@ def test_each_setup_leaf_loads_only_its_controller_and_keeps_other_panels_hidden
             visible=key==panel or path=='/setup/ap' and key=='setup-status-panel'
             assert (' hidden' in tag)==(not visible),(path,key)
         for script in ['setup.js','saved_wifi.js','ap_clients.js']:
-            assert ('src="/static/'+script+'"' in response.text)==(script==asset)
+            assert bool(re.search(r'src="/static/'+re.escape(script)+r'\?v=[0-9a-f]+"',response.text))==(script==asset)
         assert client.get(path,base_url='http://wrong.example').status_code==403
     assert internet.seen==[]
     assert client.get('/setup/recovery',base_url=BASE).location=='/setup/ap'
@@ -118,6 +118,7 @@ def test_layout_css_preserves_saved_wifi_styles_and_responsive_updates():
 def test_navigation_breadcrumb_and_accessible_current_state():
     from jinja2 import Environment, FileSystemLoader
     env = Environment(loader=FileSystemLoader(ROOT / "templates"), autoescape=True)
+    env.globals['portal_asset'] = create_hosting_app(backend=Wifi()).jinja_env.globals['portal_asset']
     template = env.get_template("portal_chrome.html")
     render = lambda page: template.render(token="fixture", page=page)
     for page in ["internet", "hotspot", "network", "setup", "website"]:
@@ -134,6 +135,7 @@ def test_navigation_breadcrumb_and_accessible_current_state():
 def test_adaptive_bottom_dock_and_unified_settings_hub():
     from jinja2 import Environment, FileSystemLoader
     env = Environment(loader=FileSystemLoader(ROOT / 'templates'), autoescape=True)
+    env.globals['portal_asset'] = create_hosting_app(backend=Wifi()).jinja_env.globals['portal_asset']
     chrome = env.get_template('portal_chrome.html')
     desktop = chrome.render(token='fixture', page='website', portal_has_website=True)
     for name in ['sms', 'ussd', 'overview', 'wifi', 'sim', 'website', 'manage']:

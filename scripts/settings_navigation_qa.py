@@ -16,7 +16,7 @@ READ_POSTS = {'/api/wifi': {'status', 'overview'},
               '/api/modem': {'status', 'archive', 'messages'},
               '/api/internet': {'status', 'profiles'},
               '/api/hotspot': {'status'}, '/api/lan': {'status'},
-              '/api/websites': {'sites', 'list', 'get'}}
+              '/api/websites': {'sites', 'catalog', 'list', 'get'}}
 
 
 def readonly_guard(page, *, sync_sms=True):

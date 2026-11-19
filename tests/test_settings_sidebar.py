@@ -9,6 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 
 ROOT = Path(__file__).resolve().parents[1] / "uz801_manager"
 ENV = Environment(loader=FileSystemLoader(ROOT / "templates"), autoescape=True)
+ENV.globals['portal_asset'] = lambda name: '/static/'+name+'?v=fixture'
 PARAMS = {
     "token": "synthetic",
     "portal_settings_features": {

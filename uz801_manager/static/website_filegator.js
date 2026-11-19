@@ -47,7 +47,7 @@
   for(const a of document.querySelectorAll('[data-settings-parent="web"]')){const u=new URL(a.href,location.href);u.searchParams.set('site',siteId);a.href=u.pathname+u.search;}
   const u=new URL(location.href);u.searchParams.set('site',siteId);history.replaceState(null,'',u.pathname+u.search);
  }
- async function refresh(){inventory=await api({action:'sites'});draw();notice('Đã đọc danh sách. Chưa thay đổi website hoặc dịch vụ.');}
+ async function refresh(){inventory=await api({action:'catalog'});draw();notice('Đã đọc danh sách. Chưa thay đổi website hoặc dịch vụ.');}
  el('web-refresh').onclick=()=>job(refresh);el('web-site').onchange=()=>{
   if(el('web-filegator-frame')?.getAttribute('src')&&!confirm('Đổi website trong FileGator? Hãy lưu bản sửa và chờ tải file hoàn tất trước khi chuyển.')){el('web-site').value=siteId;return;}
   siteId=el('web-site').value;draw();

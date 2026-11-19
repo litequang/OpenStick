@@ -13,7 +13,7 @@ def main():
            'revision':'r1','routing':{'available':True,'local':'NOT_APPLIED'}}
     def api(route):
         value=route.request.post_data_json;calls.append(value)
-        if value['action']=='sites':route.fulfill(json=state);return
+        if value['action']=='catalog':route.fulfill(json=state);return
         if fail[0]:route.abort();return
         assert value['expected']==state['revision'] and value['confirm'] is True
         if value['action']=='configure':
@@ -51,16 +51,16 @@ def main():
             page.locator('#web-refresh').click();expect(page.locator('#web-refresh')).to_be_enabled()
             assert page.locator('#web-filegator-frame').evaluate('(el)=>el.contentWindow.fixtureMarker')==42
             assert page.locator('img').count()==0
-            assert all(v['action']=='sites' for v in calls)
+            assert all(v['action']=='catalog' for v in calls)
             page.goto(BASE+'/website/domains?site=second')
             expect(page.locator('#web-edit-domains')).to_be_enabled()
             page.locator('#web-edit-domains').click()
             page.locator('#web-site-domains').fill('new.invalid')
-            assert all(v['action']=='sites' for v in calls)
+            assert all(v['action']=='catalog' for v in calls)
             page.locator('#web-site-form button[type=submit]').click()
             expect(page.locator('#web-status')).to_contain_text('Đã lưu website')
             expect(page.locator('#web-domains')).to_contain_text('new.invalid')
-            writes=lambda:[v for v in calls if v['action']!='sites']
+            writes=lambda:[v for v in calls if v['action']!='catalog']
             assert len(writes())==1 and writes()[0]['site']=='second'
             page.once('dialog',lambda d:d.dismiss());page.locator('#web-apply-domains').click()
             assert len(writes())==1

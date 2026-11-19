@@ -243,6 +243,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
     app = Flask(__name__)
+    from .portal_assets import install_assets, public_asset_response
+    install_assets(app)
     backend = backend or LinuxWifi(private_dir)
     token = token or secrets.token_urlsafe(32)
     lock = threading.Lock()
@@ -298,7 +300,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
 
     @app.after_request
     def headers(response):
-        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Cache-Control'] = ('public, max-age=31536000, immutable'
+            if public_asset_response(app, response) else 'no-store')
         # Native login/logout form POSTs use no-cors mode. With no-referrer,
         # browsers serialize Origin as "null", failing our strict origin check.
         # same-origin preserves the origin locally and sends no referrer outside.

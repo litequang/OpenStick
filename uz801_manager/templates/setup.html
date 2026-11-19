@@ -200,10 +200,10 @@
 </section>
 
 {% if setup_view == 'ap' and (portal_settings_features|default({})).get('hotspot') %}{% set hotspot_embedded = true %}{% include 'hotspot_content.html' %}{% endif %}
-{% if setup_view in ['connect','ap','recovery'] %}<script src="/static/setup.js"></script>{% endif %}
-{% if setup_view == 'clients' %}<script src="/static/ap_clients.js"></script>{% endif %}
+{% if setup_view in ['connect','ap','recovery'] %}<script src="{{ portal_asset('setup.js') }}"></script>{% endif %}
+{% if setup_view == 'clients' %}<script src="{{ portal_asset('ap_clients.js') }}"></script>{% endif %}
 {% if setup_view == 'saved' %}<script>const savedWifiActionToken={{ token|tojson }};</script>
-<script src="/static/saved_wifi.js"></script>{% endif %}
+<script src="{{ portal_asset('saved_wifi.js') }}"></script>{% endif %}
 </div>
 </div></div>
 </main></body></html>
