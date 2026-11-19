@@ -41,7 +41,18 @@ def main():
                 for path in ['/manage', '/setup', '/internet', '/hotspot', '/modem/network', '/settings/leds']:
                     response = page.goto(BASE + path)
                     assert response.status == 200, (path, response.status)
-                    expect(page.locator('.settings-nav [aria-current="page"]')).to_have_count(1)
+                    if path == '/manage':
+                        expect(page.locator('.settings-category-tree--hub')).to_have_count(1)
+                        expect(page.locator('.settings-category')).to_have_count(4)
+                    else:
+                        expect(page.locator('.settings-category-tree--sidebar')).to_have_count(1)
+                        expect(page.locator('.settings-category-item[aria-current="page"]')).to_have_count(1)
+                        if width < 760:
+                            drawer = page.locator('#settings-submenu-toggle')
+                            expect(drawer).to_have_count(1)
+                            drawer.locator('summary.settings-navigation-trigger').click()
+                            expect(page.locator('.settings-category-tree--sidebar')).to_be_visible()
+                            drawer.locator('summary.settings-navigation-trigger').click()
                     page.wait_for_timeout(250)
                     assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth'), (path, width, 'overflow')
                     assert not errors, errors
@@ -186,7 +197,7 @@ def main():
             expect(page.locator('#hotspot-start')).to_have_count(0)
             expect(page.locator('#hotspot-apn-settings')).to_have_count(0)
             expect(page.locator('#hotspot-pending')).to_be_hidden()
-            expect(page.locator('a[href="/sim/apn"]')).to_have_count(1)
+            expect(page.locator('.settings-workspace-content a[href="/sim/apn"]')).to_have_count(1)
 
             page.goto(BASE + '/manage#lan-manage')
             page.locator('#lan-manage').evaluate('(el)=>el.open=true')
