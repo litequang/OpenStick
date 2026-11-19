@@ -2,7 +2,7 @@
 (() => {
  const el=id=>document.getElementById(id),root=document.querySelector('.website-leaf');
  const headers={'Content-Type':'application/json','X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
- let inventory=null,siteId=new URL(location.href).searchParams.get('site')||'main',busy=false,creating=false,writing=false;
+ let inventory=null,siteId=new URL(location.href).searchParams.get('site')||'main',busy=false,creating=false,writing=false,frameGeneration=0;
  const current=()=>inventory?.sites.find(s=>s.id===siteId);
  const notice=text=>{el('web-status').textContent=text};
  function controls(){root.querySelectorAll('button,input,select,textarea').forEach(n=>n.disabled=busy||!inventory);
@@ -25,8 +25,18 @@
    const frame=el('web-filegator-frame');
    if(frame.getAttribute('src')!==path){
     el('web-filegator-status').textContent='Đang mở trình quản lý file…';
-    frame.onload=()=>{let ready=false;try{ready=!!frame.contentDocument?.querySelector('#app,.navbar')}catch(_){}
-     el('web-filegator-status').textContent=ready?'':'Chưa mở được FileGator. Kiểm tra kết nối/đăng nhập hoặc chọn Mở riêng; không tự gửi lại thao tác file.';};
+    const generation=++frameGeneration;
+    frame.onload=()=>{
+     // FileGator mounts Vue after its document load event. Observe only DOM
+     // readiness: no repeated HTTP request or replay of a file operation.
+     const deadline=Date.now()+20000;
+     const ready=()=>{
+      if(generation!==frameGeneration)return;
+      try{if(frame.contentDocument?.querySelector('.navbar')){el('web-filegator-status').textContent='';return;}}catch(_){}
+      if(Date.now()<deadline){setTimeout(ready,150);return;}
+      el('web-filegator-status').textContent='Chưa mở được FileGator. Kiểm tra kết nối/đăng nhập hoặc chọn Mở riêng; không tự gửi lại thao tác file.';
+     };ready();
+    };
     frame.src=path;frame.hidden=false;
    }
   }

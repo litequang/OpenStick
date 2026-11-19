@@ -25,6 +25,12 @@ preserves the current site. Refreshing the inventory does not reload the same
 frame, so it does not interrupt its editor/upload. **Mở riêng** is an optional
 new-tab shortcut for more space. FileGator remains the only file UI.
 
+FileGator mounts Vue asynchronously after document load and replaces its initial
+root. The loading notice observes the mounted navbar for at most 20 seconds;
+changing site cancels the old observation. This is a browser DOM check only,
+not an HTTP retry or replay of a file action. The preview fixture mounts after
+load too, so an early load event cannot falsely mark the working frame failed.
+
 Only FileGator bridge responses allow same-origin embedding (`SAMEORIGIN` and
 `frame-ancestors 'self'`). Only the file-manager wrapper URLs allow `frame-src
 'self'`; other portal pages keep their DENY/no-ancestor policy. The parent page

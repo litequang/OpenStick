@@ -30,7 +30,12 @@ def main():
             page=browser.new_page(viewport={'width':390,'height':844})
             page.on('pageerror',lambda e:errors.append(type(e).__name__))
             page.route('**/api/websites',api)
-            page.route('**/files/**',lambda route:route.fulfill(content_type='text/html',body='<nav class="navbar">FileGator preview fixture</nav>',headers={'Content-Security-Policy':"default-src 'self'; frame-ancestors 'self'",'X-Frame-Options':'SAMEORIGIN'}))
+            def filegator_fixture(route):
+                if route.request.url.endswith('/js/fixture-mount.js'):
+                    route.fulfill(content_type='application/javascript',body="setTimeout(()=>{const n=document.createElement('nav');n.className='navbar';n.textContent='FileGator fixture';document.body.append(n)},300)")
+                else:
+                    route.fulfill(content_type='text/html',body='<script src="js/fixture-mount.js"></script>',headers={'Content-Security-Policy':"default-src 'self'; frame-ancestors 'self'",'X-Frame-Options':'SAMEORIGIN'})
+            page.route('**/files/**',filegator_fixture)
             page.goto(BASE+'/website/files');expect(page.locator('#web-site')).to_be_enabled()
             expect(page.frame_locator('#web-filegator-frame').locator('.navbar')).to_be_visible()
             expect(page.locator('#web-filegator-status')).to_have_text('')
