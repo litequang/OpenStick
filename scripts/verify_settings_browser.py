@@ -105,6 +105,11 @@ def main():
             page.locator('#setup-reveal').click()
             expect(page.locator('#setup-credentials')).to_be_hidden()
             expect(page.locator('#setup-credentials')).to_have_text('')
+            page.route('**/api/setup/credentials',lambda route:route.fulfill(status=403,json={'error':'DENIED'}))
+            page.locator('#setup-reveal').click()
+            expect(page.locator('#setup-notice')).to_be_visible()
+            expect(page.locator('#setup-notice')).to_contain_text('Chưa tải được thông tin kết nối')
+            page.unroute('**/api/setup/credentials')
 
             # AP mode must retain the original reboot handoff and explicit consent.
             page.route('**/api/setup', lambda route: route.fulfill(json={

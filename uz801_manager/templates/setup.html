@@ -17,6 +17,8 @@
   <p>Chọn mục khác trong danh mục cài đặt để chuyển chức năng.</p>
 </div>
 
+<p id="setup-notice" class="setup-feedback" role="status" aria-live="polite"></p>
+
 <section {% if setup_view != 'connect' %}hidden{% endif %} class="settings-connection" aria-labelledby="connection-title">
   <div><p class="ux-eyebrow">KẾT NỐI HIỆN TẠI</p><h2 id="connection-title">Wi-Fi của USB</h2></div>
   <p id="setup-wifi-status" role="status">Đang đọc kết nối…</p>
@@ -152,7 +154,6 @@
     <div><h2>Trạng thái &amp; khôi phục</h2><p>Kiểm tra chế độ Wi-Fi cài đặt và điều khiển khi cần.</p></div>
   </div>
   <div id="setup-state" class="setup-current-status" role="status" aria-live="polite">Đang kiểm tra…</div>
-  <p id="setup-notice" class="setup-feedback" aria-live="polite"></p>
   <details class="ux-advanced setup-advanced">
     <summary>Điều khiển nâng cao <span class="setup-summary-hint">Tự động &amp; thủ công</span></summary>
     <div class="setup-control-list">
