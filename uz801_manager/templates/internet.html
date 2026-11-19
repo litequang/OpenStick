@@ -1,6 +1,7 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Nguồn Internet</title>
 <style>label{display:block;margin:16px 0 8px}select{width:100%;padding:12px;border:1px solid;border-radius:9px;font:inherit}.check{display:flex;gap:10px;align-items:flex-start}.check input{flex:none;margin-top:5px}button{margin:8px 6px 0 0}.notice{padding:14px;white-space:pre-wrap}</style></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>SIM &amp; nguồn Internet</h1><button id="policy-refresh" class="secondary">Làm mới</button></div>
 <p class="ux-page-intro">Cấu hình ưu tiên Wi-Fi hoặc dữ liệu SIM. Việc chọn trang không tự đổi mạng; SIM vẫn dùng SMS/USSD khi tắt dữ liệu.</p>
 <section class="internet-quicklinks" aria-label="Cài đặt liên quan">
@@ -23,6 +24,7 @@
 </section>
 <section><h2>Bật/tắt mạng thủ công</h2><p>Dùng <a href="/overview">Cài đặt nhanh trên Tổng quan</a> để bật/tắt dữ liệu SIM và phát Wi-Fi độc lập. Tắt data giữ điểm phát quản trị. Các thao tác mạng thủ công dừng tự quản lý để tránh hai cơ chế tranh quyền điều khiển.</p><p>Chế độ 3G/4G nằm ở <a href="/modem/network">Mạng SIM</a>; trang này chỉ thiết lập chính sách ưu tiên/dự phòng.</p></section>
 <p id="saved-wifi" class="internet-legacy-link">Wi-Fi đã lưu đã được chuyển vào <a href="/setup#saved-wifi">Kết nối Wi-Fi →</a></p>
+</div></div>
 </main><script>
 const policyToken={{ token|tojson }};
 </script><script src="/static/internet.js"></script></body></html>
