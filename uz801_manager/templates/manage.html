@@ -12,28 +12,7 @@
 <script src="/static/settings_sidebar.js" defer></script>
 {% set menu_mode = 'hub' %}
 {% include 'settings_menu.html' %}
-<p class="manage-footnote" id="saved-wifi">Wi-Fi đã lưu được quản lý cùng trang kết nối. <a href="/setup#saved-wifi">Mở danh sách Wi-Fi đã lưu</a></p>
-{% if can_manage_lan or lan_session %}
-<section class="manage-section manage-security-section" id="manage-access" aria-labelledby="manage-access-title">
-  <div class="manage-section-head">
-    <span class="manage-section-symbol" aria-hidden="true">⌑</span>
-    <div><h2 id="manage-access-title">Truy cập quản trị</h2><p>Bảo vệ trang quản lý qua Wi-Fi</p></div>
-  </div>
-  {% if can_manage_lan %}
-  <div class="manage-security-box" id="lan-access">
-    <p>Chỉ kết nối cáp USB mới được đổi mật khẩu quản trị LAN. Mật khẩu này khác mật khẩu Wi-Fi.</p>
-    <details class="ux-advanced" id="lan-manage"><summary>Thiết lập hoặc đổi mật khẩu</summary>
-      <script>const token={{ token|tojson }};</script>
-      {% include 'lan_settings.html' %}
-    </details>
-  </div>
-  {% else %}
-  <div class="manage-security-box" id="lan-access">
-    <p>Đang quản trị qua Wi-Fi nội bộ. Kết nối USB trực tiếp để đổi mật khẩu hoặc tắt quyền truy cập LAN.</p>
-  </div>
-  {% endif %}
-</section>
-{% endif %}
+<p class="manage-footnote" id="saved-wifi">Wi-Fi đã lưu được quản lý cùng trang kết nối. <a href="/setup/saved">Mở danh sách Wi-Fi đã lưu</a></p>
 {% if stable_lan_url %}
 <div class="manage-address"><span>Địa chỉ truy cập trên mạng nội bộ</span><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a></div>
 {% endif %}

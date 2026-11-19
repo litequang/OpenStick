@@ -1,0 +1,25 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Truy cập quản trị</title></head><body><main>
+{% include 'portal_chrome.html' %}{% include 'settings_workspace_start.html' %}
+<div class="page-title"><h1>Truy cập quản trị</h1></div>
+{% if can_manage_lan or lan_session %}
+<section class="manage-section manage-security-section" id="manage-access" aria-labelledby="manage-access-title">
+  <div class="manage-section-head">
+    <span class="manage-section-symbol" aria-hidden="true">⌑</span>
+    <div><h2 id="manage-access-title">Truy cập quản trị</h2><p>Bảo vệ trang quản lý qua Wi-Fi</p></div>
+  </div>
+  {% if can_manage_lan %}
+  <div class="manage-security-box" id="lan-access">
+    <p>Chỉ kết nối cáp USB mới được đổi mật khẩu quản trị LAN. Mật khẩu này khác mật khẩu Wi-Fi.</p>
+    <details class="ux-advanced" id="lan-manage"><summary>Thiết lập hoặc đổi mật khẩu</summary>
+      <script>const token={{ token|tojson }};</script>
+      {% include 'lan_settings.html' %}
+    </details>
+  </div>
+  {% else %}
+  <div class="manage-security-box" id="lan-access">
+    <p>Đang quản trị qua Wi-Fi nội bộ. Kết nối USB trực tiếp để đổi mật khẩu hoặc tắt quyền truy cập LAN.</p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+</div></div></main></body></html>

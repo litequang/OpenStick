@@ -32,8 +32,11 @@ def register_setup_routes(app, backend, token):
             if isinstance(value,dict):value.clear()
 
     @app.get('/setup')
-    def setup_page():
-        return render_template('setup.html', token=token, page='wifi')
+    @app.get('/setup/<view>')
+    def setup_page(view='connect'):
+        if view not in ('connect','saved','ap','clients','recovery'):
+            return jsonify(error='NOT_FOUND'),404
+        return render_template('setup.html', token=token, page='wifi',setup_view=view)
 
     @app.get('/api/setup')
     def setup_status():

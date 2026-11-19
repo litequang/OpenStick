@@ -16,8 +16,9 @@ def register_quick_routes(app, backend, token):
     app.extensions['telemetry']['quick'] = status_snapshot
 
     @app.get('/quick')
+    @app.get('/quick/usb')
     def quick_page():
-        return render_template('quick.html', page='quick', token=token)
+        return render_template('quick.html', page='quick', token=token,quick_view='usb' if request.path.endswith('/usb') else 'all')
 
     @app.get('/api/quick')
     def quick_status():

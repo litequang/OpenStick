@@ -99,6 +99,7 @@ def main():
             assert [write['action'] for write in writes] == ['connect']
             assert 'confirm' not in writes[0], 'Station backend contract changed'
             expect(page.locator('#setup-password')).to_have_value('')
+            page.goto(BASE+'/setup/ap')
             page.locator('#setup-reveal').click()
             expect(page.locator('#setup-credentials')).to_be_visible()
             page.locator('#setup-reveal').click()
@@ -111,9 +112,10 @@ def main():
                 'ssid': 'Fictional setup', 'url': 'http://192.0.2.1:8765/setup', 'networks': [], 'scan_at': 1}))
             page.route('**/api/header', lambda route: route.fulfill(json={
                 'connected': False, 'setup_active': True, 'hotspot_active': True, 'ssid': 'Fictional setup'}))
-            page.reload()
+            page.goto(BASE+'/setup')
             expect(page.locator('#setup-submit')).to_contain_text('khởi động lại')
             expect(page.locator('#setup-connect-impact')).to_contain_text('một lần')
+            page.goto(BASE+'/setup/ap')
             page.locator('#setup-ap-ssid').fill('Unsaved draft')
             page.wait_for_timeout(5200)
             expect(page.locator('#setup-ap-ssid')).to_have_value('Unsaved draft')
@@ -132,7 +134,7 @@ def main():
                             'isolation': payload['isolation'], 'max_clients': payload['max_clients']}})
                 else:route.continue_()
             page.route('**/api/setup', ap_stage)
-            page.goto(BASE + '/setup')
+            page.goto(BASE + '/setup/ap')
             expect(page.locator('#setup-ap-save')).to_be_enabled()
             page.locator('#setup-ap-ssid').fill('Fictional AP')
             page.locator('#setup-ap-hidden').check(); page.locator('#setup-ap-isolation').check()
@@ -150,7 +152,7 @@ def main():
             page.unroute('**/api/setup')
 
             # Inventory uses literal text, and block/unblock never activates an AP.
-            page.goto(BASE+'/setup#ap-clients')
+            page.goto(BASE+'/setup/clients')
             expect(page.locator('#ap-clients-list .ap-client-card')).to_have_count(1)
             expect(page.locator('#ap-clients-list img')).to_have_count(0)
             page.once('dialog',lambda d:d.dismiss())
@@ -201,7 +203,7 @@ def main():
             expect(page.locator('#hotspot-pending')).to_be_hidden()
             expect(page.locator('.settings-workspace-content a[href="/sim/apn"]')).to_have_count(1)
 
-            page.goto(BASE + '/manage#lan-manage')
+            page.goto(BASE + '/settings/access')
             page.locator('#lan-manage').evaluate('(el)=>el.open=true')
             expect(page.locator('#lan-fields')).to_be_enabled()
             page.locator('#lan-password').fill('fictional-password')

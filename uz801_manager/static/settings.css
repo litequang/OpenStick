@@ -194,3 +194,13 @@ main:has(.settings-workspace){max-width:1270px!important}
   .settings-navigation-trigger strong{text-align:left}
 }
 @media(prefers-reduced-motion:reduce){.settings-category-chevron{transition:none}}
+.settings-leaf [hidden],.website-leaf [hidden]{display:none!important}
+.settings-leaf .setup-panel-grid{grid-template-columns:minmax(0,1fr)}
+[data-quick-view=usb] .quick-grid .quick-tile:not(#quick-usb),[data-quick-view=usb] #quick-startup-status{display:none!important}
+[data-quick-view=usb] .quick-grid{grid-template-columns:minmax(0,360px)}
+[data-quick-view] [hidden]{display:none!important}
+.website-legacy-leaf .web-tabs{display:none!important}
+.website-legacy-leaf[data-website-view=summary] .web-pane,
+.website-legacy-leaf[data-website-view=files] .web-pane:not(#web-pane-files),
+.website-legacy-leaf[data-website-view=uploads] .web-pane:not(#web-pane-uploads),
+.website-legacy-leaf[data-website-view=domains] .web-pane:not(#web-pane-domains){display:none!important}

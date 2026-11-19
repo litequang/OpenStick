@@ -94,5 +94,53 @@ checksummed private manifest must exist before replacing files. Deployment is
 gated on follow-up source CI; only USB/LAN portal services may restart, with
 rollback on failed health/state verification. No firmware flash or device reboot.
 
-Installation and independent hardware acceptance will be recorded below only
-after they complete.
+## Historical V4 installation and read-only checks
+
+The child-screen and FileGator-only changes requested afterward supersede this
+layout. See [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md). The final
+protected-state comparison after `4cca1fa` was interrupted by the owner's
+poweroff/unplug/replug; it must not be reported as completed acceptance. The
+earlier independent verification of `760a304` passed. Subsequent deployment uses
+a new baseline after the owner's power cycle, preserving terminal receipts and
+current tethering intent rather than restoring older runtime state.
+
+Source installed at this stage: **`4cca1fa4f4ac042714823c10e64d6de3c848fcd9`**.
+The busy-tab fix is `760a30497b86e8f5a219318757d687e90a3509de`; the final source
+adds the FileGator visibility correction. Both final-source Windows workflows
+passed, including pytest, JavaScript checks, EXE build, EXE self-test and smoke:
+[branch CI](https://github.com/litequang/OpenStick/actions/runs/44457866963),
+[PR CI](https://github.com/litequang/OpenStick/actions/runs/44457876345).
+
+Initial installation replaced the 19 listed files; the final correction replaced
+only `templates/website.html`. Timestamped private backups of the replaced source
+and its ownership/modes were made before replacement. Archives and manifest
+checksums remain under `/var/lib/openstick/deploy-backups/ui-v4-*`; no backup or
+runtime data is in Git. Only `openstick-wifi` and `openstick-lan` restarted and
+storage was flushed. Source/asset hashes and existing ownership/modes matched.
+
+The first private deploy attempts stopped before replacing files: querying the
+hotspot state while holding the deployer's own network lock made its fallback
+report busy. The installer now checks that fallback before acquiring the locks,
+keeps persisted-transition/power/job checks inside the protected window and
+waits boundedly for existing worker locks. These were installer-only changes;
+no product safety gate or device network behavior was removed. No rollback was
+needed or executed; do not call the unexecuted rollback path hardware-tested.
+
+Chrome Windows against the **actual USB portal** passed 104 route/width layouts
+plus eight landscape cases using the same eight CSS widths. Four groups, one
+menu, active child, parent/sibling navigation, sidebar/drawer geometry, header,
+dock, website hashes and native tabs all passed with FileGator enabled. No
+horizontal overflow or JavaScript error was observed. Opening and navigating
+produced 88 legacy **read-only** POSTs (status/archive/list); zero mutating
+requests were attempted. The guard permits only fixed read actions and can
+withhold modem SMS import. No actual SMS, USSD, APN, radio, data, AP, tethering,
+LED, file-write or power action was submitted. No real-page screenshot, trace,
+SMS, website text, SSID, MAC or identifier is exported.
+
+Public HTTPS returned 200 before and after installation. The probe used a normal
+browser user agent; the initial bare-library request was not a valid success
+check. The existing Tunnel and Nginx configuration remain unchanged.
+
+These are read-only navigation checks. A physical phone/iPad touch session,
+password re-entry, uploading/extracting/editing actual website files and disruptive
+network/power actions are not part of this acceptance.

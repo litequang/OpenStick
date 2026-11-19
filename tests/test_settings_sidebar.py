@@ -97,7 +97,8 @@ def test_critical_existing_actions_remain_in_their_original_pages():
         "overview.html": ["sim-usage-details", "overview-services"],
         "sms.html": ["sms-app", "sms-new-view"],
         "device_power.html": ["power-open-controls"],
-        "manage.html": ["manage-access", "saved-wifi", "lan-manage"],
+        "manage.html": ["saved-wifi"],
+        "access.html": ["manage-access", "lan-manage"],
     }
     assert 'id="ussd-state"' in render("modem.html", "ussd")
     for name, ids in checks.items():
@@ -141,6 +142,16 @@ def test_url_targets_exist_for_every_internal_anchor():
         "/settings/leds": ("leds.html", "leds"),
         "/settings/system": ("device_power.html", "manage"),
         "/manage": ("manage.html", "manage"),
+        "/setup/saved": ("setup.html", "wifi"),
+        "/setup/ap": ("setup.html", "wifi"),
+        "/setup/clients": ("setup.html", "wifi"),
+        "/setup/recovery": ("setup.html", "wifi"),
+        "/quick/usb": ("quick.html", "quick"),
+        "/sim/usage": ("sim_usage.html", "usage"),
+        "/settings/access": ("access.html", "manage"),
+        "/website/files": ("website.html", "website"),
+        "/website/uploads": ("website.html", "website"),
+        "/website/domains": ("website.html", "website"),
     }
     for href, _, _ in links(generated):
         path, _, hash_part = href.partition("#")
@@ -169,10 +180,12 @@ def test_responsive_sidebar_and_static_js_cannot_mutate_usb():
     assert "XMLHttpRequest" not in js
 
 
-def test_filegator_keeps_all_three_navigation_tabs_visible():
-    view = render('website.html', 'website', filegator_enabled=True)
-    tabs = re.search(r'<nav class="web-tabs".*?</nav>', view, re.S)[0]
-    assert all(f'data-web-tab="{key}"' in tabs for key in ('files', 'uploads', 'domains'))
-    assert 'display:none' not in tabs and ' hidden' not in tabs
-    assert 'id="web-filegator"' in view
-    assert 'class="web-workspace" style="display:none"' in view
+def test_filegator_has_separate_pages_and_no_retired_upload_or_editor_controls():
+    for page in ['summary','files','domains']:
+        view=render('website.html','website',filegator_enabled=True,website_view=page)
+        assert 'data-web-tab=' not in view
+        assert 'id="site-upload"' not in view and 'id="site-text"' not in view
+        assert 'web-zip-inspect' not in view and 'data-settings-link="uploads"' not in view
+        assert ('id="web-filegator"' in view)==(page=='files')
+        assert ('id="web-domain-panel"' in view)==(page=='domains')
+        assert ('id="web-summary"' in view)==(page=='summary')

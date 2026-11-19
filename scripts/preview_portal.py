@@ -135,6 +135,7 @@ def main():
               hotspot_backend=Hotspot(),network_backend=Policy(),site_backend=StaticSite(site,lock_path=None),
               usb_portal=True,authority='127.0.0.1:8771',hostname='example.invalid',setup_backend=Setup(),
               lan_settings=LanSettings(directory/'lan',address=lambda:'192.0.2.2'),led_backend=Leds(),quick_backend=Quick(),power_backend=Power())
+        app.jinja_env.auto_reload=True
         if os.environ.get('OPENSTICK_PREVIEW_FILEGATOR') == '1':
             @app.context_processor
             def preview_filegator():

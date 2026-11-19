@@ -7,9 +7,10 @@ from playwright.sync_api import expect
 from urllib.parse import urlsplit
 
 WIDTHS = [320, 360, 390, 430, 768, 820, 1024, 1280]
-PATHS = ['/manage', '/setup', '/quick', '/modem/network', '/sim/apn',
-         '/modem/sms', '/modem/ussd', '/internet', '/hotspot', '/website',
-         '/settings/leds', '/settings/system', '/overview']
+PATHS = ['/manage','/setup','/setup/saved','/setup/ap','/setup/clients','/setup/recovery',
+         '/quick','/quick/usb','/modem/network','/sim/apn','/sim/usage','/modem/sms',
+         '/modem/ussd','/internet','/hotspot','/website','/website/files','/website/domains',
+         '/settings/leds','/settings/system','/settings/access','/overview']
 GROUPS = ['connect', 'sim', 'web', 'device']
 READ_POSTS = {'/api/wifi': {'status', 'overview'},
               '/api/modem': {'status', 'archive', 'messages'},
@@ -79,64 +80,60 @@ def assert_layout(page, width, path):
             assert content['width'] >= width * .75, (path, width, 'narrow content')
 
 
+def assert_leaf(page, path):
+    setup_views = {'/setup': ['setup-connect-pane'], '/setup/saved': ['saved-wifi'],
+                   '/setup/ap': ['usb-ap-settings','setup-recovery-panel'], '/setup/clients': ['ap-clients'],
+                   '/setup/recovery': ['setup-status-panel','setup-recovery-panel']}
+    if path in setup_views:
+        for panel in ['setup-connect-pane','saved-wifi','usb-ap-settings','ap-clients','setup-status-panel','setup-recovery-panel']:
+            assert page.locator('#'+panel).is_visible() == (panel in setup_views[path]), (path,panel,'mixed settings')
+    if path == '/quick/usb':
+        expect(page.locator('#quick-usb')).to_be_visible()
+        for key in ['airplane','data','ap','receive']:
+            expect(page.locator('#quick-'+key)).to_be_hidden()
+    if path == '/sim/usage':
+        expect(page.locator('#usage-values')).to_be_visible()
+        expect(page.locator('#card-ram')).to_have_count(0)
+    if path.startswith('/website') and page.locator('.website-leaf').count():
+        expected={'/website':'web-summary','/website/files':'web-filegator-panel','/website/domains':'web-domain-panel'}[path]
+        for key in ['web-summary','web-filegator-panel','web-domain-panel']:
+            expect(page.locator('#'+key)).to_have_count(int(key==expected))
+        for obsolete in ['#site-upload','#site-text','#web-zip-inspect','[data-settings-link="uploads"]','[data-web-tab]']:
+            expect(page.locator(obsolete)).to_have_count(0)
+        expect(page.locator('script[src="/static/website.js"]')).to_have_count(0)
+    if path == '/manage':expect(page.locator('#lan-settings')).to_have_count(0)
+
+
 def audit_navigation(page, base, widths=WIDTHS):
-    rows = []
-    errors = []
-    filegator_seen = False
-    def on_error(error):
-        # Only counts/categories are exported; never page text or device values.
-        errors.append(type(error).__name__)
-    page.on('pageerror', on_error)
-    reads, guard = readonly_guard(page)
+    rows=[];errors=[];filegator_seen=False
+    def on_error(error):errors.append(type(error).__name__)
+    page.on('pageerror',on_error)
+    reads,guard=readonly_guard(page)
     try:
         for width in widths:
-            page.set_viewport_size({'width': width, 'height': 844 if width < 760 else 900})
+            page.set_viewport_size({'width':width,'height':844 if width<760 else 900})
             for path in PATHS:
-                response = page.goto(base + path)
-                assert response.status == 200, (path, width, response.status)
-                page.wait_for_timeout(120)
-                assert_layout(page, width, path)
-                if path == '/website':
-                    filegator_seen = filegator_seen or bool(page.locator('#web-filegator').count())
-                rows.append({'path': path, 'width': width, 'overflow': False})
-            # Switch siblings and parents from a child, without visiting the hub.
-            for group, item, expected in [('sim', 'ussd', '/modem/ussd'),
-                                          ('sim', 'sms', '/modem/sms'),
-                                          ('connect', 'usb-tether', '/quick#quick-usb'),
-                                          ('device', 'power', '/settings/system')]:
-                root = open_menu(page, group)
-                root.locator(f'[data-settings-link="{item}"]').click()
-                expect(page).to_have_url(base + expected)
-                expect(page.locator(f'[data-settings-link="{item}"]')).to_have_attribute('aria-current', 'page')
-                expect(page.locator('.settings-category-tree')).to_have_count(1)
-            # Hash destinations must select the panel after asynchronous reads.
-            for tab in ['uploads', 'domains', 'files']:
-                response = page.goto(base + '/website#web-pane-' + tab)
-                assert response is None or response.status == 200
-                expect(page.locator(f'[data-web-tab="{tab}"]')).to_have_attribute('aria-pressed', 'true')
-                expect(page.locator('#web-pane-' + tab)).to_be_visible()
-                page.wait_for_timeout(150)
-                assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth'), ('website', width, tab)
-                root = open_menu(page, 'web')
-                next_tab = 'files' if tab != 'files' else 'domains'
-                root.locator(f'[data-settings-link="{next_tab}"]').click()
-                expect(page.locator('#web-pane-' + next_tab)).to_be_visible()
-                page.locator(f'[data-web-tab="{tab}"]').click()
-                expect(page.locator(f'[data-settings-link="{tab}"]')).to_have_attribute('aria-current', 'page')
-            # Landscape navigation retains its usable menu and content.
-            page.set_viewport_size({'width': width, 'height': 480})
-            page.goto(base + '/setup')
-            page.wait_for_timeout(120)
-            assert_layout(page, width, '/setup')
-            root = open_menu(page, 'device')
-            root.locator('[data-settings-link="leds"]').click()
-            expect(page).to_have_url(base + '/settings/leds')
-            assert not errors, ('javascript_errors', len(errors))
-        assert reads['mutations_blocked'] == 0, reads
-        return {'layouts': len(rows), 'landscape_widths': len(widths),
-                'widths': widths, 'navigation': 'PASS', 'website_tabs': 'PASS',
-                'filegator_layout_seen': filegator_seen,
-                'javascript_errors': len(errors), **reads}
+                response=page.goto(base+path,wait_until='domcontentloaded')
+                assert response.status==200,(path,width,response.status)
+                page.wait_for_timeout(100)
+                assert_layout(page,width,path);assert_leaf(page,path)
+                filegator_seen=filegator_seen or bool(page.locator('.website-leaf').count())
+                rows.append({'path':path,'width':width,'overflow':False})
+            for group,item,expected in [('sim','ussd','/modem/ussd'),('sim','sms','/modem/sms'),
+                                         ('connect','usb-tether','/quick/usb'),('device','access','/settings/access'),
+                                         ('web','files','/website/files'),('web','domains','/website/domains')]:
+                root=open_menu(page,group);root.locator(f'[data-settings-link="{item}"]').click()
+                page.wait_for_url(lambda value:urlsplit(str(value)).path==expected)
+                expect(page.locator(f'[data-settings-link="{item}"]')).to_have_attribute('aria-current','page')
+                assert_leaf(page,expected)
+            page.set_viewport_size({'width':width,'height':480});page.goto(base+'/setup')
+            page.wait_for_timeout(100);assert_layout(page,width,'/setup')
+            root=open_menu(page,'device');root.locator('[data-settings-link="leds"]').click()
+            expect(page).to_have_url(base+'/settings/leds')
+            assert not errors,('javascript_errors',len(errors))
+        assert reads['mutations_blocked']==0,reads
+        return {'layouts':len(rows),'landscape_widths':len(widths),'widths':widths,
+                'navigation':'PASS','isolated_child_screens':'PASS','filegator_layout_seen':filegator_seen,
+                'javascript_errors':len(errors),**reads}
     finally:
-        page.remove_listener('pageerror', on_error)
-        page.unroute('**/api/**', guard)
+        page.remove_listener('pageerror',on_error);page.unroute('**/api/**',guard)

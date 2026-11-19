@@ -390,6 +390,14 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         @app.get('/overview')
         def overview():
             return render_template('overview.html', token=token, page='overview', hostname=hostname)
+        @app.get('/sim/usage')
+        def sim_usage_page():
+            return render_template('sim_usage.html', token=token, page='usage')
+        @app.get('/settings/access')
+        def access_page():
+            if lan_settings is None and lan_auth is None:return jsonify(error='NOT_FOUND'),404
+            return render_template('access.html', token=token, page='manage',
+                                   can_manage_lan=lan_settings is not None and lan_auth is None)
         @app.get('/manage')
         def manage():
             features = {'network': network_backend is not None, 'setup': setup_backend is not None,

@@ -21,19 +21,21 @@ class Saved:
         return {"profiles": []}
 
 
-def test_saved_wifi_controls_live_next_to_connection_and_management_links_to_them():
+def test_saved_wifi_controls_have_their_own_page_and_management_links_to_them():
     internet = Saved()
     app = create_hosting_app(backend=Wifi(), usb_portal=True, modem_backend=object(),
                              network_backend=internet, setup_backend=object(), token="fixture-test")
     with app.test_client() as client:
         page = client.get("/manage", base_url=BASE)
         assert page.status_code == 200
-        for item in ['id="saved-wifi"', '/setup#saved-wifi',
+        for item in ['id="saved-wifi"', '/setup/saved',
                      'href="/setup"', 'href="/internet"']:
             assert item in page.text
         assert '/static/manage.js' not in page.text
         assert 'id="saved-wifi-list"' not in page.text
-        setup = client.get('/setup', base_url=BASE)
+        connect = client.get('/setup', base_url=BASE)
+        assert '/static/saved_wifi.js' not in connect.text
+        setup = client.get('/setup/saved', base_url=BASE)
         assert setup.status_code == 200
         for item in ['id="setup-connect"', 'id="saved-wifi"', 'id="saved-wifi-list"',
                      'id="saved-wifi-refresh"', '/static/saved_wifi.js', 'savedWifiActionToken']:
@@ -41,7 +43,7 @@ def test_saved_wifi_controls_live_next_to_connection_and_management_links_to_the
         assert setup.text.index('id="setup-connect"') < setup.text.index('id="saved-wifi"')
         internet_page = client.get('/internet', base_url=BASE)
         assert internet_page.status_code == 200
-        assert '/setup#saved-wifi' in internet_page.text
+        assert '/setup/saved' in internet_page.text
         assert 'id="saved-profiles"' not in internet_page.text
         assert client.get("/api/wifi/saved", base_url=BASE).status_code == 403
         assert 'id="lan-password"' not in page.text
@@ -54,7 +56,9 @@ def test_lan_settings_move_from_wifi_to_management_on_usb_only(tmp_path):
     with app.test_client() as client:
         assert client.get("/", base_url=BASE).location == '/overview'
         wifi = client.get("/", base_url=BASE, follow_redirects=True)
-        manage = client.get("/manage", base_url=BASE)
+        hub = client.get("/manage", base_url=BASE)
+        assert 'id="lan-settings"' not in hub.text
+        manage = client.get("/settings/access", base_url=BASE)
         assert wifi.status_code == 200
         assert 'id="lan-settings"' not in wifi.text
         assert 'href="/manage"' in wifi.text
@@ -64,6 +68,31 @@ def test_lan_settings_move_from_wifi_to_management_on_usb_only(tmp_path):
         assert 'id="lan-manage"' in manage.text
         assert "const token=" in manage.text
         assert client.get("/manage", base_url="http://wrong.example").status_code == 403
+
+
+def test_each_setup_leaf_loads_only_its_controller_and_keeps_other_panels_hidden():
+    import re
+    internet=Saved()
+    app=create_hosting_app(backend=Wifi(),usb_portal=True,modem_backend=object(),
+                          setup_backend=object(),network_backend=internet,token='fixture')
+    client=app.test_client()
+    cases={
+        '/setup':('setup-connect-pane','setup.js'),
+        '/setup/saved':('saved-wifi','saved_wifi.js'),
+        '/setup/ap':('usb-ap-settings','setup.js'),
+        '/setup/clients':('ap-clients','ap_clients.js'),
+        '/setup/recovery':('setup-status-panel','setup.js')}
+    for path,(panel,asset) in cases.items():
+        response=client.get(path,base_url=BASE)
+        assert response.status_code==200
+        for key in ['setup-connect-pane','saved-wifi','usb-ap-settings','ap-clients','setup-status-panel']:
+            tag=re.search(r'<section\b[^>]*\bid="'+key+r'"[^>]*>',response.text)[0]
+            assert (' hidden' in tag)==(key!=panel),(path,key)
+        for script in ['setup.js','saved_wifi.js','ap_clients.js']:
+            assert ('src="/static/'+script+'"' in response.text)==(script==asset)
+        assert client.get(path,base_url='http://wrong.example').status_code==403
+    assert internet.seen==[]
+    assert client.get('/setup/unknown',base_url=BASE).status_code==404
 
 
 def test_layout_css_preserves_saved_wifi_styles_and_responsive_updates():

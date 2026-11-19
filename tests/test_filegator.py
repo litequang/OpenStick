@@ -112,7 +112,7 @@ def test_bridge_inherits_real_lan_auth_origin_and_credential_rotation(tmp_path,m
     csrf=re.search(r'name="csrf" value="([^"]+)"',page.text)[1]
     assert client.post('/login',base_url=base,headers={'Origin':base},
                        data={'csrf':csrf,'password':'fixture-password-123'}).status_code==302
-    page=client.get('/website',base_url=base)
+    page=client.get('/website/files',base_url=base)
     assert b'id="web-filegator"' in page.data
     settings.configure('fixture-new-password-123')
     assert client.get('/files/main/',base_url=base).status_code==403

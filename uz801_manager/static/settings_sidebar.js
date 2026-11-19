@@ -1,6 +1,16 @@
 // One read-only menu controller for the four management cards and child pages.
 // No network requests, preference writes or device-side actions.
 (() => {
+  const legacy={
+    '/setup#saved-wifi':'/setup/saved','/setup#usb-ap-settings':'/setup/ap',
+    '/setup#ap-clients':'/setup/clients','/setup#setup-status-panel':'/setup/recovery',
+    '/manage#manage-access':'/settings/access','/manage#lan-manage':'/settings/access',
+    '/overview#sim-usage-details':'/sim/usage','/quick#quick-usb':'/quick/usb',
+    '/website#web-pane-files':'/website/files','/website#web-pane-uploads':'/website/uploads',
+    '/website#web-pane-domains':'/website/domains'};
+  const destination=legacy[location.pathname+location.hash];
+  if(destination){location.replace(destination+location.search);return;}
+  if(location.pathname==='/website/uploads'&&document.querySelector('.website-leaf')){location.replace('/website/files'+location.search);return;}
   function currentLink(root) {
     const path=window.location.pathname, hash=window.location.hash;
     const links=[...root.querySelectorAll('.settings-category-item')];
@@ -14,9 +24,9 @@
     }) || null;
   }
   function activateWebsiteTab() {
-    if(window.location.pathname!=='/website') return;
+    if(!window.location.pathname.startsWith('/website')) return;
     const tabs={'#web-pane-files':'files','#web-pane-uploads':'uploads','#web-pane-domains':'domains'};
-    const tab=tabs[window.location.hash];
+    const tab=({'/website/files':'files','/website/uploads':'uploads','/website/domains':'domains'})[location.pathname]||tabs[window.location.hash];
     if(!tab) return;
     const button=document.querySelector('[data-web-tab="'+tab+'"]');
     if(button && button.getAttribute('aria-pressed')!=='true') button.click();

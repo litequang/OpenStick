@@ -80,6 +80,11 @@
     finally{busy=false;byId('web-transfer-progress').hidden=true;controls();}
   }
   function tab(name){
+    const leaf=document.querySelector('.website-legacy-leaf');
+    if(leaf?.dataset?.websiteView && leaf.dataset.websiteView!==name){
+      if(canLeave())location.href='/website/'+name;
+      return;
+    }
     panel.querySelectorAll('[data-web-tab]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.webTab===name)));
     for(const key of ['files','uploads','domains'])byId('web-pane-'+key).hidden=key!==name;
   }
