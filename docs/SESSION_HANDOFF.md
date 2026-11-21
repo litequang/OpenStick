@@ -1,6 +1,6 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-21 latest: existing AP restarted, Windows visibility restored
+## 2026-11-21 latest: AP restart, phone Internet confirmed by owner
 
 Owner could not find USB Wi-Fi on the phone. Local AP/channel/hidden/supplicant
 status still looked active, but a fresh Native Wi-Fi scan on Windows found
@@ -10,8 +10,11 @@ No raw SSID/BSSID/scan or packet content exported. Saved SSID/security/channel
 and configuration hashes, saved radio and cellular connection preserved; bound
 SIM Internet passed, USB administration maintained. No reboot, service/package
 change, new activation or source deployment. Installed source remains `747f49c`.
-Phone visibility/Internet confirmation is pending; root cause and recurrence
-are unverified. Do not use local active-AP status as over-the-air acceptance.
+Owner subsequently confirmed the phone sees the AP and can access the Internet,
+answering the test requesting phone mobile data disabled. Record this as
+owner-confirmed physical phone acceptance after restart, not a fixture result.
+Root cause and recurrence are unverified; local active-AP status alone remains
+insufficient proof of over-the-air visibility.
 Separately saved client cap=10 versus running MaxNumSta=128 was observed; no
 advanced AP enforcement claim or adjustment in this restart. Read the updated
 [SIM network report](SIM_NETWORK_DIAGNOSIS_2026_11_19.md) before further changes.

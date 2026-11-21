@@ -22,9 +22,11 @@ hashes matched after the restart; the cellular connection and bound SIM Internet
 check were preserved, and USB administration remained available.
 
 A subsequent fresh Windows scan found 9 nearby networks **including the USB
-AP**. Thus the restart restored Windows scan visibility. The owner was asked
-to confirm phone visibility and Internet; that acceptance is still pending at
-this checkpoint. The cause of the stalled visibility and its recurrence remain
+AP**. Thus the restart restored Windows scan visibility. The owner subsequently
+confirmed the phone could see the AP and access the Internet, in response to
+the instructed test with phone mobile data disabled. This is owner-confirmed
+physical phone acceptance of SIM-to-Wi-Fi Internet after the restart, not a
+synthetic test. The cause of the stalled visibility and its recurrence remain
 unverified. Do not call the restart a permanent driver fix or introduce automatic
 AP restart merely because a local AP status says active.
 
