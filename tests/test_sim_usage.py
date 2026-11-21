@@ -256,7 +256,7 @@ def test_partial_inventory_and_changed_link_are_unknown_not_idle(tmp_path):
 def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypatch):
     from contextlib import contextmanager
     import signal
-    from uz801_manager import network_startup,ap_clients,device_power
+    from uz801_manager import network_startup,ap_clients,device_power,cellular_recovery
     events=[]
     @contextmanager
     def background():
@@ -267,9 +267,10 @@ def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypa
     from contextlib import nullcontext
     monkeypatch.setattr(device_power,'background',lambda checkpoint:nullcontext(None))
     monkeypatch.setattr(signal,'signal',lambda *args:None)
-    monkeypatch.setattr(network_startup,'NetworkStartup',lambda:SimpleNamespace(tick=lambda:events.append('startup_tick')))
+    monkeypatch.setattr(network_startup,'NetworkStartup',lambda:SimpleNamespace(quick=object(),tick=lambda:events.append('startup_tick')))
+    monkeypatch.setattr(cellular_recovery,'CellularRecovery',lambda quick:SimpleNamespace(tick=lambda:events.append('recovery_tick')))
     monkeypatch.setattr(ap_clients,'ApClients',lambda:SimpleNamespace(tick=lambda:events.append('clients_tick')))
     def stop(seconds):raise SystemExit(0)
     monkeypatch.setattr(network_startup.time,'sleep',stop)
     with pytest.raises(SystemExit):network_startup.main()
-    assert events==['collector_started','clients_tick','startup_tick','collector_closed']
+    assert events==['collector_started','clients_tick','startup_tick','recovery_tick','collector_closed']

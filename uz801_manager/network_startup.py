@@ -182,6 +182,8 @@ def main():
     from .log_retention import LogRetention
     clients=ApClients()
     logs=LogRetention()
+    from .cellular_recovery import CellularRecovery
+    recovery=CellularRecovery(backend.quick)
     with background() as usage, power_background(usage.checkpoint if usage else lambda:False) as power:
         while True:
             try:power_pending=bool(power and power.pending())
@@ -194,6 +196,8 @@ def main():
             except Exception:pass
             try:backend.tick()
             except Exception:pass  # Never log identifiers, credentials or subprocess output.
+            try:recovery.tick()
+            except Exception:pass  # Recovery never kills power/usage/boot workers.
             time.sleep(5)
 
 
