@@ -1,5 +1,39 @@
 # SIM data and misleading serving-network display — 2026-11-19
 
+## 2026-11-21 AP visibility follow-up: restarted existing AP
+
+The owner then reported that the USB Wi-Fi network was absent from the phone's
+network list. Fresh device reads still showed AP mode, channel 6 / 2437 MHz,
+20 dBm, power save off, supplicant completed and hidden SSID disabled. The
+current profile SSID matched the saved owner SSID. These local states alone
+did not prove over-the-air visibility.
+
+A fresh Windows WLAN scan was explicitly requested through Native Wi-Fi APIs,
+without changing the Windows connection or network settings. It found 13 nearby
+networks but not the USB SSID (compared privately in memory; no SSID/BSSID or raw
+scan output logged). The earlier cached `netsh` list was not treated as fresh
+scan evidence. This reproduced the visibility issue on a second client.
+
+One bounded down/up of the existing owned AP profile completed under the normal
+network/modem locks, after power/pending-trial checks. No new profile, password,
+radio preference, cellular activation, reboot or service/package change was
+introduced. Existing SSID/security/channel settings and saved configuration
+hashes matched after the restart; the cellular connection and bound SIM Internet
+check were preserved, and USB administration remained available.
+
+A subsequent fresh Windows scan found 9 nearby networks **including the USB
+AP**. Thus the restart restored Windows scan visibility. The owner was asked
+to confirm phone visibility and Internet; that acceptance is still pending at
+this checkpoint. The cause of the stalled visibility and its recurrence remain
+unverified. Do not call the restart a permanent driver fix or introduce automatic
+AP restart merely because a local AP status says active.
+
+An additional advanced-settings discrepancy remains separate: the saved client
+limit is 10, whereas the running supplicant reports MaxNumSta=128. This restart
+preserved the existing profile rather than applying/retesting advanced options.
+Do not claim physical enforcement of hidden/client-limit/isolation from this
+visibility test. No product code was deployed; USB source remains `747f49c`.
+
 ## Follow-up: 2026-11-21, read-only device inspection
 
 The owner reported that SIM data plus hotspot still did not provide Internet.

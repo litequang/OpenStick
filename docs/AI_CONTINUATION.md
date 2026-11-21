@@ -1,5 +1,15 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**21/11/2026 — đã khôi phục khả năng nhìn thấy AP bằng một lần restart riêng Wi-Fi.**
+Chủ không thấy mạng trên điện thoại. USB báo AP/kênh 6, không ẩn, supplicant
+completed; quét Windows mới thấy 13 mạng nhưng không thấy AP USB. Một lần
+down/up profile AP hiện có (giữ USB quản trị, tên/mật khẩu, radio và phiên SIM)
+đã hoàn tất. Quét mới sau đó thấy AP USB trong 9 mạng; Internet SIM vẫn đạt.
+Chờ chủ xác nhận điện thoại thấy mạng/vào Internet. Chưa rõ nguyên nhân treo
+phát hoặc độ bền sau đó; không gọi restart là sửa driver triệt để. Không cài mã
+mới, nguồn USB vẫn `747f49c`. Chi tiết trong báo cáo SIM bên dưới. Lưu ý giới
+hạn client lưu 10 nhưng supplicant đang báo 128; chưa nghiệm thu giới hạn thực.
+
 **21/11/2026 — kiểm tra SIM/hotspot chỉ đọc; chưa cài bản sửa trạng thái.**
 Đọc [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
 USB hiện có Internet SIM thật (4 phép HTTPS 204, 2 ping); AP/DHCP/DNS, NAT và
