@@ -1,5 +1,19 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**21/11/2026 — đã cài sửa phục hồi phiên SIM, kiểm chứng worker thật.**
+Đọc [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Sáu file ở source `eaa7471`
+đã cài sau hai CI PASS; baseline USB thực tế có cả thay đổi cache/radio từ nhánh
+dev, không còn được mô tả đầy đủ bởi `747f49c`. Đã tích hợp hai nhánh trên nhánh
+UI/PR #7, không merge main/dev. Worker thật nối lại hai lần ngắt có kiểm soát sau
+47,3 và 31,7 giây; HTTPS buộc qua SIM đạt. Tắt data giữ tắt sau 45 giây, rồi bật
+lại thành công. Giữ AP, radio đã lưu và USB quản trị. Không nhận kiểm thử này là
+đã sửa nguyên nhân modem rớt phiên hoặc treo beacon Wi-Fi; chưa thử nguồn/điện
+thoại mới. Kiểm tra byte profile đầu tiên không đạt; đối chiếu toàn bộ field ở
+lần sau chỉ đổi cellular connection.timestamp, cấu hình/0600 giữ nguyên.
+Phần hiển thị băng LTE đang dùng được bổ sung riêng, đọc GetCellInfo; tuyệt đối
+không dùng CurrentBands/SupportedBands thay cho băng phục vụ thật. Đọc
+[SERVING_LTE_BAND.md](SERVING_LTE_BAND.md) và kết quả cài sau CI trước khi kết luận.
+
 **21/11/2026 — đã khôi phục khả năng nhìn thấy AP bằng một lần restart riêng Wi-Fi.**
 Chủ không thấy mạng trên điện thoại. USB báo AP/kênh 6, không ẩn, supplicant
 completed; quét Windows mới thấy 13 mạng nhưng không thấy AP USB. Một lần

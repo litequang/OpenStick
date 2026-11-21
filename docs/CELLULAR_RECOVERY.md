@@ -58,7 +58,49 @@ The serving-network correction from `df55e36` is also needed on installed
 systems: core MM State=connected must not override 3GPP searching/unregistered
 status. The previously installed `747f49c` does not contain that correction.
 
-## Validation and deployment status
+## Physical deployment and validation — 2026-11-21
+
+Installed **`eaa747125f3d365c968308a6cccfcab055cdfe3d`** from the UI branch/PR #7.
+Both Windows workflows passed, including tests, EXE build/self-test/smoke:
+[push](https://github.com/litequang/OpenStick/actions/runs/44890209911),
+[PR](https://github.com/litequang/OpenStick/actions/runs/44890214053).
+Integration with the newly pushed saved-settings/radio controls was necessary
+before the PR workflow could run; its earlier merge conflict was resolved on the
+UI branch. No merge into main/development, release or firmware operation.
+
+Read-only source inventory found a **mixed installed baseline**: optimization/UI
+code plus previously installed saved-settings/radio changes. `747f49c` alone did
+not describe the actual installed files. Only six reviewed files were replaced;
+actual installed hashes were pinned before replacement. Other settings/cache,
+radio controls and owner choices were preserved. Source/served asset hashes,
+ownership/permissions, 721 protected owner files, network/routes/firewall/DNS/USB
+gadget, services and sync passed. Only the two portal services and the existing
+startup worker restarted. Private source backup/checksum remains on the device;
+no owner data or backup archive was added to Git.
+
+Real worker tests, with SIM/data consent already granted:
+
+- Explicit data activation completed and the real background worker armed.
+- One controlled disconnect of only the owned cellular profile recovered in
+  **47.3 s**, one recorded activation; SIM-bound HTTPS Internet passed.
+- Product data-off completed. After **45 s**, no cellular reactivation and
+  recovery remained paused. Explicitly restoring data-on completed, the worker
+  armed again and SIM-bound Internet passed.
+- A follow-up controlled disconnect recovered in **31.7 s**, again one attempt
+  for the newly selected configuration. SIM-bound Internet passed; AP active,
+  saved LTE-only choice and USB administration retained.
+- The first test's whole-profile-byte equality check was **false**. Do not call
+  it a PASS: activation updates profile files. The follow-up captured every
+  parsed field before/after: only cellular `connection.timestamp` changed; no AP
+  fields or other cellular settings changed. Both profile permissions were 0600.
+
+These tests prove bounded recovery of an observed, explicitly selected session,
+not the cause of the original modem call failure or long-term network stability.
+No new phone Internet, cold-boot, airplane cycle or AP-driver recovery acceptance
+is claimed. The earlier owner-confirmed phone success followed a separate AP
+restart. The recovery never restarts that AP.
+
+## Candidate source validation (before integration)
 
 Local full suite: **842 passed, 2 Windows platform skips**, exit 0. Existing
 worker-lifetime/usage tests remain and now also verify the recovery tick. Node
@@ -68,10 +110,8 @@ profiles, pending transitions, unknown/connecting states, worker interruption,
 corrupt state, finite attempts, stable-budget reset and user data-off at the
 last submission barrier. Fixtures are not physical acceptance.
 
-This commit is the candidate source. Push and CI precede any installation.
-Hardware results will be recorded separately: observe initial connection,
-simulate one owned bearer disconnect with AP preserved, verify the real worker
-reconnects, test explicit data-off suppresses recovery, then restore the owner's
-selected state. No reboot, SMS/USSD, firmware or SIM-identity collection is part
-of that validation. AP beacon-stall recurrence remains a separate driver issue;
-do not claim this cellular recovery restarts or permanently fixes AP beacons.
+After integrating the saved-settings/radio source, the full suite passed
+**855 tests, 2 Windows platform skips**, exit 0. No test was removed. Physical
+results above followed both successful CI runs. No reboot, SMS/USSD, firmware
+or SIM-identity collection was part of validation. AP beacon-stall recurrence
+remains a separate driver issue; do not claim permanent AP-beacon repair.

@@ -184,6 +184,38 @@ def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
     assert not any(c[2] == 'Initiate' for c in bus.calls)
 
 
+def test_serving_lte_query_is_optional_read_only_and_filters_private_cells(make_modem):
+    class CellsBus(Bus):
+        fail = False
+
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'GetCellInfo':
+                self.calls.append((path,interface,method,signature,args))
+                assert kwargs['timeout'] == 3
+                if self.fail:raise TimeoutError('private cell detail')
+                return [{'serving':True,'cell-type':5,'earfcn':1501,'ci':'private-cell'},
+                        {'serving':False,'cell-type':5,'earfcn':1874}]
+            result = super().call_blocking(service,path,interface,method,signature,args,**kwargs)
+            if method == 'Introspect' and path != ROOT+'/Modem':
+                result = result.replace(f'<interface name="{MODEM}"/>',
+                    f'<interface name="{MODEM}"><method name="GetCellInfo"/></interface>')
+            return result
+
+    bus = CellsBus()
+    status = make_modem(bus).call('status')
+    assert status['serving_lte'] == [{'band':3,'nominal_mhz':1800,'earfcn':1501,'downlink_mhz':1835.1}]
+    assert 'private-cell' not in json.dumps(status)
+    assert all(c[2] in ('Get','Introspect','GetCellInfo') for c in bus.calls)
+    bus.fail = True
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    bus.calls.clear();bus.props[THREEGPP]['RegistrationState'] = 2
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    assert not any(c[2] == 'GetCellInfo' for c in bus.calls)
+    bus.calls.clear();bus.props[THREEGPP]['RegistrationState'] = 1;bus.props[USSD]['State'] = 2
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    assert not any(c[2] == 'GetCellInfo' for c in bus.calls)
+
+
 @pytest.mark.parametrize('name,code,failure', [
     ('org.freedesktop.DBus.Error.NoReply', 'USSD_TIMEOUT', 'TIMEOUT'),
     (MODEM.rsplit('.Modem', 1)[0] + '.Error.Core.Unsupported', 'USSD_UNSUPPORTED', 'UNSUPPORTED'),

@@ -70,9 +70,15 @@ function portalRestoreSettings(kind){
  }catch(_){}return null;
 }
 function portalSettingsNote(element){if(element)element.textContent='Trạng thái gần nhất · đang cập nhật nền. Bạn vẫn có thể chỉnh cài đặt.'}
+// Serving channels only; discard all cell/location keys before display/cache.
+function portalLteCarriers(modem){
+ if(!modem?.registered||!modem.sim_present||modem.sim_locked||!(modem.access_technologies&16384)||!Array.isArray(modem.serving_lte))return [];
+ return modem.serving_lte.slice(0,8).filter(v=>v&&Number.isInteger(v.band)&&v.band>=1&&v.band<=88&&Number.isInteger(v.earfcn)&&v.earfcn>=0&&v.earfcn<=300000&&Number.isFinite(v.nominal_mhz)&&v.nominal_mhz>=300&&v.nominal_mhz<=8000&&Number.isFinite(v.downlink_mhz)&&v.downlink_mhz>=300&&v.downlink_mhz<=8000).map(v=>({band:v.band,nominal_mhz:v.nominal_mhz,earfcn:v.earfcn,downlink_mhz:v.downlink_mhz}));
+}
 function portalDisplayModem(modem){
  if(!modem||typeof modem.registered!=='boolean'||typeof modem.sim_present!=='boolean')return null;
  const result={};for(const key of ['state','registered','sim_present','sim_locked','operator_name','access_technologies','signal_percent','signal_recent','secondary_lock','can_enable'])if(Object.hasOwn(modem,key))result[key]=modem[key];
+ result.serving_lte=portalLteCarriers(modem);
  // This is display-only information. A short-lived modem sample gap must not
  // erase the last usable signal on the next full-page navigation.
  if(portalLastSignal&&modem.sim_present&&!modem.sim_locked)result.last_signal={...portalLastSignal};
@@ -129,12 +135,14 @@ function renderHeader(c){
  const shownSignal=validSignal?c.signal_percent:portalLastSignal?.percent;
  const bars=shownSignal==null?null:Math.ceil(shownSignal/25);
  if(network)network.dataset.bars=bars==null?'unknown':String(bars);
- set('chip-network-label',technology);state('network',c.registered&&bars!=null?'ready':'warning');
+ const serving=portalLteCarriers(c),bandSummary=[...new Set(serving.map(v=>'B'+v.band))].join('/');
+ const bandDetail=serving.length?serving.map(v=>'B'+v.band+' · '+v.nominal_mhz+' MHz (DL '+v.downlink_mhz+' MHz · EARFCN '+v.earfcn+')').join('; '):'chưa đọc được';
+ set('chip-network-label',technology+(bandSummary?' · '+bandSummary:''));state('network',c.registered&&bars!=null?'ready':'warning');
  summary('network','Mạng '+technology+', '+(bars==null?'chưa có mức sóng mới':bars+'/4 vạch, '+shownSignal+'%'+(validSignal?'':' (lần đo gần nhất)'))+'. Bấm xem chi tiết.');
  set('modem-status','Modem: '+(c.state||'chưa xác định')+'\n'+(c.registered?'Đã đăng ký mạng.':'Chưa đăng ký mạng.'));
  set('modem-readiness',c.registered?'Modem đang hoạt động, không cần kích hoạt thêm.':c.can_enable?'Modem đang tắt. Mở Cài đặt nhanh để cho phép di động.':'Đang chờ SIM hoặc đăng ký mạng.');
- set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+carrier+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':''));
- set('network-status','Nhà mạng: '+carrier+'\nMạng đang dùng: '+(!c.registered?'chưa có kết nối':measuredTechnology?portalTechnology(c.access_technologies):portalLastSignal?.technology||portalTechnology(c.access_technologies))+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
+ set('sim-status',!c.sim_present?'Chưa có SIM sẵn sàng.':c.sim_locked?'SIM đang yêu cầu mở khóa chính. Không tự đoán PIN.':'Nhà mạng: '+carrier+'\nSIM đã được nhận.'+(c.secondary_lock?'\n'+c.secondary_lock.toUpperCase()+': khóa phụ, không chặn modem hoạt động.':'')+'\nBăng LTE đang dùng: '+bandDetail);
+ set('network-status','Nhà mạng: '+carrier+'\nMạng đang dùng: '+(!c.registered?'chưa có kết nối':measuredTechnology?portalTechnology(c.access_technologies):portalLastSignal?.technology||portalTechnology(c.access_technologies))+'\nĐăng ký: '+(c.registered?'đã đăng ký':'chưa đăng ký')+'\nBăng LTE đang dùng: '+bandDetail+'\nNguồn Internet: kiểm tra tại Wi-Fi & Web / Phát Wi-Fi từ SIM.');
  set('signal-status',validSignal?bars+'/4 vạch · '+c.signal_percent+'% — chất lượng do modem báo.\nSố liệu gần đây.':shownSignal!=null?bars+'/4 vạch · '+shownSignal+'% — lần đo gần nhất; chưa có cập nhật mới.':!c.sim_present?'Không có SIM để đo sóng.':c.sim_locked?'SIM đang khóa, chưa có mức sóng khả dụng.':!c.registered?'Chưa đăng ký mạng; chưa có mức sóng kết nối.':'Chưa có số liệu mức sóng hợp lệ.');
  if(c.sim_present&&!c.sim_locked&&!validSignal)portalFreshness('network',true);
  if(c.sim_present&&!c.sim_locked&&!knownCarrier&&previousCarrier)portalFreshness('sim',true);

@@ -1,5 +1,29 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-21 latest: bounded cellular recovery installed and physically tested
+
+Read [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Installed six reviewed files
+from `eaa747125f3d365c968308a6cccfcab055cdfe3d` after push/PR CI PASS. The actual
+baseline included previously installed saved-settings/radio changes as well as
+UI/optimization code; `747f49c` was not a complete source description. The new
+dev commit was integrated into the UI branch, resolving PR conflicts; no main
+or development merge/release. 855 local tests PASS/two Windows skips.
+
+The real background worker recovered two controlled cellular disconnects in
+47.3 and 31.7 seconds, with SIM-bound Internet passing. Explicit data-off stayed
+off for 45 seconds; data-on was restored and armed. AP, saved radio, USB admin
+retained. First profile byte-preservation assertion was false; the follow-up
+compared all parsed fields and only cellular connection.timestamp changed.
+Do not report the first hash check as PASS. Source/asset hashes, 721 protected
+owner files and unchanged network/routes/firewall/DNS/gadget passed installation.
+No reboot, SMS/USSD, firmware or phone reacceptance. Underlying modem call failure
+and AP beacon-stall cause remain unproven; this fix maintains a chosen session.
+
+The serving-LTE header addition is separate. A real read-only GetCellInfo probe
+returned serving LTE EARFCN 1501 (B3); neighbors and allowed/supported-band lists
+are not active-band proof. Read [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md) and its
+post-CI deployment record before claiming installed display acceptance.
+
 ## 2026-11-21 latest: AP restart, phone Internet confirmed by owner
 
 Owner could not find USB Wi-Fi on the phone. Local AP/channel/hidden/supplicant

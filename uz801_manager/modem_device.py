@@ -254,6 +254,17 @@ class ModemManager:
                       'can_set_mode': present and unlocked and state >= 6 and bool(modes),
                       'mobile_data': 'UNVERIFIED_NOT_CONFIGURED', 'verification': 'UNVERIFIED'}
             if action == 'status':
+                status['serving_lte'] = []
+                cell_info_declared = any(n.get('name') == MODEM and
+                    any(m.get('name') == 'GetCellInfo' for m in n.findall('method'))
+                    for n in xml.findall('interface'))
+                if (present and unlocked and registered and technology is not None
+                        and int(technology) & 16384 and session not in (2, 3) and cell_info_declared):
+                    try:
+                        from .serving_lte import serving_lte
+                        status['serving_lte'] = serving_lte(invoke(path, MODEM, 'GetCellInfo', timeout=3))
+                    except Exception:
+                        pass  # Unsupported/timeouts never fail other status or leak raw cell data.
                 if ussd:
                     status['ussd_prompt'] = str(get(USSD, 'NetworkRequest'))[:8192]
                     status['ussd_notification'] = str(get(USSD, 'NetworkNotification'))[:8192]
