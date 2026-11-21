@@ -91,6 +91,33 @@ Website nội bộ HTTP 200; public Cloudflare **530 trước và sau lần cài
 log Tunnel có `network is unreachable`. Không đổi Tunnel/mạng để che lỗi đó.
 Không nhận public Internet, đăng nhập lại mật khẩu hay điện thoại thật là PASS.
 Các ghi chú dưới đây là lịch sử; source `4cca1fa` đã được thay bằng bản này.
+**19/11/2026 — đã cài nhớ trạng thái cho toàn bộ cài đặt USB.**
+Đọc [SETTINGS_STATE_CACHE.md](SETTINGS_STATE_CACHE.md). 14 màn cài đặt khôi phục
+ngay trạng thái gần nhất khi mở lại trang/tab rồi đọc nền; không khóa do refresh,
+giữ bản nháp đang chỉnh. Cache chọn trường rõ ràng, 8 giờ, theo origin/phiên LAN;
+không lưu mật khẩu/username APN/CSRF/SMS/USSD/file contents/receipt. Client inventory
+chỉ nhớ trong tab. APN đọc lại username khi Lưu để không xóa nhầm thông tin bí mật.
+GET policy/profiles độc lập job; thao tác vẫn xác nhận và kiểm tra backend thật.
+793 PASS/1 Windows skip; nhóm ảnh hưởng cuối 115 PASS, cache/usage cuối 2 PASS.
+Preview 24 layout PASS; Chrome USB 14 route có chặn GET để kiểm tra restore PASS,
+tab mới Quick PASS, không JS error/tràn ngang/mutation. 21 hash/API/asset và file
+riêng/mạng/route/firewall/boot đã đối chiếu; followup usage hash/sync đạt. Lần cài
+đầu gặp timeout xác minh/khóa rollback; mã mới vẫn còn và đã xác minh độc lập,
+không giả định rollback thành công. Xem báo cáo cho archive/giới hạn. Không thử
+radio/band/data/power thật, không đổi cấu hình chủ. Mã/báo cáo được ghi cùng commit
+trên nhánh dev; xem Git history, CI theo dõi riêng. Không merge main/release.
+
+**19/11/2026 — đã cài khóa mạng gốc, chọn băng LTE và refresh không khóa giao diện.**
+Đọc [RADIO_ROAMING_REFRESH.md](RADIO_ROAMING_REFRESH.md) và đầu HANDOFF.
+Roaming OFF khóa đăng ký về mạng gốc đọc từ SIM, yêu cầu tắt data và policy trước.
+Băng LTE được lọc theo modem; Auto khuyên dùng, nhóm Việt Nam chưa đo tốc độ/phủ sóng.
+Modem status dùng GET độc lập; đọc nền giữ nút và bản nháp, chu kỳ 60 giây.
+Đã giữ tối ưu stale/backoff/header follow-up và điều hướng đang cài từ nhánh UI,
+không ghi đè những tệp khác. Đã cài 10 file, hash/API/asset đạt; cấu hình chủ,
+website/Tunnel/SSH, mạng/route/firewall/boot giữ nguyên. 792 PASS/1 skip trước tích
+hợp baseline cuối, 32 test ảnh hưởng cuối PASS; preview 24 layout + 4 width PASS,
+Chrome USB 8 layout chỉ GET PASS. Chưa thử lệnh roaming/band/reboot thật, không bật
+data. Watcher không restart; replay chưa nghiệm thu. Source local chưa commit/push.
 
 **19/11/2026 — đã cài tối ưu telemetry và đo trước/sau trên USB thật.**
 Đọc [PORTAL_TELEMETRY.md](PORTAL_TELEMETRY.md) và đầu HANDOFF. GET snapshot có

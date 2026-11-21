@@ -70,6 +70,8 @@ def main():
                 else:route.continue_()
             page.route('**/api/header',delayed_header)
             page.goto(BASE+'/setup')
+            if not page.locator('#setup-ssid').is_visible():
+                page.locator('#setup-connect-details summary').click()
             page.locator('#setup-ssid').fill('Draft while status is pending')
             header_ready[0]=True
             expect(page.locator('#setup-wifi-status')).to_contain_text('Đang nhận Wi-Fi')

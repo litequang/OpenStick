@@ -1,7 +1,7 @@
 /* USB-only password settings. Never store the password in browser storage. */
 (() => {
   const get = id => document.getElementById(id);
-  let busy = false;
+  let busy = false,reading=false,revision=0;
   const status = text => { get('lan-status').textContent = text; };
   async function call(action, extra = {}) {
     const response = await fetch('/api/lan', {
@@ -11,7 +11,7 @@
     if (!response.ok) throw Error('LAN_FAILED');
     return response.json();
   }
-  function render(s) {
+  function render(s) {globalThis.portalRememberSettings?.('lan',s);
     status(s.enabled ? 'Đã bật quản trị qua Wi-Fi — yêu cầu đăng nhập.' : 'Chưa bật. Đặt mật khẩu để mở quản trị qua Wi-Fi.');
     const box = get('lan-url'); box.replaceChildren();
     for (const [label, url] of [['Địa chỉ cố định: ', s.stable_url], ['IP Wi-Fi dự phòng: ', s.url]]) {
@@ -23,12 +23,12 @@
     get('lan-disable').hidden = !s.enabled;
   }
   async function run(action, extra = {}) {
-    if (busy) return;
-    busy = true; get('lan-fields').disabled = true;
-    status(action === 'status' ? 'Đang kiểm tra…' : 'Đang lưu, vui lòng chờ…');
-    try { render(await call(action, extra)); }
+    if (busy||(action==='status'&&reading)) return;
+    const generation=revision;if(action==='status')reading=true;else{revision++;busy = true; get('lan-fields').disabled = true;}
+    if(action!=='status')status('Đang lưu, vui lòng chờ…');
+    try { const value=await call(action, extra);if(action!=='status'||generation===revision)render(value); }
     catch (_) { status('Chưa xác nhận được kết quả. Giữ kết nối USB và đọc lại trạng thái trước khi thử tiếp.'); }
-    finally { busy = false; get('lan-fields').disabled = false; }
+    finally { if(action==='status')reading=false;else busy=false; get('lan-fields').disabled = busy; }
   }
   get('lan-settings').onsubmit = event => {
     event.preventDefault(); if (busy) return;
@@ -43,5 +43,6 @@
     if (!busy && confirm('Tắt truy cập quản trị qua Wi-Fi? Quản trị qua USB vẫn hoạt động.')) return run('disable', {confirm: true});
   };
   get('lan-refresh').onclick = () => run('status');
+  const rememberedLan=globalThis.portalRestoreSettings?.('lan');if(rememberedLan)try{render(rememberedLan);get('lan-fields').disabled=false;globalThis.portalSettingsNote?.(get('lan-status'))}catch(_){}
   run('status');
 })();

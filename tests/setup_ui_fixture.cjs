@@ -1,6 +1,6 @@
 // Synthetic setup flow: choosing an SSID must never submit a connection.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-class Element{constructor(){this.disabled=false;this.value='';this.textContent='';this.options=[];this.hidden=false;this.type='password';this.attrs={};this.dataset={}}replaceChildren(...v){this.options=v}add(v){this.options.push(v)}setAttribute(k,v){this.attrs[k]=v}focus(){this.focused=true}}
+class Element{constructor(){this.disabled=false;this.value='';this.textContent='';this.options=[];this.hidden=false;this.type='password';this.attrs={};this.dataset={}}replaceChildren(...v){this.options=v}add(v){this.options.push(v)}setAttribute(k,v){this.attrs[k]=v}focus(){this.focused=true}addEventListener(name,fn){this['on'+name]=fn}}
 const html=fs.readFileSync('uz801_manager/templates/setup.html','utf8');
 const elements=Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>[m[1],new Element()]));
 elements['setup-credentials'].hidden=true;
@@ -75,8 +75,14 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('uz801_manager/static/
  assert.equal(posts.length,apBefore+1);const ap=posts.at(-1);
  assert.equal(ap.action,'configure_ap');assert.equal(ap.hidden,true);assert.equal(ap.isolation,true);assert.equal(ap.max_clients,3);assert.equal(ap.confirm,true);
  elements['setup-ap-hidden'].checked=false;elements['setup-ap-max-clients'].value='5';
+ elements['setup-ap-form'].oninput();
  interval();await new Promise(r=>setImmediate(r));
  assert.equal(elements['setup-ap-hidden'].checked,false);assert.equal(elements['setup-ap-max-clients'].value,'5','polling preserves draft');
  assert.equal(posts.length,apBefore+1,'polling must not activate AP or resend');
+ context.portalLoadHeader=async()=>{throw Error('synthetic transient read failure')};
+ interval();await new Promise(r=>setImmediate(r));
+ assert.equal(elements['setup-submit'].disabled,false,'failed display refresh keeps the known connection usable');
+ assert.equal(elements['setup-ap-max-clients'].value,'5','failed refresh preserves edits');
+ assert.equal(posts.length,apBefore+1,'failed GET must not send any action');
  console.log('setup selection/manual entry/explicit handoff/scan/advanced AP staging PASS');
 })().catch(e=>{console.error(e);process.exitCode=1});

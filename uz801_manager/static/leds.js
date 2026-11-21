@@ -80,9 +80,9 @@ const ledErrors={LED_BUSY:'Đèn đang được cập nhật. Đợi một chút
   LED_ROLLBACK_FAILED:'Chưa khôi phục được toàn bộ đèn. Bấm Đọc lại để kiểm tra.',
   LED_CONFIG_INVALID:'Cấu hình đèn đã lưu không hợp lệ. Cần kiểm tra trên USB.',
   INPUT_INVALID:'Kiểm tra nhịp sáng/tắt: mỗi khoảng từ 100 đến 5000 ms.'};
-let ledControls=[],ledBusy=false;
+let ledControls=[],ledBusy=false,ledRevision=0;
 function ledNode(tag,text){const node=document.createElement(tag);if(text)node.textContent=text;return node}
-function drawLeds(status){
+function drawLeds(status){globalThis.portalRememberSettings?.('leds',status);
   const box=ledEl('led-controls');box.replaceChildren();ledControls=[];
   for(const led of status.leds){
     if(!['red','green','blue'].includes(led.id))continue;
@@ -106,15 +106,16 @@ function drawLeds(status){
   ledEl('led-notice').textContent=ledControls.length?(status.saved?'Đã đọc cấu hình đèn đã lưu.':'Chưa có tùy chỉnh. Đèn đang giữ trạng thái hiện tại.'):'Thiết bị chưa cung cấp đèn thông báo có thể điều khiển.';
   drawNetwork(status);
 }
-async function ledRequest(options={}){
+async function ledRequest(options={}){if(options.method==='POST')ledRevision++;
   const response=await fetch('/api/leds',{cache:'no-store',...options,headers:{'X-OpenStick-Token':ledToken,...options.headers}});
   if(response.status===401){location.href='/login';throw Error('LOGIN_REQUIRED')}
   const value=await response.json();if(!response.ok)throw Error(value.error||'LED_OPERATION_FAILED');return value;
 }
 function ledError(error){ledEl('led-notice').textContent=ledErrors[error.message]||'Chưa đọc hoặc cập nhật được đèn. Kiểm tra kết nối rồi thử lại.'}
 function ledSetBusy(busy){ledBusy=busy;ledEl('led-fields').disabled=busy||!ledControls.length;ledEl('led-network-fields').disabled=busy||!networkReady;ledEl('led-refresh').disabled=busy}
-async function refreshLeds(){if(ledBusy)return;ledSetBusy(true);try{drawLeds(await ledRequest())}catch(error){ledError(error)}finally{ledSetBusy(false)}}
-ledEl('led-refresh').onclick=refreshLeds;
+let ledReading=false,ledDraftTouched=false;
+async function refreshLeds(){if(ledBusy||ledReading)return;ledReading=true;const generation=ledRevision;try{const status=await ledRequest();if(generation!==ledRevision)return;globalThis.portalRememberSettings?.('leds',status);if(!ledBusy&&!ledDraftTouched)drawLeds(status)}catch(error){ledError(error)}finally{ledReading=false;ledSetBusy(ledBusy)}}
+ledEl('led-refresh').onclick=()=>{if(ledDraftTouched&&!confirm('Đọc lại và bỏ bản chỉnh sửa đèn?'))return;ledDraftTouched=false;return refreshLeds()};
 for(const [id,mode] of [['led-all-off','off'],['led-default','default']])ledEl(id).onclick=()=>{
   if(ledBusy)return;for(const control of ledControls){control.select.value=mode;control.update()}
   ledEl('led-notice').textContent='Lựa chọn chưa lưu. Bấm Lưu và áp dụng để đổi đèn.';
@@ -192,4 +193,6 @@ async function saveNetwork(enabled){
 }
 ledEl('led-network-form').onsubmit=event=>{event.preventDefault();return saveNetwork(true)};
 ledEl('led-network-disable').onclick=()=>saveNetwork(false);
+for(const id of ['led-fields','led-network-fields'])for(const event of ['input','change','pointerdown'])ledEl(id)?.addEventListener?.(event,()=>{ledDraftTouched=true});
+const rememberedLeds=globalThis.portalRestoreSettings?.('leds');if(rememberedLeds)try{drawLeds(rememberedLeds);globalThis.portalSettingsNote?.(ledEl('led-notice'))}catch(_){}
 refreshLeds();

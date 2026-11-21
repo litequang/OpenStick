@@ -3,9 +3,12 @@
  const headers={'X-OpenStick-Token':token,'Content-Type':'application/json'};
  let posting=false,current=null,transition=false,lastScan=null,identityLoaded=false,wifi=null,wifiInitialized=false,stationScan=null,readingWifi=false,readingSetup=false,wifiFormTouched=false;
  const wifiForm=e('setup-connect-details');
+ let apDraftTouched=false;
+ e('setup-ap-form').addEventListener?.('input',()=>{apDraftTouched=true});
  for(const event of ['onpointerdown','onkeydown','oninput','onfocusin'])wifiForm[event]=()=>{wifiFormTouched=true};
  const connectNotice=text=>{e('setup-connect-notice').textContent=text};
  function drawWifi(s){
+  globalThis.portalRememberSettings?.('wifi',s);
   wifi=s;
   const role=s.setup_active?'Đang phát Wi-Fi cài đặt':s.hotspot_active?'Đang chia sẻ Internet SIM':s.connected?'Đang nhận Wi-Fi':'Chưa kết nối Wi-Fi';
   const rate=value=>value==null?'chưa có số liệu':value+' Mbps';
@@ -13,7 +16,7 @@
   if(!wifiInitialized){if(!wifiFormTouched)wifiForm.open=!s.connected;wifiInitialized=true}
   if(current)draw(current);
  }
- async function refreshWifi(){if(readingWifi)return;readingWifi=true;try{const value=await portalLoadHeader();drawWifi(value);if(value._telemetry?.stale)e('setup-wifi-status').textContent+=' · Số liệu gần nhất, đang cập nhật.'}catch(_){wifi=null;e('setup-wifi-status').textContent='Chưa đọc được kết nối. Kiểm tra USB hoặc Wi-Fi rồi thử lại.';if(current)draw(current)}finally{readingWifi=false}}
+ async function refreshWifi(){if(readingWifi)return;readingWifi=true;try{const value=await portalLoadHeader();drawWifi(value);if(value._telemetry?.stale)e('setup-wifi-status').textContent+=' · Số liệu gần nhất, đang cập nhật.'}catch(_){e('setup-wifi-status').textContent=wifi?'Số liệu lần đọc trước · đang chờ cập nhật. Bạn vẫn có thể chỉnh cài đặt.':'Đang chờ kết nối đầu tiên; tự đọc lại khi sẵn sàng.';if(current)draw(current)}finally{readingWifi=false}}
  async function stationAction(action,extra={}){
   if(posting)return;posting=true;draw(current);connectNotice(action==='scan'?'Đang tìm mạng Wi-Fi…':'Đang kết nối. Wi-Fi quản trị có thể ngắt; không gửi lại yêu cầu.');
   try{
@@ -34,11 +37,11 @@
   finally{posting=false;if(current)draw(current)}
  }
  const errors={MODEM_BUSY:'Modem \u0111ang g\u1eedi SMS ho\u1eb7c c\u00f3 phi\u00ean USSD. USB ch\u1edd k\u1ebft th\u00fac r\u1ed3i m\u1edbi kh\u1edfi \u0111\u1ed9ng l\u1ea1i.',REBOOT_FAILED:'Ch\u01b0a kh\u1edfi \u0111\u1ed9ng l\u1ea1i \u0111\u01b0\u1ee3c. \u0110\u00e3 quay l\u1ea1i Wi-Fi c\u00e0i \u0111\u1eb7t.',LAN_NOT_CONFIGURED:'Cần đặt mật khẩu quản trị LAN qua cổng USB trước khi dùng điện thoại.',HOTSPOT_ACTIVE:'Dừng hotspot dùng SIM trước khi chuyển sang Wi-Fi cài đặt.',POLICY_ACTIVE:'Đang chọn chế độ chỉ dùng SIM. Đổi chế độ tại Nguồn Internet trước.',CELLULAR_ALREADY_ACTIVE:'Dừng phiên dữ liệu SIM trước khi phát Wi-Fi cài đặt.',NETWORK_BUSY:'USB đang đổi mạng. Đợi rồi kiểm tra lại.',WIFI_CONNECT_FAILED:'Chưa kết nối được Wi-Fi mới. USB đã phát lại Wi-Fi cài đặt; kiểm tra tên mạng và mật khẩu.',SETUP_INTERRUPTED:'Lần đổi mạng bị ngắt nguồn. Đã quay lại Wi-Fi cài đặt.',SETUP_OPERATION_FAILED:'Chưa lưu được cấu hình Wi-Fi USB. Kiểm tra lại qua cổng USB.'};
- function draw(s){current=s;if(!s.setup_active&&stationScan)s={...s,...stationScan};e('setup-state').textContent=`Tự phát khi không nối được Wi-Fi: ${s.enabled?'bật':'tắt'}\nWi-Fi cài đặt: ${s.setup_active?'đang phát':'chưa phát'}\nTên Wi-Fi: ${s.ssid||'chưa tạo'}\nTrang cài đặt: ${s.url}\nThao tác: ${s.busy?'đang xử lý':s.result==='WIFI_CONNECTED'?'đã kết nối Wi-Fi mới':'sẵn sàng'}`;
+ function draw(s){globalThis.portalRememberSettings?.('setup',s);current=s;if(!s.setup_active&&stationScan)s={...s,...stationScan};e('setup-state').textContent=`Tự phát khi không nối được Wi-Fi: ${s.enabled?'bật':'tắt'}\nWi-Fi cài đặt: ${s.setup_active?'đang phát':'chưa phát'}\nTên Wi-Fi: ${s.ssid||'chưa tạo'}\nTrang cài đặt: ${s.url}\nThao tác: ${s.busy?'đang xử lý':s.result==='WIFI_CONNECTED'?'đã kết nối Wi-Fi mới':'sẵn sàng'}`;
   for(const [id,active,label] of [['setup-auto-state',s.enabled,s.enabled?'Đang bật':'Đang tắt'],['setup-ap-state',s.setup_active,s.setup_active?'Đang phát':'Chưa phát']]){const badge=e(id);badge.textContent=label;badge.dataset.active=String(Boolean(active))}
   for(const [id,visible] of [['setup-enable',!s.enabled],['setup-disable',s.enabled]])e(id).hidden=!visible;
   const ap=s.ap_options||{hidden:false,max_clients:10,isolation:false,configured:false};
-  if(!identityLoaded){e('setup-ap-ssid').value=s.ssid||'';e('setup-ap-channel').value=String(s.channel||6);e('setup-ap-hidden').checked=ap.hidden;e('setup-ap-max-clients').value=String(ap.max_clients);e('setup-ap-isolation').checked=ap.isolation;identityLoaded=true}
+  if(!identityLoaded||(!apDraftTouched&&!s._display_cached)){e('setup-ap-ssid').value=s.ssid||'';e('setup-ap-channel').value=String(s.channel||6);e('setup-ap-hidden').checked=ap.hidden;e('setup-ap-max-clients').value=String(ap.max_clients);e('setup-ap-isolation').checked=ap.isolation;identityLoaded=true}
   e('setup-ap-options-status').textContent=ap.invalid?'Cấu hình nâng cao bị lỗi. Kiểm tra và lưu lại qua USB trước khi phát Wi-Fi.':ap.configured?`Đã lưu: ${ap.hidden?'ẩn tên':'hiện tên'} · tối đa ${ap.max_clients} thiết bị · cách ly ${ap.isolation?'bật':'tắt'}. Dùng ở lần phát tiếp theo; chưa xác nhận hiệu lực trên thiết bị kết nối thật.`:'Chưa lưu tùy chọn nâng cao. Mạng hiện tại giữ cách hoạt động của bản cũ; mặc định trên form chỉ áp dụng sau khi Lưu.';
   e('setup-ap-save').disabled=posting||s.busy;
   for(const id of ['setup-enable','setup-disable','setup-submit','setup-scan'])e(id).disabled=posting||s.busy;
@@ -72,5 +75,8 @@
  e('setup-ap-form').onsubmit=event=>{event.preventDefault();if(!current||posting||current.busy)return;const max=Number(e('setup-ap-max-clients').value);if(!Number.isInteger(max)||max<1||max>32){e('setup-ap-notice').textContent='Giới hạn thiết bị phải là số nguyên từ 1 đến 32.';e('setup-ap-max-clients').focus();return}if(new TextEncoder().encode(e('setup-ap-ssid').value).length>32){e('setup-ap-notice').textContent='Tên Wi-Fi vượt quá 32 byte.';return}const hidden=e('setup-ap-hidden').checked,isolation=e('setup-ap-isolation').checked;if(!confirm(`Lưu cho lần phát tiếp theo: ${hidden?'ẩn tên Wi-Fi (điện thoại cần thêm mạng thủ công)':'hiện tên Wi-Fi'}, tối đa ${max} thiết bị, cách ly ${isolation?'bật':'tắt'}? Chưa ngắt kết nối hiện tại.`))return;act('configure_ap',{ssid:e('setup-ap-ssid').value,password:e('setup-ap-password').value,channel:Number(e('setup-ap-channel').value),hidden,max_clients:max,isolation})};
  e('setup-reveal').onclick=async()=>{if(!e('setup-credentials').hidden){e('setup-credentials').hidden=true;e('setup-credentials').textContent='';e('setup-reveal').textContent='Xem thông tin kết nối';e('setup-reveal').setAttribute('aria-expanded','false');return}try{const r=await fetch('/api/setup/credentials',{headers});if(!r.ok)throw Error();const s=await r.json();e('setup-credentials').hidden=false;e('setup-reveal').textContent='Ẩn thông tin kết nối';e('setup-reveal').setAttribute('aria-expanded','true');e('setup-credentials').textContent=s.configured?`Tên Wi-Fi: ${s.ssid}\nMật khẩu Wi-Fi: ${s.password}\nTrang cài đặt: ${s.url}`:'Bật tự phát trước để tạo thông tin kết nối.'}catch(_){e('setup-notice').textContent='Chưa tải được thông tin kết nối.'}};
  e('setup-card').onclick=async()=>{try{const r=await fetch('/api/setup/card',{headers});if(!r.ok)throw Error();const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download='openstick-wifi-setup.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(_){e('setup-notice').textContent='Chưa tải được thẻ kết nối.'}};
- refresh();refreshWifi();setInterval(()=>{if(!posting&&!document.hidden){refresh();refreshWifi()}},15000);
+ const rememberedWifi=globalThis.portalRestoreSettings?.('wifi'),rememberedSetup=globalThis.portalRestoreSettings?.('setup');
+ if(rememberedWifi)try{drawWifi(rememberedWifi)}catch(_){}
+ if(rememberedSetup)try{draw(rememberedSetup);globalThis.portalSettingsNote?.(e('setup-notice'))}catch(_){}
+ refresh();refreshWifi();setInterval(()=>{if(!posting&&!document.hidden&&!document.activeElement?.closest?.('form')){refresh();refreshWifi()}},60000);
 })();

@@ -5,7 +5,7 @@
   const count = byId('saved-wifi-count');
   const refresh = byId('saved-wifi-refresh');
   const notice = byId('saved-wifi-notice');
-  let busy = false;
+  let busy = false,reading=false;
 
   const errors = {
     HOTSPOT_ACTIVE: 'USB đang phát Wi-Fi. Cần dừng chế độ phát trước khi chuyển sang nhận Wi-Fi; không thể làm cả hai cùng lúc.',
@@ -52,12 +52,7 @@
     throw Error('RESULT_UNKNOWN');
   }
 
-  async function loadProfiles() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const result = await request('profiles');
-      if (!Array.isArray(result.profiles)) throw Error('INVALID_PROFILES');
+  function drawProfiles(result){globalThis.portalRememberSettings?.('saved_profiles',result);
       list.replaceChildren();
       count.hidden = false;
       count.textContent = String(result.profiles.length);
@@ -99,11 +94,19 @@
         list.append(row);
       }
       notice.textContent = '';
+  }
+  async function loadProfiles() {
+    if (busy||reading) return;
+    reading=true;
+    try {
+      const result = typeof portalReadTelemetry==='function'?await portalReadTelemetry('/api/wifi/profiles'):await request('profiles');
+      if (!Array.isArray(result.profiles)) throw Error('INVALID_PROFILES');
+      if(!busy)drawProfiles(result);
     } catch (error) {
       notice.textContent = explanation(error);
       if (!list.children.length) list.textContent = 'Không đọc được Wi-Fi đã lưu.';
     } finally {
-      setBusy(false);
+      reading=false;
     }
   }
 
@@ -130,5 +133,6 @@
   }
 
   refresh.addEventListener('click', loadProfiles);
+  const rememberedProfiles=globalThis.portalRestoreSettings?.('saved_profiles');if(rememberedProfiles)try{drawProfiles(rememberedProfiles);globalThis.portalSettingsNote?.(notice)}catch(_){}
   loadProfiles();
 })();

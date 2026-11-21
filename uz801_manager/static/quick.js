@@ -3,6 +3,7 @@
   const el = id => document.getElementById(id);
   const headers = {'Content-Type':'application/json', 'X-OpenStick-Token':document.querySelector('.portal-header').dataset.statusToken};
   let current = null, busy = false, selected = null, refreshing=false, refreshAgain=false;
+  let recoveryTimer=null, readFailed=false;
   const compact = !!document.querySelector('.quick-panel--compact');
   const errors = {
     AP_OPTIONS_INVALID:'Cấu hình điểm phát không khớp. Lưu lại tại Cài đặt Wi-Fi qua cổng USB trước khi bật phát.',
@@ -91,14 +92,14 @@
   }
   async function readMode() {
     if(!el('quick-mode'))return;
-    try{const value=await portalLoadHeader(),c=value.modem_status;if(c&&!value._telemetry?.stale){modeStatus=c;drawMode();return true;}}catch(_){}modeStatus=null;drawMode();return false;
+    try{const value=await portalLoadHeader(),c=value.modem_status;if(c){modeStatus=c;if(!value._telemetry?.stale)globalThis.portalRememberSettings?.('modem',c);drawMode();return !value._telemetry?.stale;}}catch(_){}drawMode();return false;
   }
   if(el('quick-mode'))el('quick-mode').onclick=async()=>{
     if(busy||el('quick-mode').disabled)return;
     busy=true;draw(current);drawMode();
     let target;
     try {
-      if(!await readMode())throw Error('RESULT_UNKNOWN');const c=modeStatus;
+      const c=modeStatus; // The backend validates live capabilities before changing modes.
       if(!c?.can_set_mode||[2,3].includes(c.ussd_state))throw Error('MODEM_BUSY');
       const modes=modeChoices(c);if(modes.length<2)throw Error('UNSUPPORTED');
       const index=modes.findIndex(m=>m[0]===c.current_mode[0]&&m[1]===c.current_mode[1]);
@@ -124,14 +125,19 @@
     if(refreshing){refreshAgain=refreshAgain||force;return}refreshing=true;
     try {
       const value=await portalReadTelemetry('/api/quick');
-      if(value._telemetry?.stale)throw Error();
       if(!busy)draw(value);
+      if(!value._telemetry?.stale)globalThis.portalRememberSettings?.('quick',value);
       readMode(); // Mode telemetry must not hold up the other Quick Settings.
-      if (el('quick-notice').textContent === 'Đang đọc trạng thái…') notice('Chạm một ô để xem và xác nhận thay đổi.');
+      if(value._telemetry?.stale)throw Error();
+      if (readFailed || el('quick-notice').textContent === 'Đang đọc trạng thái…') notice('Chạm một ô để xem và xác nhận thay đổi.');
+      readFailed=false;
+      if(recoveryTimer){clearTimeout(recoveryTimer);recoveryTimer=null;}
     } catch (_) {
-      current = null;
-      for (const id of ['quick-airplane','quick-data','quick-ap','quick-usb','quick-receive']) el(id).disabled = true;
-      notice('Chưa đọc được trạng thái USB. Các công tắc đã khóa; kiểm tra kết nối rồi đọc lại.');
+      readFailed=true;
+      if(current)draw(current);
+      else for (const id of ['quick-airplane','quick-data','quick-ap','quick-usb','quick-receive']) el(id).disabled = true;
+      notice(current?'Số liệu lần đọc trước · đang cập nhật nền. Bạn vẫn có thể chọn cài đặt; USB kiểm tra lại trước khi áp dụng.':'Đang lấy trạng thái đầu tiên. Trang sẽ tự đọc lại; bạn vẫn có thể mở các mục cài đặt khác.');
+      if(!recoveryTimer&&!document.hidden)recoveryTimer=setTimeout(()=>{recoveryTimer=null;if(!busy)refresh();},2000);
     }finally{refreshing=false;if(refreshAgain){refreshAgain=false;refresh()}}
   }
   function ask(action, copy, values={}) {
@@ -249,6 +255,14 @@
   el('quick-ap').onclick=()=>{const ap=['local_ap','sim_ap'].includes(current.wifi_role);ask(ap?'local_ap_off':'local_ap_on',ap?'Tắt phát Wi-Fi? Điện thoại sẽ ngắt. Không tự nối Wi-Fi nhà; dữ liệu SIM giữ nguyên.':current.mobile_data_connected?'Bật phát Wi-Fi để chia sẻ Internet SIM? Các thiết bị kết nối có thể phát sinh cước SIM. Wi-Fi nhà sẽ ngắt; dùng tên và mật khẩu phát đã lưu.':'Bật phát Wi-Fi để quản trị? Wi-Fi nhà sẽ ngắt. Chưa có Internet cho đến khi bạn bật Dữ liệu SIM.');};
   el('quick-refresh').onclick=()=>{if(!busy)refresh();};
   el('quick-usb').onclick=()=>{const off=current.usb_tethering.enabled||current.usb_tethering.degraded||current.usb_tethering.desired_enabled;ask(off?'usb_tether_off':'usb_tether_on',off?'Lưu chế độ tắt chia sẻ Internet và khởi động lại USB một lần? PC tự nhận lại mạng quản trị. Website, Tunnel và kết nối sẽ tạm ngắt trong lúc khởi động.':'Lưu chế độ chia sẻ Internet và khởi động lại USB một lần để PC tự nhận mạng? Không cài phần mềm trên PC. Website/Tunnel tạm ngắt khi khởi động. Wi-Fi đã lưu sẽ kết nối lại; không tự bật dữ liệu SIM. Dùng SIM có thể phát sinh cước khi bạn bật data.');};
-  refresh().then(async()=>{let operation;try{operation=sessionStorage.getItem('openstick-quick-operation');}catch(_){}if(operation&&/^[0-9a-f-]{36}$/.test(operation)){notice('Có yêu cầu trước cần đối chiếu receipt. Chỉ đọc kết quả, không gửi lại.');busy=true;if(current)draw(current);try{await poll(operation);}catch(_){notice('Kết quả yêu cầu trước chưa rõ. Đọc lại trạng thái qua USB; không tự gửi lại.');}finally{busy=false;await refresh();}}});
-  setInterval(()=>{if(!busy&&!document.hidden)refresh();},15000);
+  let resumedOperation;try{resumedOperation=sessionStorage.getItem('openstick-quick-operation');}catch(_){}
+  if(!/^[0-9a-f-]{36}$/.test(resumedOperation||''))resumedOperation=null;
+  busy=!!resumedOperation;
+  modeStatus=globalThis.portalRestoreSettings?.('modem');
+  const remembered=globalThis.portalRestoreSettings?.('quick');
+  if(remembered){try{draw(remembered);readFailed=true;globalThis.portalSettingsNote?.(el('quick-notice'));}catch(_){current=null}}
+  if(resumedOperation){notice('Có yêu cầu trước cần đối chiếu receipt. Chỉ đọc kết quả, không gửi lại.');(async()=>{try{await poll(resumedOperation);}catch(_){notice('Kết quả yêu cầu trước chưa rõ. Đọc lại trạng thái qua USB; không tự gửi lại.');}finally{busy=false;await refresh();}})();}
+  else refresh();
+  setInterval(()=>{if(!busy&&!document.hidden&&!el('quick-dialog').open&&!el('quick-wifi-dialog').open)refresh();},60000);
+  document.addEventListener('visibilitychange',()=>{if(!busy&&!document.hidden)refresh();});
 })();

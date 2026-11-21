@@ -25,6 +25,51 @@ function portalReadCache(key){
 function portalWriteCache(key,value){
  try{sessionStorage.setItem(portalScopedCacheKey(key),JSON.stringify({version:1,at:Date.now(),value}))}catch(_){}
 }
+// Settings snapshots contain explicit display/config fields only. Never store
+// API bodies wholesale, credentials, file contents, CSRF or operation receipts.
+const portalSettingsSchemas={
+ quick:{intent:{airplane:true,data_allowed:true},radio:{state:true,power_state:true,sim_ready:true,registered:true,ussd_state:true},startup:{saved:true,wifi_role:true,data_on:true},wifi_role:true,mobile_data_connected:true,foreign_cellular_active:true,pending_network_trial:true,usb_tethering:{available:true,enabled:true,desired_enabled:true,degraded:true,reboot_pending:true}},
+ modem:{state:true,sim_present:true,sim_missing:true,sim_locked:true,registered:true,secondary_lock:true,can_enable:true,operator_name:true,registration_state:true,access_technologies:true,signal_percent:true,signal_recent:true,can_set_mode:true,supported_modes:[[true]],current_mode:[true],saved_mode:[true],can_set_bands:true,band_choices:[{id:true,label:true,bands:[true]}],current_bands:[true],saved_bands:true,can_set_roaming:true,roaming:{available:true,allowed:true,home_locked:true},ussd_state:true},
+ wifi:{connected:true,hotspot_active:true,setup_active:true,ssid:true,ipv4:[true],signal_percent:true,tx_mbps:true,rx_mbps:true},
+ setup:{enabled:true,configured:true,setup_active:true,busy:true,ssid:true,channel:true,url:true,station_url:true,scan_at:true,networks:[{ssid:true,signal:true,security:true}],ap_options:{hidden:true,max_clients:true,isolation:true,configured:true,invalid:true}},
+ policy:{config:{mode:true,enabled:true,auto_wifi:true},runtime:{source:true,health:{wifi:true,sim:true},error:true},age_seconds:true},
+ cellular:{settings:{available:true,name:true,apn:true,auth:true,ip_family:true,roaming:true,password_saved:true},profiles:[{id:true,name:true,apn:true,auth:true,ip_family:true,roaming:true,password_saved:true,active:true}],blocked:true},
+ clients:{ap_active:true,inventory_available:true,count:true,filter_applied:true,blocked:[true],clients:[{mac:true,ip:true,name:true,signal_dbm:true,rx_bytes:true,tx_bytes:true,rx_mbps:true,tx_mbps:true,internet_blocked:true}]},
+ lan:{enabled:true,stable_url:true,url:true},
+ power:{available:true,phase:true,pending:true,delay_seconds:true},
+ hotspot:{hotspot_active:true,setup_active:true,cellular_connected:true,enabled:true},
+ saved_profiles:{profiles:[{uuid:true,ssid:true,active:true}]},
+ sites:{routing:{local:true,available:true},selected:true,sites:[{id:true,name:true,domain:true,domains:[true],is_main:true,enabled:true,revision:true}],revision:true}
+};
+const portalUsageAmount={total_bytes:true,download_bytes:true,upload_bytes:true};
+portalSettingsSchemas.usage={available:true,stale:true,today:portalUsageAmount,month:portalUsageAmount,session:portalUsageAmount,total:portalUsageAmount};
+const portalLedReading={mode:true,on_ms:true,off_ms:true};
+const portalLedRecipe={red:portalLedReading,green:portalLedReading,blue:portalLedReading};
+portalSettingsSchemas.leds={supported:true,saved:true,leds:[{id:true,label:true,modes:[true],settings:portalLedReading,lit:true,controlled:true}],network:{enabled:true,state:true,rules:Object.fromEntries(['setup_hotspot','sim_hotspot','wifi_station','cellular_data','offline','unknown'].map(k=>[k,portalLedRecipe]))}};
+function portalSettingsPick(value,schema){
+ if(value==null)return value;
+ if(schema===true)return typeof value==='boolean'||typeof value==='number'&&Number.isFinite(value)?value:typeof value==='string'?value.slice(0,512):undefined;
+ if(Array.isArray(schema))return Array.isArray(value)?value.slice(0,256).map(v=>portalSettingsPick(v,schema[0])):undefined;
+ if(typeof value!=='object'||Array.isArray(value))return undefined;
+ const result={};for(const [key,shape] of Object.entries(schema)){if(Object.hasOwn(value,key)){const field=portalSettingsPick(value[key],shape);if(field!==undefined)result[key]=field}}return result;
+}
+function portalRememberSettings(kind,value){
+ if(value?._display_cached||!portalSettingsSchemas[kind])return;
+ const entry={version:1,at:Date.now(),value:portalSettingsPick(value,portalSettingsSchemas[kind])};
+ const key=portalScopedCacheKey('openstick-settings-display-v1-'+kind);
+ try{sessionStorage.setItem(key,JSON.stringify(entry))}catch(_){}
+ // Client inventory stays session-only; other projections contain no secrets.
+ if(kind!=='clients')try{localStorage.setItem(key,JSON.stringify(entry))}catch(_){}
+}
+function portalRestoreSettings(kind){
+ if(!portalSettingsSchemas[kind])return null;
+ const key=portalScopedCacheKey('openstick-settings-display-v1-'+kind);
+ for(const read of [()=>sessionStorage.getItem(key),()=>kind!=='clients'?localStorage.getItem(key):null])try{
+  const entry=JSON.parse(read());
+  if(entry?.version===1&&Number.isFinite(entry.at)&&entry.at<=Date.now()&&Date.now()-entry.at<8*3600000&&entry.value&&typeof entry.value==='object')return {...portalSettingsPick(entry.value,portalSettingsSchemas[kind]),_display_cached:true};
+ }catch(_){}return null;
+}
+function portalSettingsNote(element){if(element)element.textContent='Trạng thái gần nhất · đang cập nhật nền. Bạn vẫn có thể chỉnh cài đặt.'}
 function portalDisplayModem(modem){
  if(!modem||typeof modem.registered!=='boolean'||typeof modem.sim_present!=='boolean')return null;
  const result={};for(const key of ['state','registered','sim_present','sim_locked','operator_name','access_technologies','signal_percent','signal_recent','secondary_lock','can_enable'])if(Object.hasOwn(modem,key))result[key]=modem[key];
@@ -109,7 +154,7 @@ function renderWifiHeader(w){
 // Only allowlisted display GETs use this helper. Never retry a mutation.
 const portalTelemetryReads=new Map();
 async function portalReadTelemetry(path){
- if(!['/api/header','/api/overview','/api/quick','/api/services'].includes(path))throw Error('STATUS_UNAVAILABLE');
+ if(!['/api/header','/api/overview','/api/quick','/api/services','/api/modem/status','/api/internet/status','/api/wifi/profiles'].includes(path))throw Error('STATUS_UNAVAILABLE');
  if(portalTelemetryReads.has(path))return portalTelemetryReads.get(path);
  const token=document.querySelector('.portal-header')?.dataset.statusToken;if(!token)throw Error('STATUS_UNAVAILABLE');
  const pending=(async()=>{
@@ -124,7 +169,7 @@ async function portalReadTelemetry(path){
     // immediately with the existing stale indicator instead of polling it 15x.
     if(response.ok)return value;
     else if(response.status!==503||value.error!=='STATUS_PENDING')throw Error('STATUS_UNAVAILABLE');
-   }finally{clearTimeout(timer)}
+   }catch(error){if(error.message==='STATUS_UNAVAILABLE')throw error;}finally{clearTimeout(timer)}
    if(document.hidden||Date.now()+delay>=end)break;
    await new Promise(resolve=>setTimeout(resolve,delay));delay=Math.min(4000,delay*2);
   }while(Date.now()<end&&!document.hidden);
@@ -156,7 +201,7 @@ function setupHeaderStatus(){
  const refresh=async()=>{if(pending||document.hidden)return;pending=true;
   try{await portalLoadHeader()}catch(_){renderWifiHeader(null);renderHeader(null)}finally{pending=false}
  };
- refresh();setInterval(refresh,15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+ refresh();setInterval(refresh,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 }
 // The header is already parsed at this script position. Restore before the
 // rest of the document loads to avoid a waiting-state flash on navigation.
@@ -170,7 +215,7 @@ function setupStatusPopovers(root=document){
 }
 if(typeof window!=='undefined')window.addEventListener('DOMContentLoaded',()=>{
  const logout=document.querySelector('.access-banner form[action="/logout"]');
- logout?.addEventListener('submit',()=>{try{sessionStorage.removeItem(portalScopedCacheKey(PORTAL_HEADER_CACHE));sessionStorage.removeItem(portalScopedCacheKey('openstick-overview-display-v2'))}catch(_){}});
+ logout?.addEventListener('submit',()=>{try{sessionStorage.removeItem(portalScopedCacheKey(PORTAL_HEADER_CACHE));sessionStorage.removeItem(portalScopedCacheKey('openstick-overview-display-v2'));for(const store of [sessionStorage,localStorage])for(const key of Object.keys(store))if(key.startsWith('openstick-settings-display-v1-'))store.removeItem(key)}catch(_){}});
  setupStatusPopovers();
  setupHeaderStatus();
  const nav=document.getElementById('portal-nav');if(!nav)return;

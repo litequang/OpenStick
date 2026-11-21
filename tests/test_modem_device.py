@@ -82,7 +82,7 @@ def test_missing_sim_is_read_only_and_exposes_no_identifiers(make_modem, tmp_pat
     assert all(c[2] in ('Introspect', 'Get') for c in bus.calls)
     assert {c[4][1] for c in bus.calls if c[2] == 'Get'} == {
         'State', 'StateFailedReason', 'Sim', 'UnlockRequired', 'SupportedModes', 'CurrentModes',
-        'SignalQuality', 'AccessTechnologies', 'RegistrationState', 'OperatorName'}
+        'SignalQuality', 'AccessTechnologies', 'RegistrationState', 'OperatorName', 'SupportedBands', 'CurrentBands'}
     with pytest.raises(RuntimeError, match='SIM_REQUIRED'):
         modem.call(**request(number='+84900111222', text='test'))
     assert not list(tmp_path.iterdir())

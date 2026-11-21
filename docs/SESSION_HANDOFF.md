@@ -238,6 +238,65 @@ SIM data or switch Wi-Fi to make this unrelated check pass. Direct PC-to-WLAN
 login probe is still unreachable from this PC; device WLAN-bound GETs work.
 
 The sections below are historical and do not name the current installed source.
+## 2026-11-19 latest: cached controls across all USB settings installed
+
+Read [SETTINGS_STATE_CACHE.md](SETTINGS_STATE_CACHE.md). The owner explicitly
+requests last-known controls immediately on page/tab reopening across all settings,
+with background replacement and no loss of active drafts. Shared allowlisted,
+eight-hour origin/auth-scoped projections cover 14 deployed routes. Nonsecret
+settings survive new tabs; AP-client inventory remains session-only. No credentials,
+SMS/USSD/file contents, CSRF or receipts enter this storage. Quick receipt recovery
+still gates uncertain prior operations, and power writes re-read cached state.
+APN save retrieves/preserves an untouched username rather than clearing it because
+the projection excludes credentials. Policy/profiles have independent display GETs;
+mutations retain confirmations, real backend preflight and all existing guards.
+
+21 intended installed hashes/API/assets and protected owner files/network/routes/
+firewall/boot were independently verified. Initial post-install verification timed
+out and rollback could not acquire a busy network gate: source stayed installed;
+do not claim rollback completed. Subsequent independent checks passed. Two static
+usage followups (initial stale/missing sample plus bounded follow-up/manual refresh)
+passed hashes/API/assets, protected state, network and sync. The complete baseline
+archive is `/var/lib/openstick/deploy-backups/settings-cache-1795089926/source.tar.gz`.
+See the report for per-followup archives and source rollback. Keep the installed
+UI-branch navigation/asset infrastructure; do not bulk-deploy this older checkout.
+
+793 full-suite PASS/one Windows symlink skip before final usage followups; affected
+group 115 PASS, final cache/usage group two PASS. Preview 24 layouts plus six cached
+settings/failing-read cases and mocked APN credential/draft preservation PASS.
+Real Chrome: 14 routes warmed from USB, then reopened with API reads blocked;
+known state restored, no JS error/overflow/mutating request, new-tab Quick PASS.
+Read-only status/catalog POSTs were allowed explicitly in that browser guard.
+No real network/radio/band/data/AP/file publication/power action, SMS or USSD.
+Source and reports are recorded together on `codex/uz801-v32-postmarketos`;
+see Git history for the commit ID and check GitHub CI separately. No main merge
+or release was performed. Private helpers/results remain ignored.
+
+## 2026-11-19 latest: home-network lock, LTE controls and nonblocking settings installed
+
+Read [RADIO_ROAMING_REFRESH.md](RADIO_ROAMING_REFRESH.md) for behavior, evidence,
+backup/rollback and limitations. Owner chose home-network registration lock, not
+merely data-roaming rejection. New SIM-network controls persist the owned NM home
+PLMN restriction and a separate supported LTE filter; do not activate either for
+testing. Roaming requires data/policy off. Existing mode choice remains unchanged.
+Display modem GETs no longer occupy the action job/mutex; mutations still preflight
+live state under locks. Known values/drafts remain usable during background failure;
+idle refresh is 60 seconds, action receipt polling stays fast.
+
+Installed ten files over the real reviewed baseline (which includes deployed UI
+branch changes beyond dev HEAD). Kept the existing settings shell and stale-display/
+backoff/header follow-up improvements, without replacing unrelated UI/FileGator/
+asset-cache files. Do not bulk-deploy this older development checkout over the UI
+branch installation. Protected owner hashes, network/routes/firewall/boot unchanged;
+source/served assets/fresh status verified, two portal restarts and sync completed.
+Backup: `/var/lib/openstick/deploy-backups/radio-refresh-1795088058/source.tar.gz`.
+Radio watcher left running; updated boot replay will load at its next normal start.
+No real registration/band/data/power command, SMS or USSD was sent. Real Chrome:
+eight read-only layouts PASS, zero POST/JS errors/overflow, existing workspace and
+new controls ready. Full suite 792 PASS/one Windows skip before final baseline
+integration; final affected tests 32 PASS; preview 24 layouts plus four radio widths
+PASS. Physical roaming/band/throughput/boot acceptance remains untested. Source is
+local/uncommitted, no push/merge/CI claimed. Private helpers/results remain ignored.
 
 ## 2026-11-19 latest: nonblocking telemetry installed and measured
 

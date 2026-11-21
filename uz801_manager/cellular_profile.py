@@ -77,7 +77,8 @@ def apply(profile, value):
     if not apn or value['password_action'] == 'clear':profile.remove_option('gsm', 'password')
     elif value['password_action'] == 'replace':profile.set('gsm', 'password', key_string(value['password']))
     profile.set('gsm', 'password-flags', '0')
-    profile.set('gsm', 'home-only', 'false' if value['roaming'] else 'true')
+    # A stored APN may not remove the explicit home-network lock.
+    profile.set('gsm', 'home-only', 'false' if value['roaming'] and not profile.get('gsm', 'network-id', fallback='') else 'true')
     if not profile.has_section('ppp'):profile.add_section('ppp')
     for key in AUTH_KEYS:profile.remove_option('ppp', key)
     if value['auth'] != 'auto':

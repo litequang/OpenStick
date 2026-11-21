@@ -32,6 +32,27 @@ def test_shared_frontend_reads_coalesce_and_never_retry_mutations():
     subprocess.run(['node','tests/telemetry_ui_fixture.cjs'],check=True,timeout=10)
 
 
+def test_modem_display_does_not_reserve_action_job():
+    release=threading.Event();started=threading.Event();writes=[]
+    class Modem:
+        def call(self,action,**values):
+            if action=='status':started.set();release.wait(3);return {'can_set_mode':True}
+            writes.append(action);return {'saved':True}
+    app=create_hosting_app(backend=object(),usb_portal=True,modem_backend=Modem(),token='fixture')
+    headers={'Host':'172.16.42.1','X-OpenStick-Token':'fixture'}
+    try:
+        with app.test_client() as client:
+            assert client.get('/api/modem/status',headers=headers).status_code==503
+            assert started.wait(1)
+            assert not app.extensions['modem']['state']['busy']
+            assert client.post('/api/modem',headers=headers,json={'action':'mode','allowed':8,'preferred':0,'confirm':True}).status_code==202
+            app.extensions['modem']['thread'].join(1)
+            assert writes==['mode']
+            assert client.get('/api/modem/status',headers={'Host':'172.16.42.1'}).status_code==403
+    finally:
+        release.set()
+
+
 def test_single_flight_nonblocking_copy_and_bounded_stale_lifetime():
     release=threading.Event();started=threading.Event();calls=[];clock=[100]
     def collect():

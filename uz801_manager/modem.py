@@ -16,6 +16,7 @@ def validate_action(body):
         'archive_delete': {'id', 'delete_modem', 'confirm'},
         'delete': {'path', 'fingerprint', 'confirm'},
         'mode': {'allowed', 'preferred', 'confirm'},
+        'bands': {'selection', 'confirm'}, 'roaming': {'allowed', 'confirm'},
         'send': {'number', 'text', 'operation', 'confirm'},
         'ussd_start': {'code', 'operation', 'confirm'},
         'ussd_reply': {'text', 'operation', 'confirm'},
@@ -44,6 +45,11 @@ def validate_action(body):
                 raise ValueError('INPUT_INVALID')
         if not body['allowed'] or body['preferred'] & ~body['allowed']:
             raise ValueError('INPUT_INVALID')
+    if action == 'roaming' and type(body['allowed']) is not bool:
+        raise ValueError('INPUT_INVALID')
+    if action == 'bands' and (not isinstance(body['selection'], str)
+                             or not re.fullmatch(r'auto|vietnam|b(?:[1-9]|[1-3][0-9]|4[0-4])', body['selection'])):
+        raise ValueError('INPUT_INVALID')
     if action == 'send':
         if not isinstance(body['number'], str) or not re.fullmatch(r'\+?[0-9]{3,20}', body['number']):
             raise ValueError('INPUT_INVALID')
@@ -66,6 +72,13 @@ def register_modem_routes(app, backend, token):
     last_ussd = {}
     receipts = {}  # Small private result cache; polling tabs cannot replace it.
     app.extensions['modem'] = {'state': state}
+    from .telemetry import ReadOnlySnapshot, snapshot_response
+    status_snapshot = ReadOnlySnapshot(lambda:backend.call('status'))
+    app.extensions['telemetry']['modem_status'] = status_snapshot
+
+    @app.get('/api/modem/status')
+    def modem_display_status():
+        return snapshot_response(status_snapshot)
 
     @app.get('/modem')
     def modem_page():
@@ -123,7 +136,7 @@ def register_modem_routes(app, backend, token):
                     state['result'] = result
             except Exception as exc:
                 # Never return DBus errors, SMS contents, destinations or codes.
-                allowed = {'AIRPLANE_ACTIVE', 'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
+                allowed = {'NETWORK_BUSY', 'CELLULAR_ALREADY_ACTIVE', 'HOME_NETWORK_UNAVAILABLE', 'HOTSPOT_NOT_CONFIGURED', 'ROLLBACK_FAILED', 'AIRPLANE_ACTIVE', 'SIM_REQUIRED', 'SIM_LOCKED', 'NOT_REGISTERED', 'UNSUPPORTED',
                            'MODEM_UNAVAILABLE', 'MODEM_AMBIGUOUS', 'ALREADY_ATTEMPTED',
                            'RESULT_UNKNOWN', 'USSD_SESSION_STATE', 'MODEM_BUSY',
                            'USSD_TIMEOUT', 'USSD_UNSUPPORTED', 'USSD_NO_NETWORK', 'USSD_FAILED', 'USSD_MONITOR_UNAVAILABLE',
