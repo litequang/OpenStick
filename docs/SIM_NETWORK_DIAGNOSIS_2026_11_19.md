@@ -1,5 +1,40 @@
 # SIM data and misleading serving-network display — 2026-11-19
 
+## Follow-up: 2026-11-21, read-only device inspection
+
+The owner reported that SIM data plus hotspot still did not provide Internet.
+Fresh reads in this session found home MobiFone LTE registration and an active
+cellular bearer. Both fixed HTTPS endpoints returned 204 using provider DNS and
+system DNS; two public IP ping checks succeeded. The default route used the SIM.
+
+The shared AP and IPv4 forwarding were active. Its DNS answered the fixed public
+query; a valid shared-network DHCP lease existed. No client was blocked. The
+base firewall explicitly permits `wlan*` and established return traffic; do not
+mistake its default DROP policy for a missing AP allow rule. NetworkManager's
+AP NAT/forward rules and the separate USB-sharing rules were present. No
+forwarding/firewall repair was justified by these reads.
+
+Initially one station was associated; a later read found none. A bounded raw
+packet counter (no capture file, addresses, names or payload exported) observed
+SIM input/output and AP output but no client IPv4 request in that window.
+That does not establish successful client Internet access or explain why the
+phone disconnected. The owner was asked to reconnect and test the management
+page and a public website with phone mobile data disabled. No network/radio,
+package, service or persistent device change was made in this follow-up.
+
+Additional 19 November evidence exposed an important inconsistency: core modem
+State=11 (connected), but 3GPP registration=2 (searching) and another carrier code.
+Thus checking the core state alone is insufficient. The source correction now
+cross-checks 3GPP registration in both modem status and Quick Settings, including
+unknown/failed reads. It blocks falsely registered status and action readiness
+without changing radio preferences, retrying registration or opening data.
+
+Final local suite: **815 passed, 2 Windows platform skips**, exit 0. The focused
+modem/Quick Settings/header suite passed 106 tests. The earlier full-suite
+MemoryError was a Windows host test-run failure, not a USB hardware result;
+the later complete run passed. These source corrections are **not installed**
+on the USB at this checkpoint; installed source remains `747f49c`.
+
 ## Observed on the connected UZ801 V3.2
 
 - Local SIM home operator was MobiFone. Saved and actual radio modes both
@@ -49,7 +84,8 @@ activation/retry loop is introduced by the display correction below.
 
 ## Display correction
 
-Only publish `operator_name` as a serving carrier while the modem is registered.
+Only publish `operator_name` as a serving carrier while the modem is registered,
+cross-checking 3GPP registration rather than trusting core State=connected alone.
 The header independently rejects carrier names from unregistered samples,
 including cached samples from older servers. It labels that state **Chưa đăng
 ký / Tìm mạng**, keeps previous signal readings explicitly stale, and does not

@@ -164,6 +164,18 @@ def test_unregistered_scanned_operator_is_not_a_serving_network(make_modem, stat
     assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
 
 
+@pytest.mark.parametrize('registration', [0, 2, 3, 4, 8, None])
+def test_connected_core_state_cannot_override_missing_3gpp_registration(make_modem, registration):
+    bus = Bus(state=11)
+    bus.props[THREEGPP].update(OperatorName='VIETTEL', RegistrationState=registration)
+    if registration is None:del bus.props[THREEGPP]['RegistrationState']
+    status = make_modem(bus).call('status')
+    assert not status['registered']
+    assert status['operator_name'] is None
+    assert not status['can_send'] and not status['can_ussd']
+    assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
+
+
 def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
     bus = Bus(session=3)
     with pytest.raises(RuntimeError, match='USSD_SESSION_STATE'):

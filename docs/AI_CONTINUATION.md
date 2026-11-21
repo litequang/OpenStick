@@ -1,5 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**21/11/2026 — kiểm tra SIM/hotspot chỉ đọc; chưa cài bản sửa trạng thái.**
+Đọc [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
+USB hiện có Internet SIM thật (4 phép HTTPS 204, 2 ping); AP/DHCP/DNS, NAT và
+luật `wlan*` có mặt, không chặn client. Ban đầu 1 station, sau còn 0; đợt đếm
+gói không thấy yêu cầu IPv4 từ client. Đang chờ chủ thử lại điện thoại; không
+nhận đó là nghiệm thu Internet qua Wi-Fi. Không đổi mạng/dịch vụ/radio trên USB.
+Mã nguồn sửa lỗi core modem báo connected trong khi 3GPP đang searching đã qua
+815 PASS/2 skip trên Windows; chưa cài USB (vẫn `747f49c`). Giữ nguyên radio đã
+lưu, không tự khóa PLMN hay bật retry dữ liệu để che lỗi. Các số đo 19/11 phía
+dưới là lịch sử, có lúc đăng ký/bearer nhưng không có Internet.
+
 **19/11/2026 — đã cài gói tối ưu ưu tiên và đo trước/sau USB thật.**
 Đọc [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
 Source đang cài `747f49c4486e698e9d5bbac7877f48912b43fd92`, nhánh UI/PR #7;

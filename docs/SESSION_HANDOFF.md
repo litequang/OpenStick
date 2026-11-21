@@ -1,5 +1,24 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-21 latest: read-only SIM/AP follow-up, source fix not deployed
+
+Read [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
+Fresh real-device checks: home MobiFone LTE and active bearer, four small HTTPS
+204 results across provider/system DNS, two public-IP pings, default SIM route.
+AP forwarding/NAT and DHCP/DNS present, no blocked clients. The base firewall
+already permits `wlan*`; do not add a rule based only on its default DROP policy.
+One associated station initially, zero later; a bounded no-pcap/no-content packet
+counter saw no client IPv4 request. Owner phone acceptance is pending. No device
+configuration, radio, service, package or reboot change in this follow-up.
+
+The additional source fix cross-checks 3GPP registration in modem status and
+Quick Settings: older evidence had core State=connected while 3GPP=searching,
+including a foreign operator code. A carrier name/code is not proof of working
+registration or data. Focused suite 106 PASS; full suite 815 PASS/two Windows
+platform skips, exit 0, after an earlier host MemoryError. Fix is not installed;
+USB source remains `747f49c`. Do not claim the source change restored Internet,
+or automatically lock networks/retry activation without an explicit design.
+
 ## 2026-11-19 latest: measured optimization package installed
 
 Read [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).

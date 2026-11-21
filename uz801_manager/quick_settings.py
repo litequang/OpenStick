@@ -101,8 +101,14 @@ class RadioControl:
                     return {'radio_request_needed': False}
                 bus.call_blocking(service, path, interface, 'Enable', 'b', [enabled], timeout=60)
                 return {'radio_request_needed': True}
+            try:
+                registration = int(bus.call_blocking(service, path, props, 'Get', 'ss',
+                    [interface + '.Modem3gpp', 'RegistrationState'], timeout=8))
+            except Exception:
+                registration = None
             return {'state': state, 'power_state': power, 'sim_ready': sim_ready,
-                    'registered': state >= 8, 'ussd_state': session}
+                    'registered': state >= 8 and registration in (1, 5, 6, 7, 9, 10),
+                    'registration_state': registration, 'ussd_state': session}
         except RuntimeError:
             raise
         except Exception:

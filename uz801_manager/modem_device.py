@@ -198,6 +198,10 @@ class ModemManager:
             technology = optional(MODEM, 'AccessTechnologies')
             operator = optional(THREEGPP, 'OperatorName') if THREEGPP in interfaces else None
             registration = optional(THREEGPP, 'RegistrationState') if THREEGPP in interfaces else None
+            if THREEGPP in interfaces:
+                # UZ801 may retain core State=connected and a bearer while NAS
+                # is already searching another network. The 3GPP status wins.
+                registered = registered and registration is not None and int(registration) in (1, 5, 6, 7, 9, 10)
             status = {'state': STATES.get(state, 'unknown'), 'sim_present': present,
                       'sim_missing': failed_reason == 2, 'sim_locked': present and not unlocked,
                       'secondary_lock': {3: 'pin2', 5: 'puk2'}.get(unlock),
