@@ -1,5 +1,22 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-21 latest: serving LTE display installed from 9e78ce7
+
+Read [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Three reviewed files installed
+from `9e78ce766f1a442229701b8568d8b65276d3c4d2` after both push and PR CI PASS,
+including EXE checks. 877 local tests PASS/two Windows skips. Cellular recovery
+from `eaa7471` remains installed. No main/development merge or release.
+
+Actual decoder returned serving B3/1800 MHz, DL 1835.1 MHz, EARFCN 1501. Real
+Chrome using the USB page passed 320/390/768/1366 px: header label, SIM/network
+details, bounded popovers and closing by another icon/outside click; no JS error
+or mutation. No screenshot, raw cell log, SMS/identity read or phone acceptance.
+Source/asset hashes, permissions, 721 protected owner files and unchanged
+network/routes/firewall/DNS/gadget passed installation, services healthy/synced.
+Do not use allowed/supported bands as serving evidence or equate a band/bearer
+with working Internet. Underlying spontaneous disconnect/AP-stall causes remain
+unverified; use the separate real recovery results below without overclaiming.
+
 ## 2026-11-21 latest: bounded cellular recovery installed and physically tested
 
 Read [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Installed six reviewed files

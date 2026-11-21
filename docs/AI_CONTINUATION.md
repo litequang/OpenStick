@@ -1,5 +1,15 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**21/11/2026 — đã cài hiển thị băng LTE thật, source `9e78ce7`.**
+Đọc [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Hai CI PASS gồm EXE; 877 test
+local PASS/2 skip Windows. Ba file thêm/sửa sau gói phục hồi SIM; không đổi mạng.
+Decoder cài trên USB trả B3/1800 MHz, DL 1835,1 MHz, EARFCN 1501. Chrome mở trang
+USB thật ở 320/390/768/1366 px thấy `4G · B3`, chi tiết cả SIM và Mạng & sóng;
+popover trong viewport, đổi icon/bấm ngoài đóng đúng, không JS error/mutation.
+Đây là Chrome trên PC dùng trang USB thật, không phải nghiệm thu điện thoại.
+Hash/asset, 721 file chủ, mạng/route/firewall/DNS/gadget giữ nguyên, sync xong.
+Không khẳng định thông tin băng chứng minh Internet hoặc sửa nguyên nhân rớt sóng.
+
 **21/11/2026 — đã cài sửa phục hồi phiên SIM, kiểm chứng worker thật.**
 Đọc [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Sáu file ở source `eaa7471`
 đã cài sau hai CI PASS; baseline USB thực tế có cả thay đổi cache/radio từ nhánh
