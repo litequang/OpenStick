@@ -691,9 +691,10 @@ def test_hotspot_ui_never_activates_without_explicit_consent_and_confirmation(se
     app = create_hosting_app(backend=object(), usb_portal=True, hotspot_backend=backend, token='fixture')
     page = tmp_path / 'hotspot.html'
     page.write_text(app.test_client().get('/hotspot', base_url='http://172.16.42.1').text, encoding='utf-8')
-    result = subprocess.run([node, str(Path(__file__).with_name('hotspot_ui_fixture.cjs')), str(page)],
-                            capture_output=True, text=True, timeout=10)
-    assert result.returncode == 0, result.stdout + result.stderr
+    for mode in ('standalone','embedded'):
+        result = subprocess.run([node, str(Path(__file__).with_name('hotspot_ui_fixture.cjs')), str(page),mode],
+                                capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_status_refresh_does_not_erase_last_hotspot_action_failure(setup_hotspot):

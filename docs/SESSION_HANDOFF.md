@@ -1,5 +1,284 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-21 latest: serving LTE display installed from 9e78ce7
+
+Read [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Three reviewed files installed
+from `9e78ce766f1a442229701b8568d8b65276d3c4d2` after both push and PR CI PASS,
+including EXE checks. 877 local tests PASS/two Windows skips. Cellular recovery
+from `eaa7471` remains installed. No main/development merge or release.
+
+Actual decoder returned serving B3/1800 MHz, DL 1835.1 MHz, EARFCN 1501. Real
+Chrome using the USB page passed 320/390/768/1366 px: header label, SIM/network
+details, bounded popovers and closing by another icon/outside click; no JS error
+or mutation. No screenshot, raw cell log, SMS/identity read or phone acceptance.
+Source/asset hashes, permissions, 721 protected owner files and unchanged
+network/routes/firewall/DNS/gadget passed installation, services healthy/synced.
+Do not use allowed/supported bands as serving evidence or equate a band/bearer
+with working Internet. Underlying spontaneous disconnect/AP-stall causes remain
+unverified; use the separate real recovery results below without overclaiming.
+
+## 2026-11-21 latest: bounded cellular recovery installed and physically tested
+
+Read [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Installed six reviewed files
+from `eaa747125f3d365c968308a6cccfcab055cdfe3d` after push/PR CI PASS. The actual
+baseline included previously installed saved-settings/radio changes as well as
+UI/optimization code; `747f49c` was not a complete source description. The new
+dev commit was integrated into the UI branch, resolving PR conflicts; no main
+or development merge/release. 855 local tests PASS/two Windows skips.
+
+The real background worker recovered two controlled cellular disconnects in
+47.3 and 31.7 seconds, with SIM-bound Internet passing. Explicit data-off stayed
+off for 45 seconds; data-on was restored and armed. AP, saved radio, USB admin
+retained. First profile byte-preservation assertion was false; the follow-up
+compared all parsed fields and only cellular connection.timestamp changed.
+Do not report the first hash check as PASS. Source/asset hashes, 721 protected
+owner files and unchanged network/routes/firewall/DNS/gadget passed installation.
+No reboot, SMS/USSD, firmware or phone reacceptance. Underlying modem call failure
+and AP beacon-stall cause remain unproven; this fix maintains a chosen session.
+
+The serving-LTE header addition is separate. A real read-only GetCellInfo probe
+returned serving LTE EARFCN 1501 (B3); neighbors and allowed/supported-band lists
+are not active-band proof. Read [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md) and its
+post-CI deployment record before claiming installed display acceptance.
+
+## 2026-11-21 latest: AP restart, phone Internet confirmed by owner
+
+Owner could not find USB Wi-Fi on the phone. Local AP/channel/hidden/supplicant
+status still looked active, but a fresh Native Wi-Fi scan on Windows found
+13 networks without the USB AP. One explicit, bounded down/up of the existing
+owned AP restored visibility: a subsequent fresh scan found it among 9 networks.
+No raw SSID/BSSID/scan or packet content exported. Saved SSID/security/channel
+and configuration hashes, saved radio and cellular connection preserved; bound
+SIM Internet passed, USB administration maintained. No reboot, service/package
+change, new activation or source deployment. Installed source remains `747f49c`.
+Owner subsequently confirmed the phone sees the AP and can access the Internet,
+answering the test requesting phone mobile data disabled. Record this as
+owner-confirmed physical phone acceptance after restart, not a fixture result.
+Root cause and recurrence are unverified; local active-AP status alone remains
+insufficient proof of over-the-air visibility.
+Separately saved client cap=10 versus running MaxNumSta=128 was observed; no
+advanced AP enforcement claim or adjustment in this restart. Read the updated
+[SIM network report](SIM_NETWORK_DIAGNOSIS_2026_11_19.md) before further changes.
+
+## 2026-11-21 latest: read-only SIM/AP follow-up, source fix not deployed
+
+Read [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
+Fresh real-device checks: home MobiFone LTE and active bearer, four small HTTPS
+204 results across provider/system DNS, two public-IP pings, default SIM route.
+AP forwarding/NAT and DHCP/DNS present, no blocked clients. The base firewall
+already permits `wlan*`; do not add a rule based only on its default DROP policy.
+One associated station initially, zero later; a bounded no-pcap/no-content packet
+counter saw no client IPv4 request. Owner phone acceptance is pending. No device
+configuration, radio, service, package or reboot change in this follow-up.
+
+The additional source fix cross-checks 3GPP registration in modem status and
+Quick Settings: older evidence had core State=connected while 3GPP=searching,
+including a foreign operator code. A carrier name/code is not proof of working
+registration or data. Focused suite 106 PASS; full suite 815 PASS/two Windows
+platform skips, exit 0, after an earlier host MemoryError. Fix is not installed;
+USB source remains `747f49c`. Do not claim the source change restored Internet,
+or automatically lock networks/retry activation without an explicit design.
+
+## 2026-11-19 latest: measured optimization package installed
+
+Read [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
+Owner approved the prioritized package. Installed source is
+**`747f49c4486e698e9d5bbac7877f48912b43fd92`**, following initial package `3bec6b5`,
+same UI branch/PR #7; no merge/release. Lightweight catalog preserves the old
+sites/file APIs; package asset hashes/public-only caching, bounded stale/pending
+display reads, six-second LED polling and an ownership early exit reduce work.
+Fixed-log copy/truncate retention runs once a minute in the existing startup
+worker; private capped archives, same active writer inode, old service-log backup.
+No packages removed, portal/worker architecture consolidation or network changes.
+
+802 local tests PASS/two Windows skips, pip/self-test/JS PASS. Final-source
+Windows [push](https://github.com/litequang/OpenStick/actions/runs/44493694369) and
+[PR](https://github.com/litequang/OpenStick/actions/runs/44493705113) workflows PASS,
+including EXE build/self-test/smoke. Linux temporary log fixture passed real
+symlink/hardlink, writer inode/append, cap and private archive checks. Chrome
+preview uses mocked actions, not hardware acceptance.
+
+Five real USB File Manager runs before/after, with HTTP cache disabled by the
+read guard: median 7.911 → 1.102 seconds, inventory 5517.703 → 20.252 ms. A
+separate cache-enabled CDP guard verified all 11 JS/CSS reused on the second open,
+zero transferred bytes for those assets, including four FileGator bundles.
+Initial cache QA found upstream numeric filemtime queries; initial package only
+cached seven portal assets. The final source fixes those queries with regression
+coverage. Do not claim the first 7/11 check completed FileGator cache acceptance.
+
+One-minute background samples CPU 14.21 → 11.65%, processes counter 464 → 317;
+not controlled per-source attribution. Available RAM decreased to 128–136 MiB in
+the after window; no demonstrated RAM saving or long soak. Single additional AP
+readiness/summary samples were slower; do not claim all screens improved. See
+the report's full data and remaining NM/MM read latency.
+
+Real Chrome USB at initial package: 160 layouts/eight landscape, no JS errors or
+mutation. Final installed source: actual embedded FileGator at eight widths,
+same-origin headers/no second login/two AP redirects, override OFF, no screenshots.
+Independent final verification: all 41 source hashes, 717 protected owner files,
+network/routes/firewall/DNS/gadget/services match. New power/usage worker stays
+live after its required restart, usage samples advance, checkpoint private/valid,
+total usage not lost; two actual private log archives and source/log backups
+checksummed. Twenty authenticated WLAN GET routes, login requirement and USB-only
+permissions PASS; QA session signed in memory, not real phone/password login.
+No pending operation, sync done. Initial install restarted USB/LAN portals and
+setup/LED/startup workers; final one-file fix only restarted portals. No reboot,
+poweroff, network/radio/file mutation test or Tunnel/Nginx restart. Tunnel's old
+public issue remains outside this optimization scope; no fresh public-availability
+claim. Raw artifacts stay ignored; unrelated untracked files remain untouched.
+
+## 2026-11-19 historical: read-only whole-device performance review completed
+
+Read [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
+Installed source remains `06d151a`, same UI branch/PR #7, no merge/release. Current
+request was to review speed/smoothness and excess components, not silently remove
+services. No optimization or package/network/configuration change was installed.
+
+Real USB 10.48-second background and 75.59-second mixed-browser samples: available
+RAM 114–142 MiB in the latter, CPU 17.12% averaged over four cores, zram physical
+allocation 51.5 MiB, no disk swap. Short samples do not establish absence of leaks
+or long-term pressure. FileGator first ready 5.882 seconds; site inventory alone
+4.793 seconds. Separate read-only profile: 676 entries, listing 3.494 of 3.505
+seconds; registry metadata/revision under 1 ms. This scans metadata/path safety,
+not file contents. Keep write validation; make selector inventory lightweight.
+
+Other proposals: version/cache public assets only, stale display with bounded
+refresh/backoff, reduce repeated passive NM/MM subprocesses, bounded log rotation.
+Current services already include telemetry caching/coalescing; do not claim those
+as absent. Graphic/audio packages are disk-trimming candidates, not measured RAM
+waste; reverse dependencies were read, no removal transaction/boot verified.
+Keep FileGator, network/modem/recovery, Avahi and chronyd. Two portal processes
+have distinct trust boundaries; consolidation savings are estimates, not tested.
+
+All completed probes exit 0, Chrome read guard zero mutations/JS errors on three
+screens, no screenshot/private response export. Final read-only integrity check:
+32 installed source hashes and 717 protected owner files unchanged; network,
+routes, firewall, DNS, gadget and services match deployment baseline, no pending
+operation. No mutating hardware tests/actions, reboot, package install/remove or source
+change; no unit-suite rerun for this docs-only review. Raw artifacts stay ignored.
+Public Tunnel issue remains separate and unrepaired. See the report for tradeoffs
+and acceptance criteria before choosing the next implementation scope.
+
+## 2026-11-19 latest: consolidated AP and embedded FileGator installed
+
+Installed source **`06d151aacec526ef9acf7562365b62a7b33d3bd5`**, same UI branch/PR
+#7, no merge/release. Read [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).
+One Phát Wi-Fi menu at `/setup/ap` now combines identity, fallback, connection
+card, hotspot status and guidance. Old `/hotspot` and `/setup/recovery` redirect;
+software without setup retains its standalone hotspot page. Legacy pending-trial
+completion/rollback and all action APIs/confirmations remain. Embedded status
+reads on open/refresh and polls only pending trials, avoiding another idle poll.
+
+File manager automatically loads FileGator in a same-origin frame; optional
+Mở riêng remains. Site changes require confirmation; inventory refresh preserves
+the current frame. Only FileGator responses permit same-origin ancestors and
+only wrapper URLs permit self frames; other portal pages keep DENY. Existing
+LAN/Host/Origin/session/CSRF/fixed-root/chunk/ZIP guards are unchanged. No package
+or FileGator upstream source was replaced. Read-only QA includes a FileGator
+action allowlist and blocks file mutations before sending them.
+
+790 local tests PASS/one Windows symlink skip, exit 0; Node/pip/self-test PASS.
+Both final-source Windows workflows PASS, including EXE build/self-test/smoke:
+[push](https://github.com/litequang/OpenStick/actions/runs/44485344869),
+[PR](https://github.com/litequang/OpenStick/actions/runs/44485355793).
+Preview navigation: 160 layouts/eight landscape/24 interaction checks PASS;
+fictional metadata tests retain cancellation/no-replay and test delayed iframe
+mount/site switching/no iframe reload on inventory refresh. These are fixtures.
+
+Real USB at initial consolidated source `90a8cae`: 160 layouts/eight landscape
+PASS, no JS error or attempted mutation. Final installed source: actual upstream
+FileGator navbar loaded inside the frame at eight widths, no second login,
+same-origin headers verified, both old AP URLs redirect correctly; nine FileGator
+read requests, zero writes/power/network actions, no screenshot or trace saved.
+Candidate browser asset override was tested before CI, then repeated against the
+installed asset with override explicitly OFF. Vue replaces its initial root and
+mounts after document load; early tests caught a false loading-error notice.
+The final controller observes mounted DOM boundedly without HTTP/action replay.
+Do not claim the two failed readiness checks were full device PASS.
+
+Thirteen portal files then two one-asset corrections installed with private
+checksummed source/metadata backups. Final independent verification: all 32 V4
+source hashes/assets, 717 protected owner files, ownership/modes, network/routes/
+firewall/DNS/gadget and service state match. Worker and usage advance, checkpoint
+private/valid, 20 authenticated WLAN-bound GET routes and existing auth/USB-only
+permissions PASS; no operation pending, sync done. No rollback/reboot, real file
+write/upload/unzip, radio/data/AP/tethering/LED/SMS/USSD action or phone acceptance.
+Public Tunnel's separately recorded 530 problem was not repaired or declared
+working by this UI change. Unrelated untracked files remain untouched.
+
+Owner now requests a whole-device performance/redundancy audit. Measure current
+CPU/PSS/RAM/swap, daemons, polling and real read latencies, then propose savings
+and tradeoffs; do not silently remove services or owner data for an audit.
+
+## 2026-11-19 latest: dedicated child screens installed
+
+Installed source: **`61125aa3dab81001232ab862679fe9bba669645e`** on
+`ui/settings-parent-child-nav-20261119`, PR #7. No merge or release. Remote main
+and development remain `3a459f6`. Read
+[SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md). This supersedes V4's
+hash-only child links and temporarily restored native website tabs.
+
+Each Wi-Fi child, USB tethering, SIM usage and LAN administration has its own
+URL and visible screen. FileGator mode renders only website metadata, a file
+manager entry or domains; retired native upload/ZIP/editor controls and their
+controller are absent. Native fallback without FileGator remains supported.
+Shared network controllers retain hidden required DOM; unrelated saved-Wi-Fi/
+client scripts are loaded only on their matching page. Existing action APIs,
+locks, consent, revision checks, confirmation and uncertain-result rules remain.
+
+788 tests PASS/one Windows symlink-permission skip, exit 0; pip/Node/self-test
+PASS. Both exact-source Windows workflows passed, including EXE build/self-test/
+smoke: [branch CI](https://github.com/litequang/OpenStick/actions/runs/44479868249)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/44479878037).
+Chrome preview in each FileGator/native mode passed 176 layouts/eight landscape
+cases and 24 existing interaction checks. Additional fictional metadata browser
+fixtures cover four intercepted writes, cancel/no replay and usage schema/stale/
+unavailable/missing data; these are not device mutation acceptance.
+
+Chrome against the actual USB at `66b5850` passed 176 layouts/eight landscape cases at
+320/360/390/430/768/820/1024/1280 CSS pixels: isolated child panels, one tree,
+active links, no obsolete FileGator controls, no overflow or JS error. It sent
+112 allowlisted read-only POSTs and no attempted mutation, power or file write.
+No real screenshot, trace, SMS, private website/network content or identifier
+was exported. No physical phone touch session or file operation was tested.
+
+Final `61125aa` moves the shared Wi-Fi notice outside hidden child panels so
+credentials/read/scan errors remain visible. This one-template correction passed
+50 affected tests and the full CI. Preview navigation/interactions passed again,
+including a denied-credentials fixture. On real USB HTML, all five Wi-Fi children
+passed at 320/1280 pixels (ten layouts); an intercepted HTTP 403 produced a visible
+error, no credentials were read from the device and no write was attempted.
+
+Only USB/LAN portal services restarted; 20 source/template/asset files were
+replaced, then the one-template correction, with checksummed private source/metadata backups under
+`/var/lib/openstick/deploy-backups/ui-v4-*`. Independent verification matched all
+28 V4 source hashes/assets, ownership/modes, 717 protected files and the active
+network/routes/firewall/DNS/gadget. Source backup members verified. Power worker
+heartbeat and usage samples advanced, private checkpoint remained valid, no
+operation pending and storage flushed. WLAN-bound authenticated GETs reached
+all 22 routes and preserved login and USB-only credential-management guards.
+QA signed an ephemeral session in device memory using the existing key; this
+is not password re-entry or a real phone login test. Temporary local QA cookies
+are removed after verification; owner password/session keys remain unchanged.
+
+The owner powered off/unplugged/replugged during final comparison of the older
+`4cca1fa` installation. Its interrupted final comparison is not claimed PASS.
+This install uses a new stable post-owner-action baseline, preserving current
+tethering intent and terminal power receipts; no receipt or journal was cleared.
+The owner's action is not our physical power-button acceptance. No reboot,
+firmware/network/radio/AP/profile/data/tethering/LED/SMS/USSD or website mutation
+was issued for this UI deployment; no rollback was needed or executed.
+
+**Separate pre-existing connectivity issue:** public HTTPS returned Cloudflare
+530 before and after this child-screen install, whereas the local Nginx website
+returned HTTP 200. The recent Tunnel log contains `network is unreachable` and
+no registration line in the sampled tail; this is not proof of a permanent
+failure or a complete diagnosis. Service process running does not prove a
+working Tunnel. Preserve current choices/configuration; do not silently enable
+SIM data or switch Wi-Fi to make this unrelated check pass. Direct PC-to-WLAN
+login probe is still unreachable from this PC; device WLAN-bound GETs work.
+
+The sections below are historical and do not name the current installed source.
 ## 2026-11-19 latest: cached controls across all USB settings installed
 
 Read [SETTINGS_STATE_CACHE.md](SETTINGS_STATE_CACHE.md). The owner explicitly

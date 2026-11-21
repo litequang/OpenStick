@@ -1,69 +1,20 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenStick — Quản lý</title></head><body><main class="manage-page">
+<title>OpenStick — Quản lý thiết bị</title></head><body><main class="manage-page">
 {% include 'portal_chrome.html' %}
 <header class="manage-heading">
   <div>
     <p class="ux-eyebrow">OPENSTICK · UZ801 V3.2</p>
     <h1>Quản lý thiết bị</h1>
-    <p class="manage-intro">Chọn việc cần làm. Mỗi nhóm chỉ hiển thị các chức năng liên quan, không cần đi qua nhiều tầng menu.</p>
+    <p class="manage-intro">Chọn nhóm chức năng và thao tác trực tiếp. Khi mở một mục, các nhóm và mục con vẫn hiện trong menu điều hướng.</p>
   </div>
 </header>
-{% if portal_has_quick %}<p class="manage-quick-link"><a href="/quick">Mở Cài đặt nhanh →</a> · Bật/tắt kết nối và mở các mục thường dùng.</p>{% endif %}
-<div class="manage-layout" aria-label="Danh mục quản lý">
-  <section class="manage-section" id="manage-wifi" aria-labelledby="manage-wifi-title">
-    <div class="manage-section-head"><span class="manage-section-symbol" aria-hidden="true">⌁</span>
-      <div><h2 id="manage-wifi-title">Wi-Fi</h2><p>Kết nối và mạng USB phát</p></div></div>
-    <nav class="manage-action-list" aria-label="Thiết lập Wi-Fi">
-      <a href="{% if features.setup %}/setup{% else %}/{% endif %}"><span><strong>Kết nối Wi-Fi</strong><small>Quét mạng, kết nối hoặc đổi mạng đang dùng</small></span><b aria-hidden="true">›</b></a>
-      {% if features.setup %}
-      <a href="/setup#saved-wifi"><span><strong>Wi-Fi đã lưu</strong><small>Kết nối lại hoặc quên mạng cũ</small></span><b aria-hidden="true">›</b></a>
-      <a href="/setup#usb-ap-settings"><span><strong>Wi-Fi USB phát</strong><small>Tên mạng, mật khẩu và kênh phát</small></span><b aria-hidden="true">›</b></a>
-      {% endif %}
-      <a href="{% if features.setup %}/setup#connection-title{% else %}/{% endif %}"><span><strong>Xem thông tin Wi-Fi hiện tại</strong><small>SSID, cường độ sóng và địa chỉ mạng</small></span><b aria-hidden="true">›</b></a>
-    </nav>
-    <p class="manage-footnote" id="saved-wifi">Mạng đã lưu nằm cùng màn kết nối. {% if features.setup %}<a href="/setup#saved-wifi">Mở danh sách</a>{% endif %}</p>
-  </section>
-  <section class="manage-section" id="manage-sim" aria-labelledby="manage-sim-title">
-    <div class="manage-section-head"><span class="manage-section-symbol" aria-hidden="true">▥</span>
-      <div><h2 id="manage-sim-title">SIM &amp; Internet</h2><p>Mạng di động và nguồn kết nối</p></div></div>
-    <nav class="manage-action-list" aria-label="Thiết lập SIM và Internet">
-      <a href="/modem/network"><span><strong>Mạng SIM</strong><small>Tình trạng SIM, sóng và chế độ 3G/4G</small></span><b aria-hidden="true">›</b></a>
-      {% if features.hotspot %}<a href="/sim/apn"><span><strong>APN tùy chỉnh</strong><small>Tài khoản, xác thực, IPv4/IPv6 và chuyển vùng</small></span><b aria-hidden="true">›</b></a>{% endif %}
-      {% if features.hotspot %}<a href="/hotspot"><span><strong>Phát Wi-Fi</strong><small>Trạng thái và cấu hình điểm phát dùng chung</small></span><b aria-hidden="true">›</b></a>{% endif %}
-      {% if features.network %}<a href="/internet"><span><strong>Ưu tiên nguồn Internet</strong><small>Wi-Fi, SIM và mạng dự phòng</small></span><b aria-hidden="true">›</b></a>{% endif %}
-    </nav>
-  </section>
-  <section class="manage-section" id="manage-device" aria-labelledby="manage-device-title">
-    <div class="manage-section-head"><span class="manage-section-symbol" aria-hidden="true">▤</span>
-      <div><h2 id="manage-device-title">Thiết bị &amp; dịch vụ</h2><p>Website, LED và sức khỏe USB</p></div></div>
-    <nav class="manage-action-list" aria-label="Thiết bị và dịch vụ">
-      {% if features.website %}<a href="/website"><span><strong>Web Hosting</strong><small>Nhiều website, tên miền, file manager và giải nén ZIP</small></span><b aria-hidden="true">›</b></a>{% endif %}
-      {% if features.leds %}<a href="/settings/leds"><span><strong>Đèn trạng thái</strong><small>Chọn style LED theo trạng thái mạng</small></span><b aria-hidden="true">›</b></a>{% endif %}
-      <a href="/overview"><span><strong>Sức khỏe thiết bị</strong><small>RAM, nhiệt độ, lưu trữ và dịch vụ</small></span><b aria-hidden="true">›</b></a>
-      {% if portal_has_power %}<a href="/settings/system"><span><strong>Hệ thống</strong><small>Khởi động lại hoặc tắt USB an toàn</small></span><b aria-hidden="true">›</b></a>{% endif %}
-    </nav>
-  </section>
-  {% if can_manage_lan or lan_session %}
-  <section class="manage-section manage-security-section" id="manage-access" aria-labelledby="manage-access-title">
-    <div class="manage-section-head"><span class="manage-section-symbol" aria-hidden="true">⌑</span>
-      <div><h2 id="manage-access-title">Truy cập quản trị</h2><p>Bảo vệ trang quản lý qua Wi-Fi</p></div></div>
-    {% if can_manage_lan %}
-    <div class="manage-security-box" id="lan-access">
-      <p>Chỉ kết nối cáp USB mới được đổi mật khẩu quản trị LAN. Mật khẩu này khác mật khẩu Wi-Fi.</p>
-      <details class="ux-advanced" id="lan-manage"><summary>Thiết lập hoặc đổi mật khẩu</summary>
-        <script>const token={{ token|tojson }};</script>
-        {% include 'lan_settings.html' %}
-      </details>
-    </div>
-    {% else %}
-    <div class="manage-security-box" id="lan-access"><p>Đang quản trị qua Wi-Fi nội bộ. Kết nối USB trực tiếp để đổi mật khẩu hoặc tắt quyền truy cập LAN.</p></div>
-    {% endif %}
-  </section>
-  {% endif %}
-</div>
+<script src="{{ portal_asset('settings_sidebar.js') }}" defer></script>
+{% set menu_mode = 'hub' %}
+{% include 'settings_menu.html' %}
+<p class="manage-footnote" id="saved-wifi">Wi-Fi đã lưu được quản lý cùng trang kết nối. <a href="/setup/saved">Mở danh sách Wi-Fi đã lưu</a></p>
 {% if stable_lan_url %}
 <div class="manage-address"><span>Địa chỉ truy cập trên mạng nội bộ</span><a href="{{ stable_lan_url }}/manage">{{ stable_lan_url }}</a></div>
 {% endif %}
-<p class="manage-disclaimer">Mở màn cài đặt không tự thay đổi USB. Đổi mạng, dùng dữ liệu SIM hoặc xóa file vẫn yêu cầu xác nhận trong chức năng tương ứng.</p>
+<p class="manage-disclaimer">Mở cài đặt không thay đổi USB. Đổi mạng, dùng dữ liệu SIM hoặc xóa file vẫn cần xác nhận tại chức năng tương ứng.</p>
 </main></body></html>

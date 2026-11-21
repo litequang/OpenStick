@@ -1,6 +1,7 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Nguồn Internet</title>
 <style>label{display:block;margin:16px 0 8px}select{width:100%;padding:12px;border:1px solid;border-radius:9px;font:inherit}.check{display:flex;gap:10px;align-items:flex-start}.check input{flex:none;margin-top:5px}button{margin:8px 6px 0 0}.notice{padding:14px;white-space:pre-wrap}</style></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>SIM &amp; nguồn Internet</h1><button id="policy-refresh" class="secondary">Làm mới</button></div>
 <p class="ux-page-intro">Cấu hình ưu tiên Wi-Fi hoặc dữ liệu SIM. Việc chọn trang không tự đổi mạng; SIM vẫn dùng SMS/USSD khi tắt dữ liệu.</p>
 <section class="internet-quicklinks" aria-label="Cài đặt liên quan">
@@ -21,8 +22,9 @@
 <button>Áp dụng chính sách</button></fieldset></form><p id="policy-notice" class="notice" role="status" aria-live="polite"></p><details class="ux-advanced"><summary>Chi tiết cơ chế chuyển mạng</summary><p class="muted">Chu kỳ kiểm tra 15 giây, cần 3 lần lỗi/phục hồi và nghỉ ít nhất 120 giây giữa các lần chuyển. Kiểm tra Internet tạo một ít lưu lượng trên từng đường đang kết nối. SIM cần APN đã lưu ở trang Phát Wi-Fi từ SIM. Chính sách này dùng vai trò Wi-Fi nhận Internet; hãy tắt tự quản lý trước khi thử hotspot.</p>
 <p class="muted">Tắt tự quản lý giữ nguyên kết nối hiện tại, không tự ngắt dữ liệu SIM. Chọn và áp dụng Chỉ Wi-Fi để ngắt kết nối SIM do OpenStick quản lý.</p></details>
 </section>
-<section><h2>Bật/tắt mạng thủ công</h2><p>Dùng <a href="/overview">Cài đặt nhanh trên Tổng quan</a> để bật/tắt dữ liệu SIM và phát Wi-Fi độc lập. Tắt data giữ điểm phát quản trị. Các thao tác mạng thủ công dừng tự quản lý để tránh hai cơ chế tranh quyền điều khiển.</p><p>Chế độ 3G/4G nằm ở <a href="/modem/network">Mạng SIM</a>; trang này chỉ thiết lập chính sách ưu tiên/dự phòng.</p></section>
-<p id="saved-wifi" class="internet-legacy-link">Wi-Fi đã lưu đã được chuyển vào <a href="/setup#saved-wifi">Kết nối Wi-Fi →</a></p>
+<section id="internet-manual"><h2>Bật/tắt mạng thủ công</h2><p>Dùng <a href="/overview">Cài đặt nhanh trên Tổng quan</a> để bật/tắt dữ liệu SIM và phát Wi-Fi độc lập. Tắt data giữ điểm phát quản trị. Các thao tác mạng thủ công dừng tự quản lý để tránh hai cơ chế tranh quyền điều khiển.</p><p>Chế độ 3G/4G nằm ở <a href="/modem/network">Mạng SIM</a>; trang này chỉ thiết lập chính sách ưu tiên/dự phòng.</p></section>
+<p id="saved-wifi" class="internet-legacy-link">Wi-Fi đã lưu đã được chuyển vào <a href="/setup/saved">Kết nối Wi-Fi →</a></p>
+</div></div>
 </main><script>
 const policyToken={{ token|tojson }};
-</script><script src="/static/internet.js"></script></body></html>
+</script><script src="{{ portal_asset('internet.js') }}"></script></body></html>

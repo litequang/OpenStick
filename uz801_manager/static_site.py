@@ -141,8 +141,11 @@ class StaticSite:
 
 def register_site_routes(app, backend, token, hostname):
     @app.get('/website')
-    def website():
-        return render_template('website.html', token=token, page='website', hostname=hostname)
+    @app.get('/website/<view>')
+    def website(view='summary'):
+        if view not in ('summary','files','uploads','domains'):
+            return jsonify(error='NOT_FOUND'),404
+        return render_template('website.html', token=token, page='website', hostname=hostname,website_view=view)
 
     @app.post('/api/site')
     def site():

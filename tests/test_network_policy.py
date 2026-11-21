@@ -183,12 +183,12 @@ def test_saved_wifi_action_page_and_private_readonly_api(policy):
     app=create_hosting_app(backend=object(),modem_backend=object(),network_backend=backend,
                            setup_backend=object(),usb_portal=True,token='fixture')
     client=app.test_client();base='http://172.16.42.1';headers={'X-OpenStick-Token':'fixture'}
-    page=client.get('/setup',base_url=base)
+    page=client.get('/setup/saved',base_url=base)
     assert page.status_code==200
     assert b'saved-wifi-list' in page.data and b'/static/saved_wifi.js' in page.data
     assert b'savedWifiActionToken' in page.data
     manage=client.get('/manage',base_url=base)
-    assert b'/setup#saved-wifi' in manage.data
+    assert b'/setup/saved' in manage.data
     assert client.get('/api/wifi/saved',base_url=base).status_code==403
     assert client.get('/api/wifi/saved',base_url=base,headers={**headers,'Origin':'https://evil.invalid'}).status_code==403
     assert client.get('/api/wifi/saved',base_url='http://evil.invalid',headers=headers).status_code==403

@@ -59,6 +59,18 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  assert.equal(restored['metric-ram'].dataset.stale,'true');
  assert.match(restored['overview-status'].textContent,/lần gần nhất/);
  assert(!restored['overview-status'].textContent.includes('Đang đọc'));
+ const serving={band:3,nominal_mhz:1800,downlink_mhz:1835.1,earfcn:1501,ci:'private-cell'};
+ context.renderHeader({...data.wifi.modem_status,serving_lte:[serving]});
+ assert.equal(elements['chip-network-label'].textContent,'4G · B3');
+ assert.match(elements['sim-status'].textContent,/B3 · 1800 MHz/);
+ assert.match(elements['network-status'].textContent,/B3 · 1800 MHz \(DL 1835.1 MHz · EARFCN 1501\)/);
+ assert(!JSON.stringify(context.portalDisplayModem({...data.wifi.modem_status,serving_lte:[serving]})).includes('private-cell'));
+ context.renderHeader({...data.wifi.modem_status,current_bands:[31,33,37]});
+ assert.match(elements['network-status'].textContent,/Băng LTE đang dùng: chưa đọc được/);
+ context.renderHeader({...data.wifi.modem_status,registered:false,serving_lte:[serving]});
+ assert(!elements['network-status'].textContent.includes('B3'));
+ context.renderHeader({...data.wifi.modem_status,serving_lte:[{...serving,band:'<script>'}]});
+ assert.match(elements['network-status'].textContent,/Băng LTE đang dùng: chưa đọc được/);
  for(const [percent,bars] of [[0,'0'],[1,'1'],[25,'1'],[26,'2'],[50,'2'],[51,'3'],[75,'3'],[76,'4'],[100,'4']]){
   context.renderHeader({...data.wifi.modem_status,signal_percent:percent});
   assert.equal(elements['chip-network'].dataset.bars,bars);
@@ -69,9 +81,14 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  }
  context.renderHeader({...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0});
  assert.equal(elements['chip-network'].dataset.bars,'4');
- assert.equal(elements['chip-network-label'].textContent,'4G');
- assert.equal(elements['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(elements['chip-network-label'].textContent,'Tìm mạng');
+ assert.equal(elements['chip-sim-label'].textContent,'Chưa đăng ký');
  assert.equal(elements['chip-network'].dataset.stale,'true');
+ context.renderHeader({...data.wifi.modem_status,registered:false,operator_name:'VIETTEL',access_technologies:0});
+ assert.equal(elements['chip-sim-label'].textContent,'Chưa đăng ký','a rejected/scanned carrier is not registered');
+ assert.equal(elements['chip-network'].dataset.state,'warning');
+ assert(!elements['network-status'].textContent.includes('VIETTEL'));
+ assert.match(elements['network-status'].textContent,/chưa có kết nối/);
  context.portalRememberHeader({modem_status:{...data.wifi.modem_status,registered:false,signal_recent:false,signal_percent:null,operator_name:null,access_technologies:0}});
  const warmSignal=Object.fromEntries(Object.keys(elements).map(id=>[id,new Element()]));
  const signalContext={console,Date,sessionStorage,setTimeout:()=>0,clearTimeout:()=>{},setInterval:()=>0,AbortController,
@@ -81,8 +98,8 @@ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../uz801_manager/static/portal_nav.js'),'utf8'),signalContext);
  signalContext.setupHeaderStatus();
  assert.equal(warmSignal['chip-network'].dataset.bars,'4');
- assert.equal(warmSignal['chip-network-label'].textContent,'4G');
- assert.equal(warmSignal['chip-sim-label'].textContent,'Fixture carrier');
+ assert.equal(warmSignal['chip-network-label'].textContent,'Tìm mạng');
+ assert.equal(warmSignal['chip-sim-label'].textContent,'Chưa đăng ký');
  for(const changes of [{sim_present:false},{sim_locked:true}]){
   context.renderHeader({...data.wifi.modem_status,...changes});
   assert.equal(elements['chip-network'].dataset.bars,'unknown');

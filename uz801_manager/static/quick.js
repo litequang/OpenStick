@@ -12,7 +12,7 @@
     AP_OPTIONS_ROLLBACK_FAILED:'Chưa hoàn tác đầy đủ tùy chọn điểm phát. Giữ kết nối USB để kiểm tra.',
     AP_LEGACY_ACTIVE:'Còn chế độ hotspot cũ tự bật. Dùng Cài đặt nhanh để dừng cơ chế cũ trước khi lưu tùy chọn nâng cao.',
     NETWORK_SAVE_FAILED:'Mạng có thể đã đổi nhưng chưa lưu được chế độ khởi động. Giữ USB cắm và kiểm tra lại; chưa xác nhận lưu thành công.',
-    SIM_NOT_READY:'Chưa có SIM sẵn sàng và đăng ký mạng. Lắp SIM sau khi ngắt nguồn, rồi đọc lại.',
+    SIM_NOT_READY:'SIM chưa sẵn sàng hoặc chưa đăng ký được mạng. Kiểm tra trạng thái SIM và nhà mạng; không tự thay APN hoặc tháo SIM khi USB đang chạy.',
     AIRPLANE_ACTIVE:'Tắt chế độ máy bay trước. Việc đó không tự bật dữ liệu SIM.',
     MODEM_BUSY:'Modem đang có giao dịch. Đợi kết thúc SMS/USSD rồi thử lại.',
     NETWORK_BUSY:'USB đang thực hiện thao tác mạng khác.',
@@ -69,12 +69,15 @@
     drawMode();
     const airplane = s.intent?.airplane === true, blocked = busy || s.pending_network_trial || s.foreign_cellular_active;
     tile('quick-airplane', airplane?(compact?'Đã yêu cầu tắt':'Đã yêu cầu tắt di động'):(compact?'Cho phép di động':'Di động được cho phép'), airplane, blocked);
-    tile('quick-data', s.mobile_data_connected?(compact?'Bật · Internet chưa đo':'Đã kết nối · Internet chưa xác minh'):!s.radio.sim_ready?(compact?'Chưa có SIM':'Chưa có SIM sẵn sàng'):'Đang tắt', s.mobile_data_connected, blocked || (!s.mobile_data_connected && (airplane || !s.radio.registered || !s.radio.sim_ready)));
+    const wantsData = s.intent?.data_allowed === true && !airplane;
+    const recovery = s.cellular_recovery || {};
+    const recoveryText = recovery.error==='STATE_INVALID'?'Lỗi trạng thái · cần kiểm tra USB':({WAITING_NETWORK:'Đang chờ đăng ký mạng',WAITING_RECONNECT:'Mất kết nối · chờ nối lại',ATTEMPTING:'Đang nối lại phiên SIM',UNKNOWN:'Mất mạng · tắt/bật để thử lại',LIMIT_REACHED:'Đã dừng tự nối · cần kiểm tra'})[recovery.phase] || 'Đã yêu cầu bật · chưa kết nối';
+    tile('quick-data', s.mobile_data_connected?(compact?'Bật · Internet chưa đo':'Đã kết nối · Internet chưa xác minh'):wantsData?recoveryText:!s.radio.sim_ready?(compact?'Chưa có SIM':'Chưa có SIM sẵn sàng'):'Đang tắt', wantsData || s.mobile_data_connected, blocked || (!wantsData && !s.mobile_data_connected && (airplane || !s.radio.registered || !s.radio.sim_ready)));
     const ap = ['local_ap','sim_ap'].includes(s.wifi_role);
-    tile('quick-ap', ap?(s.mobile_data_connected?'Đang phát · Internet SIM':'Đang phát · không Internet'):'Đang tắt', ap, blocked);
+    tile('quick-ap', ap?(s.mobile_data_connected?'Đang phát · có phiên SIM':wantsData?'Đang phát · SIM mất kết nối':'Đang phát · không Internet'):'Đang tắt', ap, blocked);
     tile('quick-usb', !s.usb_tethering.available?'Chưa được cài':s.usb_tethering.reboot_pending?'Đã lưu · đang áp dụng':s.usb_tethering.degraded?'Chưa xác minh · chạm để tắt':s.usb_tethering.enabled?'Đang chia sẻ Internet':'Tắt · chạm để bật', !!s.usb_tethering.enabled, blocked || !s.usb_tethering.available);
     tile('quick-receive',(compact?{station:'Đã nối · chạm để đổi',local_ap:'Chạm để nhận Wi-Fi',sim_ap:'Chạm để nhận Wi-Fi',offline:'Chạm để kết nối'}:{station:'Đã kết nối · chọn để xem hoặc đổi',local_ap:'Chạm để chuyển sang nhận Wi-Fi',sim_ap:'Chạm để chuyển sang nhận Wi-Fi',offline:'Tự nối mạng đã lưu hoặc chọn mạng mới'})[s.wifi_role] || 'Chưa xác định',s.wifi_role==='station',blocked);
-    const modemState=({'-1':'Chưa sẵn sàng',0:'Chưa xác định',1:'Đang khởi tạo',2:'SIM đang khóa',3:'Đã tắt',4:'Đang tắt',5:'Đang bật',6:'Đã bật',7:'Đang tìm mạng',8:'Đã đăng ký mạng',9:'Đang ngắt dữ liệu',10:'Đang kết nối dữ liệu',11:'Đã kết nối dữ liệu'})[s.radio.state] || 'Chưa xác định';
+    const modemState=!s.radio.registered&&s.radio.state>=8?'Chưa đăng ký mạng · chưa có kết nối xác minh':({'-1':'Chưa sẵn sàng',0:'Chưa xác định',1:'Đang khởi tạo',2:'SIM đang khóa',3:'Đã tắt',4:'Đang tắt',5:'Đang bật',6:'Đã bật',7:'Đang tìm mạng',8:'Đã đăng ký mạng',9:'Đang ngắt dữ liệu',10:'Đang kết nối dữ liệu',11:'Đã kết nối dữ liệu'})[s.radio.state] || 'Chưa xác định';
     if (el('quick-details')) el('quick-details').textContent = `SIM: ${s.radio.sim_ready?'sẵn sàng':'chưa sẵn sàng'}\nModem: ${modemState}\n${s.pending_network_trial?'Đang có lượt thử mạng.':'Không có lượt thử mạng.'}\nCác chức năng mới: đang kiểm chứng phần cứng.`;
   }
   let modeStatus = null;
@@ -248,7 +251,7 @@
     ask('wifi_connect',`Kết nối Wi-Fi “${ssid}” và lưu cho lần sau? ${wifiImpact()} Không tự bật dữ liệu SIM.`,{ssid,password});
   };
   el('quick-airplane').onclick=()=>ask(current.intent?.airplane?'airplane_off':'airplane_on',current.intent?.airplane?'Cho phép modem di động hoạt động lại? Dữ liệu SIM vẫn tắt; chưa có SIM thì chờ lắp SIM.':'Tắt kết nối di động? SMS/USSD và dữ liệu SIM sẽ ngừng. Wi-Fi và USB Ethernet vẫn được giữ; nếu đang chia sẻ SIM, Wi-Fi có thể ngắt rồi phát lại nội bộ, không Internet.');
-  el('quick-data').onclick=()=>ask(current.mobile_data_connected?'data_off':'data_on',current.mobile_data_connected?'Tắt dữ liệu SIM? Web/Tunnel và thiết bị dùng Internet SIM sẽ mất Internet. Wi-Fi đang phát vẫn giữ để quản trị; không tự bật lại data.':'Bật dữ liệu SIM và cho phép phát sinh cước? Nếu Wi-Fi đang phát, các thiết bị kết nối sẽ được dùng Internet SIM. Giữ cùng tên và mật khẩu Wi-Fi.');
+  el('quick-data').onclick=()=>{const on=current.mobile_data_connected||current.intent?.data_allowed===true&&!current.intent?.airplane;ask(on?'data_off':'data_on',on?'Tắt dữ liệu SIM và dừng tự nối lại? Web/Tunnel và thiết bị dùng Internet SIM sẽ mất Internet. Wi-Fi đang phát vẫn giữ để quản trị; không tự bật lại data.':'Bật dữ liệu SIM và cho phép phát sinh cước? Nếu Wi-Fi đang phát, các thiết bị kết nối sẽ được dùng Internet SIM. Phiên đã kết nối bị rớt sẽ được thử nối lại tối đa 3 lần; kết quả không rõ ràng sẽ dừng để kiểm tra. Giữ cùng tên và mật khẩu Wi-Fi.');};
   el('quick-ap').onclick=()=>{const ap=['local_ap','sim_ap'].includes(current.wifi_role);ask(ap?'local_ap_off':'local_ap_on',ap?'Tắt phát Wi-Fi? Điện thoại sẽ ngắt. Không tự nối Wi-Fi nhà; dữ liệu SIM giữ nguyên.':current.mobile_data_connected?'Bật phát Wi-Fi để chia sẻ Internet SIM? Các thiết bị kết nối có thể phát sinh cước SIM. Wi-Fi nhà sẽ ngắt; dùng tên và mật khẩu phát đã lưu.':'Bật phát Wi-Fi để quản trị? Wi-Fi nhà sẽ ngắt. Chưa có Internet cho đến khi bạn bật Dữ liệu SIM.');};
   el('quick-refresh').onclick=()=>{if(!busy)refresh();};
   el('quick-usb').onclick=()=>{const off=current.usb_tethering.enabled||current.usb_tethering.degraded||current.usb_tethering.desired_enabled;ask(off?'usb_tether_off':'usb_tether_on',off?'Lưu chế độ tắt chia sẻ Internet và khởi động lại USB một lần? PC tự nhận lại mạng quản trị. Website, Tunnel và kết nối sẽ tạm ngắt trong lúc khởi động.':'Lưu chế độ chia sẻ Internet và khởi động lại USB một lần để PC tự nhận mạng? Không cài phần mềm trên PC. Website/Tunnel tạm ngắt khi khởi động. Wi-Fi đã lưu sẽ kết nối lại; không tự bật dữ liệu SIM. Dùng SIM có thể phát sinh cước khi bạn bật data.');};

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright, expect
+from settings_navigation_qa import audit_navigation
 
 BASE = 'http://127.0.0.1:8771'
 OUT = Path('artifacts/settings-browser')
@@ -36,12 +37,24 @@ def main():
                       'rx_bytes':1048576,'tx_bytes':2048,'rx_mbps':72.2,'tx_mbps':65,
                       'internet_blocked':'02:00:00:00:00:01' in blocked}]})
             page.route('**/api/ap/clients',client_inventory)
+            navigation = audit_navigation(page, BASE)
             for width in [320, 390, 768, 1280]:
                 page.set_viewport_size({'width': width, 'height': 844})
                 for path in ['/manage', '/setup', '/internet', '/hotspot', '/modem/network', '/settings/leds']:
                     response = page.goto(BASE + path)
                     assert response.status == 200, (path, response.status)
-                    expect(page.locator('.settings-nav [aria-current="page"]')).to_have_count(1)
+                    if path == '/manage':
+                        expect(page.locator('.settings-category-tree--hub')).to_have_count(1)
+                        expect(page.locator('.settings-category')).to_have_count(4)
+                    else:
+                        expect(page.locator('.settings-category-tree--sidebar')).to_have_count(1)
+                        expect(page.locator('.settings-category-item[aria-current="page"]')).to_have_count(1)
+                        if width < 760:
+                            drawer = page.locator('#settings-submenu-toggle')
+                            expect(drawer).to_have_count(1)
+                            drawer.locator('summary.settings-navigation-trigger').click()
+                            expect(page.locator('.settings-category-tree--sidebar')).to_be_visible()
+                            drawer.locator('summary.settings-navigation-trigger').click()
                     page.wait_for_timeout(250)
                     assert page.locator('body').evaluate('(el)=>el.scrollWidth<=innerWidth'), (path, width, 'overflow')
                     assert not errors, errors
@@ -88,11 +101,17 @@ def main():
             assert [write['action'] for write in writes] == ['connect']
             assert 'confirm' not in writes[0], 'Station backend contract changed'
             expect(page.locator('#setup-password')).to_have_value('')
+            page.goto(BASE+'/setup/ap')
             page.locator('#setup-reveal').click()
             expect(page.locator('#setup-credentials')).to_be_visible()
             page.locator('#setup-reveal').click()
             expect(page.locator('#setup-credentials')).to_be_hidden()
             expect(page.locator('#setup-credentials')).to_have_text('')
+            page.route('**/api/setup/credentials',lambda route:route.fulfill(status=403,json={'error':'DENIED'}))
+            page.locator('#setup-reveal').click()
+            expect(page.locator('#setup-notice')).to_be_visible()
+            expect(page.locator('#setup-notice')).to_contain_text('Chưa tải được thông tin kết nối')
+            page.unroute('**/api/setup/credentials')
 
             # AP mode must retain the original reboot handoff and explicit consent.
             page.route('**/api/setup', lambda route: route.fulfill(json={
@@ -100,9 +119,10 @@ def main():
                 'ssid': 'Fictional setup', 'url': 'http://192.0.2.1:8765/setup', 'networks': [], 'scan_at': 1}))
             page.route('**/api/header', lambda route: route.fulfill(json={
                 'connected': False, 'setup_active': True, 'hotspot_active': True, 'ssid': 'Fictional setup'}))
-            page.reload()
+            page.goto(BASE+'/setup')
             expect(page.locator('#setup-submit')).to_contain_text('khởi động lại')
             expect(page.locator('#setup-connect-impact')).to_contain_text('một lần')
+            page.goto(BASE+'/setup/ap')
             page.locator('#setup-ap-ssid').fill('Unsaved draft')
             page.wait_for_timeout(5200)
             expect(page.locator('#setup-ap-ssid')).to_have_value('Unsaved draft')
@@ -121,7 +141,7 @@ def main():
                             'isolation': payload['isolation'], 'max_clients': payload['max_clients']}})
                 else:route.continue_()
             page.route('**/api/setup', ap_stage)
-            page.goto(BASE + '/setup')
+            page.goto(BASE + '/setup/ap')
             expect(page.locator('#setup-ap-save')).to_be_enabled()
             page.locator('#setup-ap-ssid').fill('Fictional AP')
             page.locator('#setup-ap-hidden').check(); page.locator('#setup-ap-isolation').check()
@@ -139,7 +159,7 @@ def main():
             page.unroute('**/api/setup')
 
             # Inventory uses literal text, and block/unblock never activates an AP.
-            page.goto(BASE+'/setup#ap-clients')
+            page.goto(BASE+'/setup/clients')
             expect(page.locator('#ap-clients-list .ap-client-card')).to_have_count(1)
             expect(page.locator('#ap-clients-list img')).to_have_count(0)
             page.once('dialog',lambda d:d.dismiss())
@@ -188,9 +208,9 @@ def main():
             expect(page.locator('#hotspot-start')).to_have_count(0)
             expect(page.locator('#hotspot-apn-settings')).to_have_count(0)
             expect(page.locator('#hotspot-pending')).to_be_hidden()
-            expect(page.locator('a[href="/sim/apn"]')).to_have_count(1)
+            expect(page.locator('.settings-workspace-content a[href="/sim/apn"]')).to_have_count(1)
 
-            page.goto(BASE + '/manage#lan-manage')
+            page.goto(BASE + '/settings/access')
             page.locator('#lan-manage').evaluate('(el)=>el.open=true')
             expect(page.locator('#lan-fields')).to_be_enabled()
             page.locator('#lan-password').fill('fictional-password')
@@ -202,7 +222,7 @@ def main():
         finally:
             browser.close()
     (OUT / 'report.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
-    print(json.dumps({'layouts': 24, 'interactions': 'PASS', 'device_operations': 0}))
+    print(json.dumps({'layouts': 24, 'navigation': navigation, 'interactions': 'PASS', 'device_operations': 0}))
 
 
 if __name__ == '__main__':

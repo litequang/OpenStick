@@ -101,8 +101,14 @@ class RadioControl:
                     return {'radio_request_needed': False}
                 bus.call_blocking(service, path, interface, 'Enable', 'b', [enabled], timeout=60)
                 return {'radio_request_needed': True}
+            try:
+                registration = int(bus.call_blocking(service, path, props, 'Get', 'ss',
+                    [interface + '.Modem3gpp', 'RegistrationState'], timeout=8))
+            except Exception:
+                registration = None
             return {'state': state, 'power_state': power, 'sim_ready': sim_ready,
-                    'registered': state >= 8, 'ussd_state': session}
+                    'registered': state >= 8 and registration in (1, 5, 6, 7, 9, 10),
+                    'registration_state': registration, 'ussd_state': session}
         except RuntimeError:
             raise
         except Exception:
@@ -202,6 +208,7 @@ class QuickSettings:
 
     def status(self):
         from .network_startup import public
+        from .cellular_recovery import public as recovery_status
         intent = load_intent(self.directory)
         radio = self.radio.status()
         wifi = self.network.active('wlan0')
@@ -210,8 +217,10 @@ class QuickSettings:
         tethering = self.tethering.status()
         pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or tethering.get('reboot_pending'))
         return {'intent': intent, 'radio': radio, 'startup': public(self.directory),
+                'cellular_recovery': recovery_status(self.directory),
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
-                'mobile_data_connected': bool(cell == CELL_UUID and self.network.cellular_interface(controls[0])),
+                'mobile_data_connected': bool(radio.get('registered') and cell == CELL_UUID
+                                              and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
                 'pending_network_trial': pending, 'internet_verified': False,
                 'hardware_validation': 'NOT_TESTED',

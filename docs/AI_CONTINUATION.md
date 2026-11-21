@@ -1,5 +1,120 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**21/11/2026 — đã cài hiển thị băng LTE thật, source `9e78ce7`.**
+Đọc [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Hai CI PASS gồm EXE; 877 test
+local PASS/2 skip Windows. Ba file thêm/sửa sau gói phục hồi SIM; không đổi mạng.
+Decoder cài trên USB trả B3/1800 MHz, DL 1835,1 MHz, EARFCN 1501. Chrome mở trang
+USB thật ở 320/390/768/1366 px thấy `4G · B3`, chi tiết cả SIM và Mạng & sóng;
+popover trong viewport, đổi icon/bấm ngoài đóng đúng, không JS error/mutation.
+Đây là Chrome trên PC dùng trang USB thật, không phải nghiệm thu điện thoại.
+Hash/asset, 721 file chủ, mạng/route/firewall/DNS/gadget giữ nguyên, sync xong.
+Không khẳng định thông tin băng chứng minh Internet hoặc sửa nguyên nhân rớt sóng.
+
+**21/11/2026 — đã cài sửa phục hồi phiên SIM, kiểm chứng worker thật.**
+Đọc [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Sáu file ở source `eaa7471`
+đã cài sau hai CI PASS; baseline USB thực tế có cả thay đổi cache/radio từ nhánh
+dev, không còn được mô tả đầy đủ bởi `747f49c`. Đã tích hợp hai nhánh trên nhánh
+UI/PR #7, không merge main/dev. Worker thật nối lại hai lần ngắt có kiểm soát sau
+47,3 và 31,7 giây; HTTPS buộc qua SIM đạt. Tắt data giữ tắt sau 45 giây, rồi bật
+lại thành công. Giữ AP, radio đã lưu và USB quản trị. Không nhận kiểm thử này là
+đã sửa nguyên nhân modem rớt phiên hoặc treo beacon Wi-Fi; chưa thử nguồn/điện
+thoại mới. Kiểm tra byte profile đầu tiên không đạt; đối chiếu toàn bộ field ở
+lần sau chỉ đổi cellular connection.timestamp, cấu hình/0600 giữ nguyên.
+Phần hiển thị băng LTE đang dùng được bổ sung riêng, đọc GetCellInfo; tuyệt đối
+không dùng CurrentBands/SupportedBands thay cho băng phục vụ thật. Đọc
+[SERVING_LTE_BAND.md](SERVING_LTE_BAND.md) và kết quả cài sau CI trước khi kết luận.
+
+**21/11/2026 — đã khôi phục khả năng nhìn thấy AP bằng một lần restart riêng Wi-Fi.**
+Chủ không thấy mạng trên điện thoại. USB báo AP/kênh 6, không ẩn, supplicant
+completed; quét Windows mới thấy 13 mạng nhưng không thấy AP USB. Một lần
+down/up profile AP hiện có (giữ USB quản trị, tên/mật khẩu, radio và phiên SIM)
+đã hoàn tất. Quét mới sau đó thấy AP USB trong 9 mạng; Internet SIM vẫn đạt.
+Chủ đã xác nhận điện thoại thấy mạng và vào Internet được sau restart (trả lời
+phép thử yêu cầu tắt dữ liệu di động điện thoại). Đây là nghiệm thu điện thoại
+thật do chủ xác nhận, không phải fixture. Chưa rõ nguyên nhân treo
+phát hoặc độ bền sau đó; không gọi restart là sửa driver triệt để. Không cài mã
+mới, nguồn USB vẫn `747f49c`. Chi tiết trong báo cáo SIM bên dưới. Lưu ý giới
+hạn client lưu 10 nhưng supplicant đang báo 128; chưa nghiệm thu giới hạn thực.
+
+**21/11/2026 — kiểm tra SIM/hotspot chỉ đọc; chưa cài bản sửa trạng thái.**
+Đọc [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
+USB hiện có Internet SIM thật (4 phép HTTPS 204, 2 ping); AP/DHCP/DNS, NAT và
+luật `wlan*` có mặt, không chặn client. Ban đầu 1 station, sau còn 0; đợt đếm
+gói không thấy yêu cầu IPv4 từ client. Đang chờ chủ thử lại điện thoại; không
+nhận đó là nghiệm thu Internet qua Wi-Fi. Không đổi mạng/dịch vụ/radio trên USB.
+Mã nguồn sửa lỗi core modem báo connected trong khi 3GPP đang searching đã qua
+815 PASS/2 skip trên Windows; chưa cài USB (vẫn `747f49c`). Giữ nguyên radio đã
+lưu, không tự khóa PLMN hay bật retry dữ liệu để che lỗi. Các số đo 19/11 phía
+dưới là lịch sử, có lúc đăng ký/bearer nhưng không có Internet.
+
+**19/11/2026 — đã cài gói tối ưu ưu tiên và đo trước/sau USB thật.**
+Đọc [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
+Source đang cài `747f49c4486e698e9d5bbac7877f48912b43fd92`, nhánh UI/PR #7;
+chưa merge/release. Catalog metadata không quét cây file; asset portal/FileGator
+có hash, hỗ trợ numeric cachebuster thật của FileGator; stale hiển thị ngay,
+pending GET backoff, header tối đa một followup; LED 6 s, setup bỏ đọc NM thừa;
+log allowlist xoay trong worker startup, archive riêng giới hạn và backup log cũ.
+802 PASS/2 Windows skip, hai CI source cuối PASS gồm EXE; Linux log fixture PASS.
+Năm lượt File Manager: trung vị 7,911 → 1,102 s; inventory 5.517,703 → 20,252 ms.
+Cache browser thật lượt hai 11/11 JS/CSS hit, 0 byte tải lại cho các asset đó.
+CPU nền mẫu ~1 phút 14,21 → 11,65%, nhưng RAM khả dụng sau thấp hơn, chưa chứng
+minh tiết kiệm RAM; AP/đọc phần cứng còn dao động. Không tuyên bố mọi màn nhanh hơn.
+USB thật: 160 layout/8 ngang ở gói chính, FileGator 8 rộng ở source cuối,
+không override, không JS error/mutation; không ảnh/trace. Kiểm tra cuối 41 hash,
+717 file bảo vệ, mạng/route/firewall/DNS/gadget và 20 GET LAN đạt, worker/usage
+tiến, checkpoint riêng hợp lệ, tổng usage không giảm, hai log archive đúng, backup
+checksum đạt, không pending, sync xong. Chỉ restart portal và setup/LED/startup
+cần thiết, không reboot/đổi mạng/Tunnel/Nginx. Không thử thao tác file hay radio
+thật, chu kỳ nguồn hoặc điện thoại; giữ phạm vi nghiệm thu trong báo cáo.
+
+**19/11/2026 — đã rà hiệu năng toàn USB, chưa cài tối ưu mới (mốc trước triển khai).**
+Đọc [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
+Source vẫn `06d151a`, cùng nhánh UI/PR #7. Đo USB thật: RAM khả dụng 114–142 MiB
+trong lượt mở ba màn, CPU trung bình tổng bốn lõi 17,12%; zram thực dùng 51,5 MiB,
+không có swap đĩa. Nút thắt File Manager: inventory 4,793 s trước navbar 5,882 s;
+profile xác nhận listing 676 mục chiếm 3,494/3,505 s, metadata đơn thuần dưới 1 ms.
+Ưu tiên metadata nhẹ, asset version/cache, giảm đọc/polling thụ động và giới hạn log.
+Package đồ họa/âm thanh là ứng viên giảm dung lượng đĩa, chưa đủ bằng chứng gỡ an toàn;
+không được coi dung lượng LLVM/Mesa là RAM đang dùng. Giữ dịch vụ mạng, FileGator,
+mDNS/NTP, worker recovery; chưa hợp nhất portal hoặc xóa fallback. Không đổi runtime,
+package, mạng hay reboot. Kiểm tra cuối: 32 source/717 file bảo vệ và trạng thái mạng
+giữ nguyên, không pending. Đây là audit ngắn, chưa benchmark tải nặng/soak hoặc sau sửa.
+
+**19/11/2026 — đã gộp Phát Wi-Fi và nhúng FileGator.**
+Source đang cài `06d151aacec526ef9acf7562365b62a7b33d3bd5`, cùng nhánh UI/PR #7,
+chưa merge/release. Đọc [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).
+Chỉ còn menu Phát Wi-Fi `/setup/ap`; `/hotspot` và `/setup/recovery` chuyển về
+đây. File manager tự mở FileGator trong khung, không cần bấm thêm; Mở riêng là
+tùy chọn. Giữ xác nhận, cấu hình, phiên cũ và giới hạn bảo mật cùng origin.
+790 PASS/1 Windows skip, hai CI source cuối PASS; USB thật: 160 layout + 8 ngang
+ở bản gộp, bản cuối mở FileGator thật ở 8 kích thước, không đăng nhập lần hai,
+không lỗi JS/thao tác ghi, hai alias AP đúng. Hash 32 file nguồn, 717 file riêng,
+mạng/route/firewall/gadget/dịch vụ và 20 GET LAN đạt; worker/usage tiến, sync xong.
+Không thử file-write, radio/AP/tethering, reboot hay điện thoại thật. FileGator
+mount Vue sau load; chờ DOM tối đa 20 giây, không retry yêu cầu file. Hai lần
+kiểm tra trước đó bắt được báo lỗi tải giả, không gọi chúng là nghiệm thu PASS.
+Chủ vừa yêu cầu rà toàn USB để đề xuất tối ưu/loại phần thừa; audit tiếp theo
+chỉ đọc/đo, chưa có lựa chọn cho việc bỏ dịch vụ hoặc thay kiến trúc mới.
+
+**19/11/2026 — đã cài màn con riêng và bỏ điều khiển file cũ khi có FileGator.**
+Source đang cài `61125aa3dab81001232ab862679fe9bba669645e` trên nhánh
+`ui/settings-parent-child-nav-20261119`, PR #7; chưa merge main/dev, chưa release.
+Đọc [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md) và đầu HANDOFF.
+Wi-Fi nhận/đã lưu/phát/client/dự phòng, USB, usage SIM, quyền quản trị và website
+có URL riêng; chỉ hiện phần đang chọn. FileGator không còn menu/nút upload,
+kiểm tra ZIP hoặc editor cũ. Backend thao tác và xác nhận giữ nguyên.
+788 PASS/1 Windows skip, hai CI PASS; Chrome preview hai chế độ và USB thật
+đạt 176 trang/kích thước + 8 ngang, không lỗi JS. Kiểm tra USB chỉ điều hướng,
+không gửi thao tác mạng/nguồn/file/SMS. Hash 28 file nguồn, 717 file bảo vệ,
+mạng/route/firewall/gadget và quyền LAN đạt; worker/usage vẫn tiến, sync xong.
+Sau kiểm tra toàn bộ ở `66b5850`, bản `61125aa` chuyển thông báo Wi-Fi ra ngoài
+phần ẩn; CI hai nhánh PASS, 10 layout Wi-Fi và lỗi đọc thông tin kết nối được
+kiểm tra lại trên HTML USB thật (response lỗi mô phỏng, không đọc mật khẩu).
+Chủ đã tắt/rút/cắm giữa lần kiểm tra V4 cũ; dùng mốc sau thao tác đó, giữ receipt.
+Website nội bộ HTTP 200; public Cloudflare **530 trước và sau lần cài này**,
+log Tunnel có `network is unreachable`. Không đổi Tunnel/mạng để che lỗi đó.
+Không nhận public Internet, đăng nhập lại mật khẩu hay điện thoại thật là PASS.
+Các ghi chú dưới đây là lịch sử; source `4cca1fa` đã được thay bằng bản này.
 **19/11/2026 — đã cài nhớ trạng thái cho toàn bộ cài đặt USB.**
 Đọc [SETTINGS_STATE_CACHE.md](SETTINGS_STATE_CACHE.md). 14 màn cài đặt khôi phục
 ngay trạng thái gần nhất khi mở lại trang/tab rồi đọc nền; không khóa do refresh,

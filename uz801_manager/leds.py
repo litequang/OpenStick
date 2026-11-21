@@ -328,7 +328,7 @@ def main(once=False):
             time.sleep(1)
     if once:return
     while True:
-        time.sleep(3)
+        time.sleep(6)  # Passive LED display only; do not poll NM every three seconds.
         try:backend.sync_network()
         except Exception:pass  # No raw filesystem/network details in service logs.
 

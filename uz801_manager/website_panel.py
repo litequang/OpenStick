@@ -99,11 +99,12 @@ class WebsitePanel:
     def files(self, site):
         return SiteFiles(self.root(site), self.directory / 'work')
 
-    def public(self, sites):
+    def public(self, sites, *, detailed=True):
         inventory = []
         for site in sites:
-            listing = self.files(site).listing()
-            inventory.append({**site, 'bytes': listing['bytes'], 'entries': len(listing['entries']),
+            listing = self.files(site).listing() if detailed else None
+            inventory.append({**site, 'bytes': listing['bytes'] if listing else None,
+                              'entries': len(listing['entries']) if listing else None,
                               'protected': site['id'] == 'main'})
         mapped = [{**site, 'root': self.root(site)} for site in sites]
         return {'sites': inventory, 'revision': self.revision(sites), 'max_sites': MAX_SITES,
@@ -119,7 +120,7 @@ class WebsitePanel:
     def call(self, value):
         if not isinstance(value, dict):raise SiteError('INPUT_INVALID')
         action = value.get('action')
-        fields = {'sites': {'action'}, 'create': {'action', 'name', 'domains', 'expected', 'confirm'},
+        fields = {'sites': {'action'}, 'catalog': {'action'}, 'create': {'action', 'name', 'domains', 'expected', 'confirm'},
                   'configure': {'action', 'site', 'name', 'domains', 'expected', 'confirm'},
                   'publish_domains': {'action', 'expected', 'confirm'},
                   'list': {'action', 'site'}, 'get': {'action', 'site', 'path'},
@@ -130,10 +131,11 @@ class WebsitePanel:
                   'move': {'action', 'site', 'path', 'target', 'revision', 'confirm'},
                   'copy': {'action', 'site', 'path', 'target', 'revision', 'confirm'}}
         if action not in fields or set(value) != fields[action]:raise SiteError('INPUT_INVALID')
-        if action not in ('sites', 'list', 'get') and value.get('confirm') is not True:
+        if action not in ('sites', 'catalog', 'list', 'get') and value.get('confirm') is not True:
             raise SiteError('CONFIRM_REQUIRED')
         with self.default.transaction():
             sites = self.read()
+            if action == 'catalog':return self.public(sites, detailed=False)
             if action == 'sites':return self.public(sites)
             if action in ('create', 'configure', 'publish_domains'):
                 if value['expected'] != self.revision(sites):raise SiteError('FILE_CHANGED')
