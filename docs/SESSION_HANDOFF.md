@@ -1,5 +1,25 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: owner restored Internet using airplane cycle plus power reconnection
+
+Owner first confirmed both neverssl.com and direct 1.1.1.1 failed. The latest
+update says Internet works after airplane on/off, removing/reconnecting USB and
+enabling data+AP. This supersedes the FAIL below as current owner-reported state.
+Agent did not perform another USB reboot, radio toggle or AP reset in this turn.
+Read the newest section of [the NAT report](AP_NAT_RESTORE_2026_11_23.md).
+
+Read-only comparison confirms a changed boot, startup RESTORED with saved AP+SIM,
+current recovery proof, healthy BAM active/on, correct NAT, working SIM HTTPS and
+one station. This does not isolate which part of the combined recovery mattered
+or prove permanent prevention. Preserve the working network; do not blindly reset
+an absent fault. Installed source remains ec5a752 plus the preceding BAM guard.
+
+A temporary Windows WLAN profile associated to USB AP; original WLAN restored.
+DHCP/Internet test was inconclusive: the helper compared a string InterfaceGuid
+to a Guid, selecting no adapter. Read-only validation proved zero versus one
+match after casting; helper corrected, no repeat transition on working network.
+Do not mislabel that helper error as hardware DHCP failure or Internet acceptance.
+
 ## 2026-11-23 newest: phone reacceptance FAIL even with restored NAT; further cause unresolved
 
 Owner granted ONE normal reboot and THREE data-off/on cycles. These have now

@@ -130,3 +130,35 @@ or packet payloads were exported or committed.
 A final 45-second TCP-stage observation still had one associated station and
 matching NAT, but zero AP IPv4 frames at all (SIM background traffic continued).
 It cannot diagnose a page-open failure without a simultaneous phone attempt.
+
+## Latest: owner restores Internet with a combined radio/power sequence
+
+The owner answered that both http://neverssl.com and https://1.1.1.1 failed in
+the faulty state. The next update reports working Internet after enabling then
+disabling airplane mode, removing/reconnecting USB, and enabling SIM data and
+AP. Record the current state as **OWNER-REPORTED INTERNET WORKING**. The negative
+results above remain useful history, not the latest current acceptance status.
+
+Read-only inspection confirms that boot changed since the agent's three cycles.
+The saved configuration is AP+data enabled, airplane false; boot replay reports
+RESTORED with Wi-Fi/data ready and no error. Modem is registered/connected, BAM
+active/on, own NAT matches the actual SIM interface, and bound SIM HTTPS passes.
+The recovery proof matches this boot and saved revision; one recovery attempt
+and one associated station were observed. Latest receipts include completed
+airplane-on/off and data-on. Peak sampled thermal zone was 69 C in that snapshot.
+
+This validates that the installed NAT correction also exists after this actual
+power reconnection. It does **not** establish whether radio reinitialization,
+Wi-Fi/transport reset on power removal, clearing old connection state, or a
+combination restored the phone. No further product change, USB reboot, AP/modem
+reset or radio/APN change was made by the agent in this follow-up. Do not add a
+blind restart loop or claim permanent root-cause resolution from the workaround.
+
+An independent Windows client test used an in-memory temporary WLAN profile and
+successfully associated to the AP, then restored the original WLAN. The DHCP/
+Internet phase was inconclusive because a helper string-to-Guid comparison
+selected no Windows adapter. A subsequent read-only comparison verified zero
+matches before versus one with an explicit Guid cast. The private helper was
+corrected; its failed address lookup is not evidence that USB DHCP failed. No
+repeat Windows network transition was performed once the owner reported working
+Internet, and no AP credential/profile was persisted on Windows by the test.

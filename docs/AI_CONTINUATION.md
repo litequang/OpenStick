@@ -1,5 +1,20 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — cập nhật chủ mới nhất: đã có Internet sau airplane on/off + rút/cắm + data/AP on.**
+Chủ báo cả neverssl.com và 1.1.1.1 đều không mở được ở trạng thái lỗi, sau đó tự
+khôi phục bằng chuỗi trên và hiện có mạng. Đây là trạng thái mới nhất; các FAIL
+bên dưới là lịch sử. Agent không yêu cầu/chạy thêm reboot, radio toggle hay reset
+AP trong lượt này. Đọc mục cuối [báo cáo NAT](AP_NAT_RESTORE_2026_11_23.md).
+Read-only xác nhận boot đã đổi, startup RESTORED/AP+data on, proof đúng boot/revision,
+BAM active/on, NAT đúng SIM, HTTPS SIM đạt, một station. Không suy ra bước riêng
+lẻ nào trong chuỗi đã xóa lỗi hoặc đã sửa tận gốc. Giữ mạng đang chạy, không reset
+để sửa lỗi đang không còn tái hiện. Bản cài vẫn ec5a752 cùng BAM guard fb7ece2.
+
+Phép thử Windows dùng profile Wi-Fi tạm đã associate USB AP và trả lại mạng cũ.
+Chưa có kết quả DHCP/Internet hợp lệ: helper so sánh string InterfaceGuid với Guid
+nên không tìm adapter; đã kiểm tra/correct sang [guid] ở helper, chưa thử lại để
+tránh ngắt mạng đang chạy. Không gọi đây là lỗi DHCP phần cứng hay PASS Internet.
+
 **23/11/2026 — mới nhất: điện thoại vẫn FAIL sau khi đã khôi phục NAT, chưa chốt nguyên nhân còn lại.**
 Chủ đã cho phép một reboot bình thường và ba chu kỳ data off/on; đã thực hiện
 qua DevicePower/QuickSettings. Boot khôi phục AP+SIM, cả ba lần HTTPS buộc qua
