@@ -55,6 +55,36 @@ def public(directory):
     return {'enabled':True,**{k:value[k] for k in ('phase','attempts','error')},'max_attempts':MAX_ATTEMPTS}
 
 
+def record_selection(directory, config, boot, *, connected, previous=None, rearm=False):
+    """Persist connection proof inside the explicit transaction, under its locks.
+
+    An AP/Wi-Fi save may transfer proof and the existing retry budget, including
+    stopped/uncertain outcomes. Only an explicitly successful data-on rearms it.
+    No connection/radio request is made here; reads never call this function.
+    """
+    latest = selected(directory)
+    if not latest or latest['revision'] != config['revision']:return
+    value = read(directory)
+    if value == {}:return  # Preserve corrupt state for inspection, never reset it.
+    transferable = bool(value and value['boot']==boot and (
+        value['revision']==config['revision'] or previous and previous['data_on']
+        and value['revision']==previous['revision']))
+    if rearm:
+        if not connected:return
+        transferable = False
+    elif value and value['phase'] in ('ATTEMPTING','UNKNOWN','LIMIT_REACHED') and not transferable:
+        return  # A boot/other save cannot clear an uncertain outcome or retry cap.
+    if not transferable:
+        if not connected:return
+        value = {'version':1,'revision':config['revision'],'boot':boot,'seen':True,
+                 'misses':0,'attempts':0,'phase':'CONNECTED','error':None}
+    else:
+        value = dict(value,revision=config['revision'])
+        if connected and value['phase'] not in ('ATTEMPTING','UNKNOWN','LIMIT_REACHED'):
+            value.update(seen=True,misses=0,phase='CONNECTED',error=None)
+    Hotspot.atomic(Path(directory)/NAME,json.dumps(value))
+
+
 class CellularRecovery:
     def __init__(self, quick, *, clock=time.monotonic, readiness=None, power_pending=None):
         self.quick, self.directory, self.clock = quick, quick.directory, clock
@@ -83,10 +113,10 @@ class CellularRecovery:
                     or q._read('setup-pending.json') or q._read('hotspot-pending.json')):return
             state = read(self.directory)
             if state == {}:return  # Corrupt state never grants another attempt.
+            before = dict(state) if state else None
             if not state or state['revision'] != config['revision']:
                 state = {'version':1,'revision':config['revision'],'boot':q.boot(),
                          'seen':False,'misses':0,'attempts':0,'phase':'WAITING_CONNECTION','error':None}
-            before = dict(state)
 
             def write(**changes):
                 state.update(changes)

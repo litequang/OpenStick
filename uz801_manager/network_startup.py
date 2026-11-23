@@ -166,6 +166,9 @@ class NetworkStartup:
                     write(done=True,phase='RESTORE_FAILED',error='DATA_CONNECT_FAILED');return
                 if role=='ap':q.ap_forwarding(True)
                 q.tethering.update_uplinks()
+                if q.radio.status().get('registered'):
+                    from .cellular_recovery import record_selection
+                    record_selection(self.directory,config,self.boot(),connected=True)
                 write(done=True,phase='RESTORED',data_connected=True,error=None)
             except Exception:
                 write(phase='RESTORE_FAILED',error='DATA_CONNECT_FAILED',done=state['data_attempted'])

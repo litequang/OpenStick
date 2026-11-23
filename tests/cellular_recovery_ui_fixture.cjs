@@ -2,7 +2,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../uz801_manager/static/quick.js'),'utf8');
 const nodes=new Map(),tiles={},actions=[];
-const el=id=>{if(!nodes.has(id))nodes.set(id,{});return nodes.get(id)};
+const el=id=>{if(!nodes.has(id))nodes.set(id,{dataset:{}});return nodes.get(id)};
 const context={el,compact:false,busy:false,current:null,drawMode:()=>{},
  tile:(id,text,active,disabled)=>tiles[id]={text,active,disabled},
  ask:action=>actions.push(action),fetch:()=>{throw Error('No network request during render')}};
@@ -15,6 +15,7 @@ const state={intent:{data_allowed:true,airplane:false},radio:{registered:false,s
  cellular_recovery:{phase:'WAITING_NETWORK'}};
 context.draw(state);
 assert.equal(tiles['quick-data'].active,true);
+assert.equal(el('quick-data').dataset.connection,'pending');
 assert.equal(tiles['quick-data'].disabled,false,'the owner can turn data off even without registration');
 assert.match(tiles['quick-data'].text,/chờ đăng ký/);
 assert.match(tiles['quick-ap'].text,/SIM mất kết nối/);
@@ -27,6 +28,7 @@ assert.equal(tiles['quick-data'].disabled,true);
 context.draw({...state,radio:{registered:true,sim_ready:true,state:8},intent:{data_allowed:false,airplane:false}});
 el('quick-data').onclick();assert.deepEqual(actions,['data_off','data_on']);
 context.draw({...state,radio:{registered:true,sim_ready:true,state:11},mobile_data_connected:true});
+assert.equal(el('quick-data').dataset.connection,'connected');
 assert.match(tiles['quick-data'].text,/Internet chưa xác minh/);
 assert.match(tiles['quick-ap'].text,/có phiên SIM/);
 console.log('Recovery state and explicit data-off UI: PASS');

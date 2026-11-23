@@ -73,6 +73,7 @@
     const recovery = s.cellular_recovery || {};
     const recoveryText = recovery.error==='STATE_INVALID'?'Lỗi trạng thái · cần kiểm tra USB':({WAITING_NETWORK:'Đang chờ đăng ký mạng',WAITING_RECONNECT:'Mất kết nối · chờ nối lại',ATTEMPTING:'Đang nối lại phiên SIM',UNKNOWN:'Mất mạng · tắt/bật để thử lại',LIMIT_REACHED:'Đã dừng tự nối · cần kiểm tra'})[recovery.phase] || 'Đã yêu cầu bật · chưa kết nối';
     tile('quick-data', s.mobile_data_connected?(compact?'Bật · Internet chưa đo':'Đã kết nối · Internet chưa xác minh'):wantsData?recoveryText:!s.radio.sim_ready?(compact?'Chưa có SIM':'Chưa có SIM sẵn sàng'):'Đang tắt', wantsData || s.mobile_data_connected, blocked || (!wantsData && !s.mobile_data_connected && (airplane || !s.radio.registered || !s.radio.sim_ready)));
+    el('quick-data').dataset.connection=s.mobile_data_connected?'connected':wantsData?'pending':'off';
     const ap = ['local_ap','sim_ap'].includes(s.wifi_role);
     tile('quick-ap', ap?(s.mobile_data_connected?'Đang phát · có phiên SIM':wantsData?'Đang phát · SIM mất kết nối':'Đang phát · không Internet'):'Đang tắt', ap, blocked);
     tile('quick-usb', !s.usb_tethering.available?'Chưa được cài':s.usb_tethering.reboot_pending?'Đã lưu · đang áp dụng':s.usb_tethering.degraded?'Chưa xác minh · chạm để tắt':s.usb_tethering.enabled?'Đang chia sẻ Internet':'Tắt · chạm để bật', !!s.usb_tethering.enabled, blocked || !s.usb_tethering.available);

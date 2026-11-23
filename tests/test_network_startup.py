@@ -35,6 +35,8 @@ def test_saved_sim_and_ap_restore_after_new_boot_not_old_station(quick):
     state=backend._read(STATE)
     assert state['done'] and state['data_connected'] and state['phase']=='RESTORED'
     assert owns_wifi(backend.directory)
+    from uz801_manager.cellular_recovery import read
+    assert read(backend.directory)['seen'] and read(backend.directory)['boot']=='next-boot'
 
 
 def test_current_boot_already_applied_selection_is_not_replayed(quick):

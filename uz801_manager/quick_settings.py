@@ -305,6 +305,9 @@ class QuickSettings:
                 raise RuntimeError('USB_REBOOT_PENDING')
             receipt = self.journal.begin(values['operation'], action)
             try:
+                from .network_startup import load
+                previous_selection = load(self.directory)
+                connection_observed = False
                 old = load_intent(self.directory)
                 airplane = bool(old and old['airplane'])
                 if action in ('airplane_on', 'airplane_off', 'data_off'):
@@ -342,6 +345,9 @@ class QuickSettings:
                         except RuntimeError:raise RuntimeError('DATA_CONNECT_FAILED') from None
                         if not self.network.cellular_interface(control):
                             raise RuntimeError('QUICK_OPERATION_FAILED')
+                        if not self.radio.status().get('registered'):
+                            raise RuntimeError('DATA_CONNECT_FAILED')
+                        connection_observed = True
                         if self.network.active('wlan0') == AP_UUID:self.ap_forwarding(True)
                         self.tethering.update_uplinks()
                     except Exception:
@@ -377,9 +383,15 @@ class QuickSettings:
                 if not clients.active():clients.suspend()
                 if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
                     from .network_startup import save_current
-                    try:save_current(self)
+                    try:saved_selection = save_current(self)
                     except Exception:raise RuntimeError('NETWORK_SAVE_FAILED') from None
                 result = self.status()
+                if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
+                    from .cellular_recovery import record_selection, public as recovery_status
+                    record_selection(self.directory,saved_selection,self.boot(),
+                        connected=connection_observed or result['mobile_data_connected'],
+                        previous=previous_selection,rearm=action=='data_on')
+                    result['cellular_recovery'] = recovery_status(self.directory)
                 self.journal.finish(receipt, 'COMPLETED')
                 return result
             except Exception as error:

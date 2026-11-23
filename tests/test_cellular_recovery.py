@@ -9,9 +9,14 @@ from uz801_manager.network_startup import load, save
 from uz801_manager.quick_intent import save_intent
 
 
-def configured(quick):
+def configured(quick, *, connect=True):
     q,n,radio,_=quick
-    provision(q);invoke(q,'data_on',cellular_consent=True)
+    provision(q)
+    if connect:invoke(q,'data_on',cellular_consent=True)
+    else:
+        save_intent(q.directory,airplane=False,data_allowed=True)
+        q.hotspot.write('hotspot.json',{'ssid':'fixture','enabled':False})
+        save(q.directory,wifi_role='station',station='saved-station',data_on=True,boot=q.boot())
     # Use a real NM state response for the positive disconnect barrier.
     original=n.nm
     n.nm=lambda *a,**kw:'30 (disconnected)' if a[:2]==('-g','GENERAL.STATE') else original(*a,**kw)
@@ -46,9 +51,42 @@ def test_observed_disconnect_reconnects_once_without_touching_ap_radio_or_intent
 
 
 def test_never_opens_first_connection_or_replays_failed_boot(quick):
-    q,n,radio,now,w=configured(quick);drop(n)
+    q,n,radio,now,w=configured(quick,connect=False);drop(n)
     for _ in range(8):tick(w,now)
     assert ('up',CELL_UUID) not in n.calls
+    assert read(q.directory)['seen'] is False
+
+
+def test_successful_data_on_arms_before_first_poll_and_ap_save_keeps_proof(quick):
+    q,n,radio,now,w=configured(quick)
+    first=read(q.directory)
+    assert first['seen'] and first['phase']=='CONNECTED'  # No worker tick yet.
+    activate=q._start_shared_ap
+    def ap_then_drop(control):
+        activate(control);drop(n)  # Connection drops during the AP transaction.
+    q._start_shared_ap=ap_then_drop
+    invoke(q,'local_ap_on')
+    value=read(q.directory)
+    assert value['revision']!=first['revision'] and value['seen']
+    assert value['revision']==load(q.directory)['revision']
+    n.calls.clear();tick(w,now);tick(w,now)
+    assert n.calls.count(('up',CELL_UUID))==1 and n.active('wlan0')==AP_UUID
+
+
+@pytest.mark.parametrize('phase,error,attempts',[('UNKNOWN','ACTIVATION_UNCERTAIN',1),('LIMIT_REACHED','RECOVERY_LIMIT',3)])
+def test_ap_save_cannot_reset_stopped_recovery_budget(quick,phase,error,attempts):
+    q,n,radio,now,w=configured(quick)
+    value=read(q.directory);value.update(phase=phase,error=error,attempts=attempts)
+    q.hotspot.write(NAME,value);drop(n)
+    invoke(q,'local_ap_on')
+    assert read(q.directory)['phase']==phase and read(q.directory)['attempts']==attempts
+    n.calls.clear()
+    for _ in range(4):tick(w,now)
+    assert ('up',CELL_UUID) not in n.calls
+    from uz801_manager.cellular_recovery import record_selection
+    before=(q.directory/NAME).read_bytes()
+    record_selection(q.directory,load(q.directory),'new-boot',connected=True)
+    assert (q.directory/NAME).read_bytes()==before
 
 
 @pytest.mark.parametrize('gate',['off','airplane','policy','legacy','setup_pending','hotspot_pending','power','usb_reboot','foreign','wifi_changed','mode','ussd','unregistered'])

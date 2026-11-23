@@ -7,6 +7,7 @@
 .quick-panel--compact .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.quick-panel--compact .quick-grid .quick-tile{padding:12px;min-height:112px;border-radius:14px;gap:6px}.quick-panel--compact .quick-tile strong{font-size:12px}.quick-panel--compact .quick-tile small{font-size:11px;line-height:1.45}.quick-panel--compact .quick-icon{width:24px;height:24px}.quick-panel--compact .quick-icon svg{width:24px;height:24px}.quick-panel--compact #quick-notice{font-size:12px;line-height:1.5;margin:10px 0}.quick-panel-help{font-size:12px;line-height:1.6;margin:8px 0 0;color:#b8c7d9}
 @media(max-width:360px){.quick-panel--compact .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .quick-grid .quick-tile[data-active=true]{background:#214c70!important;border-color:#6bb9fa}
+.quick-grid #quick-data[data-connection=pending]{background:#453820!important;border-color:#d8ab63}.quick-grid #quick-data[data-connection=pending] small{color:#f5d29b!important}
 #quick-dialog{max-width:480px;width:calc(100% - 32px);border:1px solid #4a607c;border-radius:20px;padding:24px;background:#1d2634;color:#e4edfa}
 #quick-dialog::backdrop{background:#000a}#quick-dialog p{line-height:1.8}
 #quick-wifi-dialog{box-sizing:border-box;width:min(540px,calc(100% - 24px));max-height:88dvh;overflow-y:auto;border:1px solid #4a607c;border-radius:20px;padding:20px;background:#1d2634;color:#e4edfa}
