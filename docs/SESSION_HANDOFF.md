@@ -1,5 +1,20 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: owner joins Wi-Fi, admin and Internet still FAIL
+
+Read the Owner follow-up in [AP report](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Owner answered reacceptance: association works, both admin/public site fail.
+No further code, network/firewall change or AP restart was performed. One
+authorized station has a matching unexpired AP-subnet lease. Interface-bound
+local LAN GET /login returned 200, input rules allow AP DHCP/DNS/TCP 8765,
+forwarding/NAT exists and no client is blocked. These are not phone acceptance.
+35-second header-only capture: 22 outgoing AP ARPs, no incoming AP frames/client
+IP traffic, no station-byte delta. Two bounded local pings to its leased address
+failed; route was wlan0 but ARP did not resolve. No confirmed phone action
+overlapped capture; do not infer driver/modem/firewall root cause. Await actual
+phone IP/gateway and exact http://192.168.8.1:8765/overview result. Preserve the
+failing AP state for diagnosis; do not blindly restart or weaken firewall.
+
 ## 2026-11-23 latest: phone Wi-Fi reacceptance failed, AP visibility recovered
 
 Read [AP_VISIBILITY_RECHECK_2026_11_23.md](AP_VISIBILITY_RECHECK_2026_11_23.md).

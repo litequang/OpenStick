@@ -99,3 +99,35 @@ checkpoint and idle operation gates passed; storage synced. No runtime/private
 identity/credentials were committed. The cause of intermittent AP invisibility
 remains **UNVERIFIED**; do not describe this compatibility fix or manual diagnostic
 restart as a permanent firmware/driver fix.
+
+## Owner follow-up: association succeeds, administration and Internet FAIL
+
+The owner answered the new test: the phone can join Wi-Fi, but neither the
+administration page nor Internet works. This explicitly supersedes the pending
+acceptance above; **phone end-to-end acceptance is FAIL**.
+
+Further diagnosis preserved the running AP/session, without source deployment,
+network/firewall mutation or another AP restart. One authenticated/authorized
+station had an unexpired matching lease in the expected AP subnet. The actual
+Wi-Fi-bound listener answered GET /login with HTTP 200 from an interface-bound
+local probe. That tests the listener, not traversal of the phone's Wi-Fi link.
+Input rules allow wlan0 DHCP, TCP/UDP DNS and TCP 8765 (wildcard interface matches
+were evaluated, not mistaken for missing rules); forwarding/NAT rules are present,
+no client is blocked, and the AP DNS answers a fixed public-name query.
+
+A 35-second passive header-only observation saw SIM traffic and 22 outbound AP
+ARP requests, but no incoming AP frames/client IP traffic and no change in that
+station's RX/TX byte counters. No packet/content/identity file was saved. Two
+bounded local ICMP probes to the matching leased client did not receive replies;
+the route selected wlan0, but ARP did not resolve to the associated station.
+An existing lease and an associated row consequently do not prove usable IP
+connectivity. The limited capture did not overlap a confirmed user action.
+
+The phone's current actual IP/gateway and the exact result of opening
+http://192.168.8.1:8765/overview have been requested. Without those observations,
+the negative traffic result cannot distinguish a stale/offline association,
+client IP/routing behavior and a stalled Wi-Fi data path. Do not label a modem,
+firewall or driver root cause, weaken rules, or add blind resets from this alone.
+The first diagnostic helper failed before capture because minimal BusyBox ip
+lacks JSON neighbor output; it was corrected to use the existing safe text
+fallback, then the 35-second observation completed. No product code was changed.

@@ -1,5 +1,16 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — kết quả điện thoại mới nhất: vào Wi-Fi, không vào quản trị/Internet.**
+Đọc mục Owner follow-up trong [báo cáo AP](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Nghiệm thu đầu cuối vẫn FAIL, không chỉ đang chờ. Chưa đổi code/mạng hay restart AP
+trong lượt kiểm tra này. Một station xác thực có lease đúng subnet, nhưng capture
+35 giây chỉ thấy 22 ARP đi ra AP, không frame vào/không tăng RX-TX station; 2 ping
+nội bộ tới lease không trả lời, ARP không phân giải dù route đúng wlan0. Probe
+HTTP gắn wlan0 tại USB trả 200, DHCP/DNS/8765 được firewall cho phép. Chưa có thao
+tác điện thoại được xác nhận trùng lúc capture; không suy ra ngay lỗi driver hay
+firewall. Đang hỏi IP/Gateway thật trên điện thoại và kết quả URL chính xác
+http://192.168.8.1:8765/overview. Giữ AP để bắt lỗi, không thêm reset mù.
+
 **23/11/2026 — điện thoại báo không thấy/kết nối Wi-Fi; đã khôi phục và sửa kiểm tra profile.**
 Đọc [AP_VISIBILITY_RECHECK_2026_11_23.md](AP_VISIBILITY_RECHECK_2026_11_23.md).
 Không coi lần nghiệm thu điện thoại đang chờ bên dưới là PASS: chủ đã báo FAIL.
