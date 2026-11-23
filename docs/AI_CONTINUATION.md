@@ -10,9 +10,13 @@ Chủ tiếp tục báo điện thoại không có Internet, quản trị chậm
 hiện FAIL. Đọc [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md). Trước
 reboot có NAT NM; hiện AP shared/DHCP/DNS và SIM trên USB hoạt động nhưng không
 còn NAT/masquerade. SYN công khai từ client đi tới SIM, không thấy SYN-ACK về;
-gói quản trị/DNS có trả lời. Chưa xác định chính xác tác nhân xóa bảng. Đang kiểm
-thử cơ chế NAT riêng có giới hạn/consent, không reset AP/modem hay đổi APN. Không
-dùng HTTPS tại USB để kết luận điện thoại đã có Internet.
+gói quản trị/DNS có trả lời. Chưa xác định chính xác tác nhân xóa bảng. NAT riêng
+có giới hạn/consent source `ec5a752` đã cài sau push/PR CI PASS gồm EXE: 942 test
+PASS/2 skip, nhóm liên quan 106 PASS. Worker tự khôi phục NAT đúng interface SIM,
+không toggle AP/data/reboot. 17 hash/722 file chủ và mạng/firewall nền/gadget giữ
+nguyên; usage còn, sync. Chrome 4 độ rộng đạt, GET Windows qua USB 200/56 ms.
+Đang chờ chủ thử lại điện thoại; không dùng HTTPS tại USB để kết luận đã có mạng
+trên điện thoại. Đỉnh nhiệt lấy mẫu 75 C, không thêm lỗi resume; cần theo dõi dài.
 
 **23/11/2026 — lỗi mới sau tắt/bật data: đã bắt lỗi kernel BAM-DMUX, chờ reboot/test.**
 Đọc [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). Lần này NM/MM có

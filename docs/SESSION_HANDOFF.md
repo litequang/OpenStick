@@ -13,8 +13,13 @@ is a separate, current end-to-end FAIL. Read [AP_NAT_RESTORE_2026_11_23.md](AP_N
 pre-reboot NM NAT existed; current shared AP/DHCP/DNS and USB uplink work but no
 NAT/masquerade remains. Client public SYNs reach SIM with no returning SYN-ACK;
 administration/DNS frames do return. Exact table-removal event is unverified.
-Scoped, consent-gated NAT reconciliation is being validated; do not label phone
-Internet PASS from the USB's own HTTPS. No AP reset or modem/airplane/APN change.
+Scoped, consent-gated NAT source `ec5a752` is now installed after push/PR CI PASS
+incl EXE: 942 tests PASS/two skips, 106 affected PASS. Existing worker restored
+own NAT matching the connected SIM without AP/data toggle/reboot. 17 hashes/722
+owner files and base network/firewall/gadget matched; usage preserved, synced.
+Chrome four widths passed; Windows USB overview GET 200/56 ms. New phone test
+requested, not yet confirmed: do not label phone Internet PASS from USB HTTPS.
+No AP reset or modem/airplane/APN change. Peak sampled zone 75 C, no resume error.
 
 ## 2026-11-23 latest: data off/on exposes BAM-DMUX PM error; restart approval pending
 

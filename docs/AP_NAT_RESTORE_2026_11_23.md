@@ -56,5 +56,34 @@ blind AP/modem reset. A matching table causes reads only. A foreign/malformed
 table fails closed rather than being overwritten. If NM's own NAT exists, the
 scoped table runs first; conntrack applies one translation, not double NAT.
 
-Validation/deployment and fresh phone acceptance are recorded after execution.
-The owner's current phone Internet result remains FAIL until retested.
+## Installed validation
+
+Source **`ec5a7523dd1d50934c5728b084b37889d5a03bb6`** passed **942 tests/two
+Windows platform skips, exit 0**, the 106-test affected group and JavaScript
+syntax checking. A check-only probe using the actual USB nftables accepted the
+generated rule without applying it. [Push CI](https://github.com/litequang/OpenStick/actions/runs/45108582638)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/45108587656) passed,
+including the Windows EXE.
+
+Four source files were installed with checksum-verified private source backup.
+The existing startup worker restored the missing owned NAT table automatically;
+readback matched the actual connected SIM interface. No AP/data toggle, second
+reboot, route change, radio mode/APN change or modem/driver reset was needed.
+17 installed source hashes and 722 protected owner files matched. The base
+network/routes/firewall/DNS/gadget remained unchanged when excluding only the
+deliberately added owned NAT table. Saved AP+SIM, radio choice, usage history and
+valid checkpoint were retained; services were running and storage synced.
+
+USB-bound SIM HTTPS still passed and BAM stayed active/on with zero new resume
+errors. Real Chrome at 320/390/768/1366 px showed connected/blue without overflow,
+JS error or mutation. A Windows-to-USB GET /overview returned HTTP 200 in 56 ms;
+an earlier device-local GET was 14 ms. These isolated page timings do not prove
+phone latency or benchmark the entire UI. Peak sampled thermal zone at this
+check was 75 C; power/thermal effects of the BAM hold need longer observation.
+
+The owner has been asked to repeat the phone Internet/admin check. The previous
+result was FAIL; successful NAT restoration and USB HTTPS are **not** fresh
+phone acceptance. A subsequent 35-second passive window had zero associated
+stations and only SIM traffic, so it supplies no new phone-path result. Long
+soak, another cold-power test and an independently
+confirmed explanation of NM table removal remain unverified.
