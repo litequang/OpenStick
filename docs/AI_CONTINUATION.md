@@ -1,6 +1,6 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**23/11/2026 — mới nhất: sửa cập nhật nút data sau tắt máy bay, đang chuẩn bị cài.**
+**23/11/2026 — mới nhất: đã cài sửa cập nhật nút data sau tắt máy bay.**
 Đọc [AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md](AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md).
 UI cũ có thể giữ mẫu chưa đăng ký mạng vì thường chỉ đọc lại mỗi 60 giây khi data
 tắt. Bản mới theo dõi GET 2 giây/tối đa 2 phút lúc modem/SIM đăng ký, dừng khi sẵn
@@ -12,6 +12,12 @@ Một chu kỳ máy bay thật qua UI (theo yêu cầu sửa mới) đạt: on/o
 đều COMPLETED, nút cũ mở sau khoảng 2,1 giây, không tái hiện kẹt lâu và không rút/
 reboot USB. Kiểm tra sau: SIM HTTPS/NAT/AP/USB/cấu hình/radio choice đạt, BAM active/on,
 không thêm lỗi resume. Chưa suy ra đã sửa mọi lỗi driver/SIM hoặc nghiệm thu phone.
+Source `5716259` đã cài sau push/PR CI PASS gồm EXE; chỉ quick.js, restart hai portal,
+không restart worker/reboot/chuyển mạng lúc cài. 17 hash/723 file chủ và mạng/route/
+firewall/DNS/gadget/services/power/boot giữ nguyên; usage hợp lệ, sync. Fixture GET
+radio giả trên mã đã cài tự mở nút ở 8,56 giây rồi dừng đọc nhanh, 4 độ rộng đạt,
+không JS error/mutation. Nhiệt lấy mẫu cao nhất 80 C, không tắt bảo vệ nhiệt. Chủ
+cần tải lại trang đang mở một lần để nhận mã mới; chưa cần kiểm thử phá mạng thêm.
 
 **23/11/2026 — cập nhật chủ mới nhất: đã có Internet sau airplane on/off + rút/cắm + data/AP on.**
 Chủ báo cả neverssl.com và 1.1.1.1 đều không mở được ở trạng thái lỗi, sau đó tự

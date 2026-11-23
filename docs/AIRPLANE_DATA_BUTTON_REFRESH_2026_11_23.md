@@ -55,3 +55,32 @@ Affected Quick Settings/recovery/telemetry group: **81 PASS**; JS syntax PASS.
 New deterministic UI regression covers delayed readiness, status staleness,
 airplane/data-off veto, bounded reads, explicit rearm, hidden pages/dialogs and
 no automatic activation. Deployment and installed verification follow below.
+
+## Installed and verified
+
+Source **`57162598869897f31f0b3bdc525b692e56645b09`** passed
+[push CI](https://github.com/litequang/OpenStick/actions/runs/45149830267) and
+[PR CI](https://github.com/litequang/OpenStick/actions/runs/45149843001), including
+the Windows EXE. Only `static/quick.js` was installed, with a checksum-verified
+private source backup. Only the two portal services restarted; no startup-worker
+restart, reboot, firmware/driver change, AP/SIM transition or network change was
+part of installation.
+
+Final check passed all 17 installed-source hashes and 723 protected owner files.
+Network, routes, firewall/NAT, DNS, gadget, services, BAM power policy and boot
+matched the deployment baseline. SIM remained connected with bound HTTPS, AP
+active/NAT matching, USB administration available, saved radio choice unchanged,
+and valid/nondecreasing usage history. Gates were idle and storage synced.
+
+The actual installed script, without a source override, passed the delayed-GET
+browser fixture: auto-unlock at **8.56 seconds**, five reads, fast polling stopped,
+four widths/no overflow, zero JS errors and zero mutations. Radio states in this
+fixture remain synthetic; the separate real 2.1-second cycle above is the physical
+result. Neither is a new phone Internet acceptance or a claim to repair every
+historical modem/driver fault. Peak sampled zone at final check was 80 C; thermal
+protection remained unchanged, and long-duration power/stability is not established.
+
+Reload an already open management page once to load the new asset. Thereafter
+airplane-off readiness updates require neither a manual page refresh nor USB
+removal when the modem registers normally. A locked/missing SIM or unregistered
+modem still correctly prevents data-on and has a visible waiting reason.

@@ -1,6 +1,6 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-23 newest: data-button radio readiness follow-up, deployment pending
+## 2026-11-23 newest: data-button radio readiness follow-up installed
 
 Read [AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md](AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md).
 Owner's new request is to fix Data SIM remaining disabled after airplane-off.
@@ -18,6 +18,16 @@ explicit data-on once each; the old button was ready at about 2.1 seconds, so th
 persistent lock did not reproduce. No reboot/unplug. Read-only postcheck passed
 SIM HTTPS, NAT/AP/USB, saved selection/radio choice and BAM active/on, no new
 resume errors. Do not claim all historical hardware faults or phone acceptance.
+
+`5716259` installed after push/PR CI PASS including EXE. Only quick.js replaced,
+two portals restarted; no startup-worker restart, reboot or installation network
+transition. Final 17 source hashes/723 owner files and network/routes/firewall/
+DNS/gadget/services/power/boot matched. SIM HTTPS/NAT/AP/USB, usage history and
+radio choice preserved, idle gates/storage synced. Installed-script synthetic
+GET readiness fixture unlocked at 8.56 seconds then stopped fast reads; four
+widths/zero JS errors or mutations. Keep this distinct from the actual cycle.
+Peak sampled zone 80 C, thermal protection unchanged. Reload old open pages once
+for the new asset; no extra disruptive hardware test is needed at this point.
 
 ## 2026-11-23 latest: owner restored Internet using airplane cycle plus power reconnection
 
