@@ -33,6 +33,24 @@ def tick(w,now):
 def drop(n):n.active_profiles['cell']=None
 
 
+def test_connected_saved_ap_reconciles_lost_sharing_without_bearer_or_ap_restart(quick):
+    q,n,radio,now,w=configured(quick)
+    n.active_profiles['wlan0']=AP_UUID
+    save(q.directory,wifi_role='ap',data_on=True,boot=q.boot())
+    tick(w,now);tick(w,now)
+    assert n.calls.count(('forward_ap',True))==2
+    assert not any(c[0] in ('up','down','auto') for c in n.calls) and not radio.calls
+
+
+def test_data_off_veto_never_repairs_sharing_or_activates_bearer(quick):
+    q,n,radio,now,w=configured(quick)
+    n.active_profiles['wlan0']=AP_UUID
+    save(q.directory,wifi_role='ap',data_on=True,boot=q.boot())
+    save_intent(q.directory,airplane=False,data_allowed=False)
+    tick(w,now)
+    assert not n.calls and not radio.calls
+
+
 def test_observed_disconnect_reconnects_once_without_touching_ap_radio_or_intent(quick):
     q,n,radio,now,w=configured(quick)
     n.active_profiles['wlan0']=AP_UUID

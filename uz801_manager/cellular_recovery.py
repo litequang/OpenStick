@@ -146,6 +146,10 @@ class CellularRecovery:
                 self.healthy_since = self.last_good = None
                 write(phase='WAITING_NETWORK',misses=0);return
             if active == CELL_UUID and q.network.cellular_interface(control):
+                # An active bearer is not proof that NM's dynamic AP NAT still
+                # exists. Reconcile only our scoped table, under these locks;
+                # never restart AP/modem or activate data to repair forwarding.
+                if config['wifi_role']=='ap':q.ap_forwarding(True)
                 now = self.clock()
                 if self.last_good is None or now-self.last_good > 2*POLL_SECONDS:
                     self.healthy_since = now

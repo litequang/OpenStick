@@ -91,9 +91,21 @@ administration remained, usage checkpoint was valid, gates idle, storage synced.
 The pre-existing power/control=auto and runtime_status=error remained; no hold
 was installed by merely loading the UI or restarting the workers.
 
-A normal restart followed by three real data-off/data-on cycles has been
-requested from the owner because it temporarily interrupts Wi-Fi/web/Tunnel.
-**Approval is pending; no restart or cycle test has been performed.** Do not
-declare the stuck kernel state cleared or off/on prevention physically PASS.
-The proposed upstream kernel patch has not been installed. The distinction
-between detecting this failure and validating its mitigation is mandatory.
+The owner subsequently approved one normal reboot and three real data-off/on
+cycles. DevicePower dispatched the normal reboot with checkpoint/receipt; boot
+restored AP+SIM, actual bound HTTPS passed and BAM was active/on with its owned
+hold. All three cycles completed (24.3/35.5/35.7 seconds), retained the AP and USB
+administration, stayed off during the six-second veto observation, and passed
+bound SIM HTTPS after enabling again. No new resume errors occurred. Saved radio,
+USB descriptors and 16 installed-source hashes matched; usage history remained
+valid/nondecreasing. Chrome showed connected/blue at four widths without JS
+errors, mutations or overflow. This is short-cycle hardware mitigation evidence,
+not a kernel fix, long soak or physical phone acceptance. Peak sampled thermal
+zone rose from 56 to 73 C by the final check; causal power cost is not isolated.
+
+**The owner's subsequent phone Internet test FAILS.** Separate diagnosis found
+missing AP sharing NAT while the USB's own SIM path still works; see
+[the downstream NAT report](AP_NAT_RESTORE_2026_11_23.md). Do not represent the
+three USB uplink cycle results as resolution of this downstream failure.
+The proposed upstream kernel patch has not been installed; no further reboot,
+airplane toggle, APN change, driver rebind or modem reset has been performed.

@@ -1,5 +1,21 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 newest: approved reboot/three SIM cycles PASS; phone Internet FAIL, NAT missing
+
+Owner granted ONE normal reboot and THREE data-off/on cycles. These have now
+run using DevicePower and QuickSettings receipts: saved AP+SIM restored, all
+three SIM-bound Internet tests passed, AP/USB remained and BAM active/on had no
+new resume error. Do not request that approval again or perform another reboot.
+This supersedes the pending-approval wording in the older entry below.
+
+Owner then reported Wi-Fi Internet still fails and administration is slow. This
+is a separate, current end-to-end FAIL. Read [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md):
+pre-reboot NM NAT existed; current shared AP/DHCP/DNS and USB uplink work but no
+NAT/masquerade remains. Client public SYNs reach SIM with no returning SYN-ACK;
+administration/DNS frames do return. Exact table-removal event is unverified.
+Scoped, consent-gated NAT reconciliation is being validated; do not label phone
+Internet PASS from the USB's own HTTPS. No AP reset or modem/airplane/APN change.
+
 ## 2026-11-23 latest: data off/on exposes BAM-DMUX PM error; restart approval pending
 
 Read [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). New owner off/on

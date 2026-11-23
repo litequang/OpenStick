@@ -1,5 +1,19 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — mới nhất: đã reboot được duyệt, 3 chu kỳ SIM PASS; điện thoại vẫn FAIL do thiếu NAT.**
+Chủ đã cho phép một reboot bình thường và ba chu kỳ data off/on; đã thực hiện
+qua DevicePower/QuickSettings. Boot khôi phục AP+SIM, cả ba lần HTTPS buộc qua
+SIM đạt, giữ AP/USB, BAM active/on và không thêm lỗi resume. Không hỏi lại quyền
+này hoặc tự reboot thêm. Nội dung chờ duyệt bên dưới là lịch sử đã được thay thế.
+
+Chủ tiếp tục báo điện thoại không có Internet, quản trị chậm: nghiệm thu đầu cuối
+hiện FAIL. Đọc [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md). Trước
+reboot có NAT NM; hiện AP shared/DHCP/DNS và SIM trên USB hoạt động nhưng không
+còn NAT/masquerade. SYN công khai từ client đi tới SIM, không thấy SYN-ACK về;
+gói quản trị/DNS có trả lời. Chưa xác định chính xác tác nhân xóa bảng. Đang kiểm
+thử cơ chế NAT riêng có giới hạn/consent, không reset AP/modem hay đổi APN. Không
+dùng HTTPS tại USB để kết luận điện thoại đã có Internet.
+
 **23/11/2026 — lỗi mới sau tắt/bật data: đã bắt lỗi kernel BAM-DMUX, chờ reboot/test.**
 Đọc [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). Lần này NM/MM có
 bearer/IP và receipt hoàn tất, proof đúng revision, nhưng 4 HTTPS/2 ping và phép

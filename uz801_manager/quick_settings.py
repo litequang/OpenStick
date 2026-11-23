@@ -30,6 +30,7 @@ ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED
 ERRORS.add('NETWORK_SAVE_FAILED')
 ERRORS |= ap_options.ERRORS
 ERRORS |= TRANSPORT_ERRORS
+ERRORS.add('AP_SHARING_FAILED')
 from .ap_clients import ERRORS as CLIENT_ERRORS
 ERRORS |= CLIENT_ERRORS
 
@@ -151,15 +152,30 @@ class QuickSettings:
 
     def _ap_forwarding(self, allowed):
         """Only our AP guard; never alter the base firewall or USB gadget."""
+        from .ap_sharing import ApSharing
+        sharing=ApSharing(self.network)
+        interface=None
+        if allowed and self.network.active('wlan0')==AP_UUID:
+            controls=self.network.devices()
+            intent=load_intent(self.directory)
+            if intent and not intent['airplane'] and intent['data_allowed'] and len(controls)==1:
+                control=controls[0]
+                if self.network.active(control)==CELL_UUID:interface=self.network.cellular_interface(control)
+            allowed=bool(interface)
+            if interface:
+                method=self.network.nm('-g','ipv4.method,ipv4.addresses','connection','show','uuid',AP_UUID).splitlines()
+                if method!=['shared','192.168.8.1/24']:raise RuntimeError('AP_SHARING_FAILED')
         exists = self.network.run(['nft', 'list', 'table', 'inet', 'openstick_quick_ap'],
             capture_output=True, timeout=8).returncode == 0
         if allowed:
+            sharing.reconcile(interface)  # NAT must be restored before opening the forwarding gate.
             if exists:self.network.command(['nft', 'delete', 'table', 'inet', 'openstick_quick_ap'])
         elif not exists:
             rules = ('table inet openstick_quick_ap {\n chain forward {\n type filter hook forward '
                      'priority -6; policy accept;\n iifname "wlan0" drop;\n oifname "wlan0" drop;\n }\n}\n')
             result = self.network.run(['nft', '-f', '-'], input=rules, text=True, capture_output=True, timeout=8)
             if result.returncode:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+        if not allowed:sharing.reconcile(None)
 
     def _start_shared_ap(self, control):
         """One AP with stable DHCP/gateway, independent of cellular connectivity."""
@@ -178,6 +194,7 @@ class QuickSettings:
             if previous == SETUP_UUID:self.setup.network.local_services(False)
             self.hotspot.activate_ap(AP_UUID)
             if self.network.active('wlan0') != AP_UUID:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+            self.ap_forwarding(connected and radio_allowed(self.directory) and data_allowed(self.directory))
         except Exception as error:
             self.hotspot._restore_setup_snapshot({'setup_handoff': snapshot})
             if previous == SETUP_UUID:

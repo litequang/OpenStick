@@ -27,6 +27,7 @@
   Object.assign(errors,{
     CELLULAR_TRANSPORT_POWER_ERROR:'Driver truyền dữ liệu SIM bị kẹt quản lý nguồn. Giữ kết nối USB; cần khởi động lại USB để xóa lỗi driver. Không tự gửi lại hoặc đổi APN.',
     CELLULAR_TRANSPORT_UNAVAILABLE:'Chưa xác nhận được tầng truyền dữ liệu SIM. Giữ kết nối USB để kiểm tra; chưa bật lại phiên dữ liệu.',
+    AP_SHARING_FAILED:'Chưa khôi phục được chia sẻ Internet qua Wi‑Fi. Giữ kết nối USB để kiểm tra; không cần đổi APN hoặc khởi động lại điểm phát.',
     USB_NO_INTERNET:'Chưa có nguồn Internet hoạt động. Kết nối Wi-Fi nhà hoặc bật Dữ liệu SIM trước.',
     USB_DHCP_CONFLICT:'Dịch vụ cấp IP USB chưa sẵn sàng; giữ kết nối USB và kiểm tra lại.',
     USB_DHCP_RESTORE_FAILED:'Chưa khôi phục được dịch vụ cấp IP quản trị. Giữ nguyên cáp USB để kiểm tra.',
