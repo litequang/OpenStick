@@ -1,5 +1,18 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — mới nhất: sửa cập nhật nút data sau tắt máy bay, đang chuẩn bị cài.**
+Đọc [AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md](AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md).
+UI cũ có thể giữ mẫu chưa đăng ký mạng vì thường chỉ đọc lại mỗi 60 giây khi data
+tắt. Bản mới theo dõi GET 2 giây/tối đa 2 phút lúc modem/SIM đăng ký, dừng khi sẵn
+sàng/ẩn trang/dialog, nói rõ lý do khóa nút. Không tự mở data hoặc nới safety gates.
+943 test PASS/2 skip, nhóm liên quan 81 PASS, JS syntax PASS. Browser fixture trên
+trang USB: dữ liệu radio giả lập sẵn sàng sau 8 giây; cũ còn khóa ở giây 12, mới
+mở ở 8,6 giây rồi dừng đọc nhanh. Không gọi fixture là hardware PASS.
+Một chu kỳ máy bay thật qua UI (theo yêu cầu sửa mới) đạt: on/off/data-on receipt
+đều COMPLETED, nút cũ mở sau khoảng 2,1 giây, không tái hiện kẹt lâu và không rút/
+reboot USB. Kiểm tra sau: SIM HTTPS/NAT/AP/USB/cấu hình/radio choice đạt, BAM active/on,
+không thêm lỗi resume. Chưa suy ra đã sửa mọi lỗi driver/SIM hoặc nghiệm thu phone.
+
 **23/11/2026 — cập nhật chủ mới nhất: đã có Internet sau airplane on/off + rút/cắm + data/AP on.**
 Chủ báo cả neverssl.com và 1.1.1.1 đều không mở được ở trạng thái lỗi, sau đó tự
 khôi phục bằng chuỗi trên và hiện có mạng. Đây là trạng thái mới nhất; các FAIL

@@ -1,5 +1,24 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 newest: data-button radio readiness follow-up, deployment pending
+
+Read [AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md](AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md).
+Owner's new request is to fix Data SIM remaining disabled after airplane-off.
+Old UI normally waited 60 seconds between reads with data off. New JS follows
+radio/SIM registration using GET only every two seconds for at most two minutes,
+stops fast reads when ready/hidden/in dialogs, explains disabled reasons and
+keeps all backend/consent/veto gates. No automatic data activation or reboot.
+
+943 local tests PASS/two skips, affected 81 PASS, JS syntax PASS. Real USB page
+with synthetic eight-second readiness: old button still locked at 12 seconds;
+candidate unlocked at 8.6 then stopped fast reads. Four widths/no JS errors or
+mutations. That is a fixture, not physical modem timing.
+One actual normal airplane UI cycle under this new fix request completed on/off/
+explicit data-on once each; the old button was ready at about 2.1 seconds, so the
+persistent lock did not reproduce. No reboot/unplug. Read-only postcheck passed
+SIM HTTPS, NAT/AP/USB, saved selection/radio choice and BAM active/on, no new
+resume errors. Do not claim all historical hardware faults or phone acceptance.
+
 ## 2026-11-23 latest: owner restored Internet using airplane cycle plus power reconnection
 
 Owner first confirmed both neverssl.com and direct 1.1.1.1 failed. The latest

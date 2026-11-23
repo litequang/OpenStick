@@ -442,3 +442,13 @@ def test_private_api_guards_and_read_only_open(quick):
         assert client.get('/api/quick/operation/'+identity,base_url=base,headers=headers).json['state'] == 'COMPLETED'
         assert client.post('/api/quick',base_url=base,headers=headers,
                           json={'action':'airplane_on','operation':identity,'confirm':True}).status_code == 409
+
+
+def test_airplane_off_registration_refresh_unlocks_data_without_automatic_activation():
+    import shutil,subprocess
+    from pathlib import Path
+    node=shutil.which('node')
+    if not node:pytest.skip('Node required for radio readiness UI regression')
+    result=subprocess.run([node,str(Path(__file__).with_name('radio_registration_ui_fixture.cjs'))],
+                          capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stdout+result.stderr
