@@ -1,5 +1,43 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: SIM session proof and BAM-DMUX usage installed
+
+Read [SIM_RECOVERY_RECHECK_2026_11_23.md](SIM_RECOVERY_RECHECK_2026_11_23.md)
+and [SIM_USAGE_BAM_DMUX.md](SIM_USAGE_BAM_DMUX.md). Network source `4125c2e` and
+accounting source `a368faa` are installed after both push/PR CI passed, including
+EXE. Final local full suite 902 PASS/two Windows skips, exit 0. Same UI branch,
+PR #7; no main/development merge or release. Earlier 21 November entries below
+are historical and do not supersede these checks.
+
+Captured failure: home LTE registration but NM disconnected, no bearer/data IP,
+and no persisted connection proof matching the selected revision. Explicit
+successful data-on now records proof before its receipt returns; AP saves carry
+same-boot proof and retry budget. The real worker recovered a controlled
+pre-first-poll disconnect during AP save in 42.8 seconds, one attempt. Bound SIM
+Internet and sharing forwarding passed. The owner's actual data-on/AP-save were
+about 38 hours apart: do not describe them as a witnessed 20-second race. This
+fix closes an observed state-management hole, not proof of why the modem first
+disconnected or that UI optimization caused it. Full profile equality was false:
+AP hidden/randomization/timestamp and cellular timestamp changed; SSID/PSK and
+other fields did not. No modem reset, operator/APN/band change, SMS or USSD.
+
+BAM-DMUX sysfs counters stayed zero under traffic; installed existing collector
+now uses typed cached connected-bearer byte stats. One real bound 1 MiB download
+was followed by RX +1,131,849 and TX +61,686 bytes, including protocol/background
+traffic. API and private 0600 v2 checkpoint advanced, preserving original totals
+and start date; no direct tick/reset/fabricated counter. History missed by old
+zeros cannot be backfilled. Rollback requires preserving current totals while
+downgrading the checkpoint, not restoring an older counter file.
+
+Real Chrome on overview/usage passed 320/390/768/1366 px, source/counts visible,
+no overflow/JS errors/mutations. Final 13 source hashes, 721 owner files and
+network/routes/firewall/DNS/gadget/services matched installation snapshot.
+SIM-bound Internet, AP, USB admin, saved radio and idle gates passed; synced.
+Only portals/startup worker restarted, no reboot, firmware, NM/MM/AP restart or
+package removal. Direct SIM small-download samples ~13.39/12.88 Mbps are not
+phone Speedtest or a bandwidth guarantee. Phone reacceptance pending, no cold
+power or long-duration stability test. No runtime/identity/credential committed.
+
 ## 2026-11-21 latest: serving LTE display installed from 9e78ce7
 
 Read [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Three reviewed files installed

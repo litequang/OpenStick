@@ -42,3 +42,36 @@ Rollback must preserve newly accumulated totals: stop the collector, archive its
 current private checkpoint, convert a valid v2 checkpoint to v1 with last=None
 and a continuity gap, then restore old source. Never restore an older total or
 allow old source to mistake modem counters for zero-valued netdev continuity.
+
+## Installed and physical acceptance
+
+Installed five reviewed files from **`a368faa70c8a82e89d87097aed841cf68e5d119e`**
+after [push CI](https://github.com/litequang/OpenStick/actions/runs/45095528104)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/45095532915) passed,
+including Windows EXE checks. Final complete local suite on that source:
+**902 PASS, two Windows skips, exit 0**. The network proof fix from `4125c2e`
+remains installed; no older network code was redeployed.
+
+The actual existing background collector selected modem_bearer_counters. A
+bounded 1 MiB HTTPS download bound to the SIM interface was followed by increases
+of 1,131,849 RX bytes and 61,686 TX bytes. These include protocol/background
+traffic, so they are not an exact payload-only meter. The real public overview
+API reflected the increase and the durable v2 checkpoint advanced. Original
+totals and start date were preserved, checkpoint permissions were 0600, and no
+private epoch/interface/boot/bearer fields appeared in the public usage object.
+No direct collector tick, fabricated reading or statistics reset was used.
+
+Real Chrome on the USB's overview and usage pages passed 320/390/768/1366 px:
+nonzero statistics and modem source visible, no horizontal overflow, JS error
+or mutating browser request. This is PC-browser acceptance, not a phone test.
+
+Final checks passed all 13 network/band/usage source hashes, 721 protected owner
+files and unchanged network/routes/firewall/DNS/gadget/services relative to this
+installation's snapshot. SIM-bound Internet, AP, removed no-uplink forwarding
+guard, saved radio choice and idle operation gates passed. Storage was synced.
+Only both portals and the existing startup worker restarted; no reboot, firmware,
+AP/NM/MM restart, package removal or rollback. A private source/checkpoint archive
+was retained on the device; no owner data or runtime files were committed.
+
+Historical usage missed by the old zero-valued driver counters cannot be
+reconstructed. No billing-accuracy or cold-power/long-duration stability claim.

@@ -115,3 +115,10 @@ data-on receipt. Do not represent the owner's actions as an observed rapid
 20-second race. The physical test deliberately exercised that race; the actual
 diagnosis established missing revision-matched proof and no bearer, not the
 precise timing/cause of the original modem disconnect.
+
+The separate [BAM-DMUX accounting fix](SIM_USAGE_BAM_DMUX.md), source `a368faa`,
+was subsequently installed and physically verified without changing the recovered
+network. Final checks still found SIM-bound Internet, AP sharing guard removed,
+saved radio and USB administration preserved. This is not confirmation that a
+phone can currently see the AP or access the Internet; owner reacceptance remains
+pending. No cold-power or long-duration test was performed in this session.

@@ -1,5 +1,36 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — đã sửa và cài phục hồi phiên SIM + thống kê dung lượng.**
+Đọc [SIM_RECOVERY_RECHECK_2026_11_23.md](SIM_RECOVERY_RECHECK_2026_11_23.md) và
+[SIM_USAGE_BAM_DMUX.md](SIM_USAGE_BAM_DMUX.md). Source mạng `4125c2e`, usage
+`a368faa`, nhánh UI/PR #7; cả hai có push/PR CI PASS, gồm Windows EXE. Suite cuối
+902 PASS/2 skip Windows, exit 0. Không merge main/dev hoặc tạo release.
+
+Lúc lỗi, SIM đăng ký LTE nhưng NM disconnected, không bearer/IP; proof phục hồi
+không khớp revision đang lưu. Bản mới ghi proof ngay trong giao dịch data-on và
+chuyển proof/budget qua lần lưu AP, không cần đợi poll. Phép thử race có kiểm soát
+trên USB giữ lock qua data-on/AP-save rồi ngắt một phiên: worker thật nối lại sau
+42,8 giây, Internet buộc qua SIM đạt, mở lại forwarding AP. Không kết luận nguyên
+nhân ban đầu làm rớt modem hoặc quy lỗi tối ưu UI; hành động thật của chủ cách nhau
+khoảng 38 giờ, không phải bằng chứng chủ thao tác race 20 giây. Profile toàn bộ
+không giữ nguyên: AP hidden/randomization/timestamp và cellular timestamp đổi;
+SSID/PSK và field khác không đổi. Không gọi phép so hash profile đó là PASS.
+
+BAM-DMUX trả sysfs RX/TX=0 dù có lưu lượng. Collector hiện đọc stats modem đúng
+bearer, v2 giữ tổng/ngày/tháng/start date, không cộng ngược phần lịch sử đã mất.
+USB thật tải 1 MiB: RX +1.131.849, TX +61.686 byte (gồm lưu lượng nền/protocol), API
+và checkpoint 0600 tăng; không manual tick/reset. Đã kiểm tra Chrome trang USB
+320/390/768/1366 px, không lỗi JS/overflow/mutation; không phải test điện thoại.
+
+Cài đặt và kiểm tra cuối giữ 721 file chủ, mạng/route/firewall/DNS/gadget; 13 hash
+mạng/band/usage đúng. SIM Internet, AP, USB admin, radio đã lưu đạt, sync xong.
+Chỉ restart hai portal + worker startup, không reboot/NM/MM/AP, firmware hay gỡ
+package. Hai mẫu tải trực tiếp SIM khoảng 13,39/12,88 Mbps, không phải Speedtest
+điện thoại hay cam kết tốc độ. Chờ chủ xác nhận lại Internet qua Wi-Fi điện thoại;
+chưa thử nguồn lạnh/soak. Số liệu ngày 21 bên dưới là lịch sử, không ghi đè kết quả
+ngày 23. Khi rollback usage v2 phải giữ tổng mới (xem tài liệu), không phục hồi bộ
+đếm cũ làm mất phần đã tích lũy.
+
 **21/11/2026 — đã cài hiển thị băng LTE thật, source `9e78ce7`.**
 Đọc [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Hai CI PASS gồm EXE; 877 test
 local PASS/2 skip Windows. Ba file thêm/sửa sau gói phục hồi SIM; không đổi mạng.
