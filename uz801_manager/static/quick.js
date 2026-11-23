@@ -25,6 +25,8 @@
     LOCAL_AP_UNAVAILABLE:'Wi-Fi nội bộ chưa sẵn sàng. Kiểm tra cấu hình và mật khẩu quản trị qua USB.'
   };
   Object.assign(errors,{
+    CELLULAR_TRANSPORT_POWER_ERROR:'Driver truyền dữ liệu SIM bị kẹt quản lý nguồn. Giữ kết nối USB; cần khởi động lại USB để xóa lỗi driver. Không tự gửi lại hoặc đổi APN.',
+    CELLULAR_TRANSPORT_UNAVAILABLE:'Chưa xác nhận được tầng truyền dữ liệu SIM. Giữ kết nối USB để kiểm tra; chưa bật lại phiên dữ liệu.',
     USB_NO_INTERNET:'Chưa có nguồn Internet hoạt động. Kết nối Wi-Fi nhà hoặc bật Dữ liệu SIM trước.',
     USB_DHCP_CONFLICT:'Dịch vụ cấp IP USB chưa sẵn sàng; giữ kết nối USB và kiểm tra lại.',
     USB_DHCP_RESTORE_FAILED:'Chưa khôi phục được dịch vụ cấp IP quản trị. Giữ nguyên cáp USB để kiểm tra.',
@@ -71,7 +73,7 @@
     tile('quick-airplane', airplane?(compact?'Đã yêu cầu tắt':'Đã yêu cầu tắt di động'):(compact?'Cho phép di động':'Di động được cho phép'), airplane, blocked);
     const wantsData = s.intent?.data_allowed === true && !airplane;
     const recovery = s.cellular_recovery || {};
-    const recoveryText = recovery.error==='STATE_INVALID'?'Lỗi trạng thái · cần kiểm tra USB':({WAITING_NETWORK:'Đang chờ đăng ký mạng',WAITING_RECONNECT:'Mất kết nối · chờ nối lại',ATTEMPTING:'Đang nối lại phiên SIM',UNKNOWN:'Mất mạng · tắt/bật để thử lại',LIMIT_REACHED:'Đã dừng tự nối · cần kiểm tra'})[recovery.phase] || 'Đã yêu cầu bật · chưa kết nối';
+    const recoveryText = s.cellular_transport?.error==='CELLULAR_TRANSPORT_POWER_ERROR'?'Lỗi driver dữ liệu · cần khởi động lại':s.cellular_transport?.error?'Chưa đọc được tầng dữ liệu':recovery.error==='STATE_INVALID'?'Lỗi trạng thái · cần kiểm tra USB':({WAITING_NETWORK:'Đang chờ đăng ký mạng',WAITING_RECONNECT:'Mất kết nối · chờ nối lại',ATTEMPTING:'Đang nối lại phiên SIM',UNKNOWN:'Mất mạng · tắt/bật để thử lại',LIMIT_REACHED:'Đã dừng tự nối · cần kiểm tra'})[recovery.phase] || 'Đã yêu cầu bật · chưa kết nối';
     tile('quick-data', s.mobile_data_connected?(compact?'Bật · Internet chưa đo':'Đã kết nối · Internet chưa xác minh'):wantsData?recoveryText:!s.radio.sim_ready?(compact?'Chưa có SIM':'Chưa có SIM sẵn sàng'):'Đang tắt', wantsData || s.mobile_data_connected, blocked || (!wantsData && !s.mobile_data_connected && (airplane || !s.radio.registered || !s.radio.sim_ready)));
     el('quick-data').dataset.connection=s.mobile_data_connected?'connected':wantsData?'pending':'off';
     const ap = ['local_ap','sim_ap'].includes(s.wifi_role);

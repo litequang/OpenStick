@@ -31,4 +31,9 @@ context.draw({...state,radio:{registered:true,sim_ready:true,state:11},mobile_da
 assert.equal(el('quick-data').dataset.connection,'connected');
 assert.match(tiles['quick-data'].text,/Internet chưa xác minh/);
 assert.match(tiles['quick-ap'].text,/có phiên SIM/);
+context.draw({...state,radio:{registered:true,sim_ready:true,state:11},
+ cellular_transport:{state:'error',error:'CELLULAR_TRANSPORT_POWER_ERROR'}});
+assert.equal(el('quick-data').dataset.connection,'pending');
+assert.match(tiles['quick-data'].text,/driver dữ liệu/);
+assert.match(tiles['quick-data'].text,/khởi động lại/);
 console.log('Recovery state and explicit data-off UI: PASS');

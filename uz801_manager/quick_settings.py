@@ -12,6 +12,7 @@ from .network_policy import NetworkPolicy
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .setup_ap import SETUP_UUID, SetupAP, SetupNetwork
 from . import ap_options
+from .cellular_transport import TransportPower, ERRORS as TRANSPORT_ERRORS
 
 ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off',
            'wifi_auto', 'wifi_saved', 'wifi_scan', 'wifi_connect', 'wifi_off')
@@ -28,6 +29,7 @@ ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED
            'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
 ERRORS.add('NETWORK_SAVE_FAILED')
 ERRORS |= ap_options.ERRORS
+ERRORS |= TRANSPORT_ERRORS
 from .ap_clients import ERRORS as CLIENT_ERRORS
 ERRORS |= CLIENT_ERRORS
 
@@ -93,6 +95,9 @@ class RadioControl:
             if enabled is not None:
                 if session in (2, 3):
                     raise RuntimeError('MODEM_BUSY')
+                if not enabled:
+                    try:TransportPower().release()
+                    except RuntimeError:pass  # Never prevent the owner's radio-off veto.
                 if enabled and not sim_ready:
                     return {'waiting_sim': True}
                 if enabled and state >= 5:
@@ -216,10 +221,12 @@ class QuickSettings:
         cell = self.network.active(controls[0]) if len(controls) == 1 else None
         tethering = self.tethering.status()
         pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or tethering.get('reboot_pending'))
+        transport = TransportPower().status()
         return {'intent': intent, 'radio': radio, 'startup': public(self.directory),
                 'cellular_recovery': recovery_status(self.directory),
+                'cellular_transport': transport,
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
-                'mobile_data_connected': bool(radio.get('registered') and cell == CELL_UUID
+                'mobile_data_connected': bool(not transport['error'] and radio.get('registered') and cell == CELL_UUID
                                               and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
                 'pending_network_trial': pending, 'internet_verified': False,
@@ -342,7 +349,8 @@ class QuickSettings:
                         if self.network.active('wlan0') == SETUP_UUID:self._start_shared_ap(control)
                         self.network.autoconnect(CELL_UUID, False)
                         try:self.network.up(CELL_UUID)
-                        except RuntimeError:raise RuntimeError('DATA_CONNECT_FAILED') from None
+                        except RuntimeError as error:
+                            raise RuntimeError(str(error) if str(error) in TRANSPORT_ERRORS else 'DATA_CONNECT_FAILED') from None
                         if not self.network.cellular_interface(control):
                             raise RuntimeError('QUICK_OPERATION_FAILED')
                         if not self.radio.status().get('registered'):
