@@ -220,6 +220,10 @@ class ModemManager:
             technology = optional(MODEM, 'AccessTechnologies')
             operator = optional(THREEGPP, 'OperatorName') if THREEGPP in interfaces else None
             registration = optional(THREEGPP, 'RegistrationState') if THREEGPP in interfaces else None
+            if THREEGPP in interfaces:
+                # UZ801 may retain core State=connected and a bearer while NAS
+                # is already searching another network. The 3GPP status wins.
+                registered = registered and registration is not None and int(registration) in (1, 5, 6, 7, 9, 10)
             from .radio_network import band_choices, roaming_status, set_roaming
             from .hotspot import Hotspot
             owner = Hotspot()
@@ -229,7 +233,9 @@ class ModemManager:
             status = {'state': STATES.get(state, 'unknown'), 'sim_present': present,
                       'sim_missing': failed_reason == 2, 'sim_locked': present and not unlocked,
                       'secondary_lock': {3: 'pin2', 5: 'puk2'}.get(unlock),
-                      'operator_name': str(operator)[:80] if operator is not None else None,
+                      # Some UZ801 firmware keeps a scanned/rejected carrier
+                      # name after deregistration. It is not a serving network.
+                      'operator_name': str(operator)[:80] if registered and operator is not None else None,
                       'registration_state': int(registration) if registration is not None else None,
                       'access_technologies': int(technology) if technology is not None else None,
                       'signal_percent': signal, 'signal_recent': recent,
@@ -248,6 +254,17 @@ class ModemManager:
                       'can_set_mode': present and unlocked and state >= 6 and bool(modes),
                       'mobile_data': 'UNVERIFIED_NOT_CONFIGURED', 'verification': 'UNVERIFIED'}
             if action == 'status':
+                status['serving_lte'] = []
+                cell_info_declared = any(n.get('name') == MODEM and
+                    any(m.get('name') == 'GetCellInfo' for m in n.findall('method'))
+                    for n in xml.findall('interface'))
+                if (present and unlocked and registered and technology is not None
+                        and int(technology) & 16384 and session not in (2, 3) and cell_info_declared):
+                    try:
+                        from .serving_lte import serving_lte
+                        status['serving_lte'] = serving_lte(invoke(path, MODEM, 'GetCellInfo', timeout=3))
+                    except Exception:
+                        pass  # Unsupported/timeouts never fail other status or leak raw cell data.
                 if ussd:
                     status['ussd_prompt'] = str(get(USSD, 'NetworkRequest'))[:8192]
                     status['ussd_notification'] = str(get(USSD, 'NetworkNotification'))[:8192]

@@ -125,7 +125,9 @@ def activate(backend, identity):
         profile = configparser.ConfigParser(interpolation=None)
         profile.read_string(path.read_text())
         if (profile.get('connection', 'uuid') != identity or profile.get('wifi', 'mode') != 'ap'
-                or profile.getboolean('wifi', 'hidden') != value['hidden']
+                # NM omits default-valued hidden=false when rewriting keyfiles.
+                # Absence means false; a saved hidden=true must still fail closed.
+                or profile.getboolean('wifi', 'hidden', fallback=False) != value['hidden']
                 or profile.getint('wifi', 'ap-isolation') != int(value['isolation'])):raise ValueError()
     except (OSError, ValueError, configparser.Error):
         raise RuntimeError('AP_OPTIONS_INVALID') from None

@@ -23,6 +23,9 @@ jobs:
       - run: node --check uz801_manager/static/portal_nav.js
       - run: node --check uz801_manager/static/internet.js
       - run: node --check uz801_manager/static/website.js
+      - run: node --check uz801_manager/static/settings_sidebar.js
+      - run: node --check uz801_manager/static/website_filegator.js
+      - run: node --check uz801_manager/static/sim_usage.js
       - run: python -m uz801_manager --self-test
       - run: python -m PyInstaller --noconfirm --onefile --name UZ801-OpenStick-Manager --collect-data uz801_manager launcher.py
       - run: .\dist\UZ801-OpenStick-Manager.exe --self-test

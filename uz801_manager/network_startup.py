@@ -166,6 +166,9 @@ class NetworkStartup:
                     write(done=True,phase='RESTORE_FAILED',error='DATA_CONNECT_FAILED');return
                 if role=='ap':q.ap_forwarding(True)
                 q.tethering.update_uplinks()
+                if q.radio.status().get('registered'):
+                    from .cellular_recovery import record_selection
+                    record_selection(self.directory,config,self.boot(),connected=True)
                 write(done=True,phase='RESTORED',data_connected=True,error=None)
             except Exception:
                 write(phase='RESTORE_FAILED',error='DATA_CONNECT_FAILED',done=state['data_attempted'])
@@ -179,17 +182,25 @@ def main():
     signal.signal(signal.SIGTERM, terminate)
     backend=NetworkStartup()
     from .ap_clients import ApClients
+    from .log_retention import LogRetention
     clients=ApClients()
+    logs=LogRetention()
+    from .cellular_recovery import CellularRecovery
+    recovery=CellularRecovery(backend.quick)
     with background() as usage, power_background(usage.checkpoint if usage else lambda:False) as power:
         while True:
             try:power_pending=bool(power and power.pending())
             except RuntimeError:power_pending=False  # Corrupt power state never kills saved-network replay.
             if power_pending:
                 time.sleep(1);continue
+            try:logs.tick()
+            except Exception:pass  # Log retention must never interrupt network/power recovery.
             try:clients.tick()
             except Exception:pass
             try:backend.tick()
             except Exception:pass  # Never log identifiers, credentials or subprocess output.
+            try:recovery.tick()
+            except Exception:pass  # Recovery never kills power/usage/boot workers.
             time.sleep(5)
 
 

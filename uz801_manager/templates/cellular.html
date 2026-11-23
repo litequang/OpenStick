@@ -1,5 +1,6 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — APN tùy chỉnh</title></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>APN tùy chỉnh</h1><a href="/modem/network">← Mạng SIM</a></div>
 <section><h2>Các cấu hình APN đã lưu</h2>
 <p>Tạo cấu hình có tên riêng cho từng SIM hoặc gói cước. <strong>Lưu vào danh sách không thay APN đang dùng</strong>, không bật dữ liệu và không cần lắp SIM. Khi đổi SIM, chọn cấu hình phù hợp rồi bấm Áp dụng; không tự nhận diện SIM hay tự chọn cấu hình.</p>
@@ -25,4 +26,5 @@
 <button id="cellular-save">Lưu vào danh sách</button></fieldset></form>
 <p id="cellular-result" role="status" aria-live="polite">Đang đọc cấu hình…</p>
 <p><a href="/quick">Bật dữ liệu SIM trong Cài đặt nhanh →</a></p></section>
-<script src="/static/cellular.js"></script></main></body></html>
+<script src="{{ portal_asset('cellular.js') }}"></script></div></div>
+</main></body></html>

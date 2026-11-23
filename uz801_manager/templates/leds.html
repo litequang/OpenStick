@@ -1,5 +1,6 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenStick — Đèn thông báo</title></head><body><main>
 {% include 'portal_chrome.html' %}
+{% include 'settings_workspace_start.html' %}
 <div class="page-title"><h1>Đèn thông báo</h1><button id="led-refresh" class="secondary" type="button">Đọc lại</button></div>
 <p>Chọn trạng thái mạng, chọn style ánh sáng rồi lưu. USB tự áp dụng quy tắc đã lưu khi trạng thái thay đổi. Ba LED là các kênh bật/tắt riêng, không hỗ trợ làm mờ liên tục.</p>
 <p id="led-notice" class="notice" role="status" aria-live="polite">Đang đọc các đèn có thể điều khiển…</p>
@@ -30,12 +31,13 @@
 <p class="metric-note">Lưu giữ lựa chọn cho mọi trạng thái bạn vừa sửa và dùng lại sau khi cấp nguồn. Nếu nhiều kết nối cùng hoạt động, USB chọn một bộ theo thứ tự: hotspot cài đặt → hotspot SIM → nhận Wi-Fi → dữ liệu SIM.</p>
 </fieldset></form>
 <p class="metric-note">Nhận Wi-Fi là đã kết nối và có IP, kể cả khi mất Internet. Dữ liệu SIM là đã thiết lập kết nối, khác với chỉ có sóng 4G và chưa tự xác nhận Internet. Hotspot cài đặt chỉ báo đúng vai trò đang phát.</p>
-<details class="ux-advanced"><summary>Chế độ cố định và hoạt động Wi-Fi của driver</summary><p>Lưu phần này sẽ tắt tự đổi theo trạng thái. Các quy tắc mạng vẫn được giữ để bật lại.</p>
+<details class="ux-advanced" id="led-fixed-panel"><summary>Chế độ cố định và hoạt động Wi-Fi của driver</summary><p>Lưu phần này sẽ tắt tự đổi theo trạng thái. Các quy tắc mạng vẫn được giữ để bật lại.</p>
 <form id="led-form"><fieldset id="led-fields" disabled style="border:0;padding:0;min-width:0">
 <div id="led-controls" class="manage-grid"></div>
 <p class="ux-action-row"><button id="led-save" type="submit">Lưu chế độ cố định</button><button id="led-all-off" class="secondary" type="button">Chọn tắt tất cả</button><button id="led-default" class="secondary" type="button">Chọn mặc định</button></p>
 </fieldset></form>
 <p class="metric-note">Mặc định khôi phục trạng thái trước lần lưu tùy chỉnh đầu tiên. Đèn không có độ sáng liên tục; hoạt động Wi-Fi của driver không xác nhận Internet.</p></details>
 <p class="metric-note">Đọc lại sẽ bỏ các lựa chọn chưa lưu.</p>
-<script>const ledToken={{ token|tojson }};</script><script src="/static/leds.js"></script>
+<script>const ledToken={{ token|tojson }};</script><script src="{{ portal_asset('leds.js') }}"></script>
+</div></div>
 </main></body></html>

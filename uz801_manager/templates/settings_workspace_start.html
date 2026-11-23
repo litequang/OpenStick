@@ -1,0 +1,15 @@
+{# One settings shell on all detail pages. The same four-category menu is
+   rendered as cards on /manage and as a persistent rail here. #}
+<script src="{{ portal_asset('settings_sidebar.js') }}" defer></script>
+<div class="settings-workspace" data-settings-workspace="true">
+  <aside class="settings-navigation" aria-label="Các mục quản lý USB">
+    <details class="settings-navigation-drawer" id="settings-submenu-toggle" open>
+      <summary class="settings-navigation-trigger">
+        <span>Danh mục cài đặt</span>
+        <strong id="settings-current-item">Chọn chức năng</strong>
+      </summary>
+      {% set menu_mode = 'sidebar' %}
+      {% include 'settings_menu.html' %}
+    </details>
+  </aside>
+  <div class="settings-workspace-content">

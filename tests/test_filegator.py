@@ -112,7 +112,88 @@ def test_bridge_inherits_real_lan_auth_origin_and_credential_rotation(tmp_path,m
     csrf=re.search(r'name="csrf" value="([^"]+)"',page.text)[1]
     assert client.post('/login',base_url=base,headers={'Origin':base},
                        data={'csrf':csrf,'password':'fixture-password-123'}).status_code==302
-    page=client.get('/website',base_url=base)
+    page=client.get('/website/files',base_url=base)
     assert b'id="web-filegator"' in page.data
     settings.configure('fixture-new-password-123')
     assert client.get('/files/main/',base_url=base).status_code==403
+
+
+def test_embedding_is_same_origin_and_only_file_manager_page_can_host_frames(tmp_path,monkeypatch):
+    from uz801_manager import filegator
+    monkeypatch.setattr(filegator,'installed',lambda:True)
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),
+                          token='fixture',usb_portal=True,modem_backend=object(),authority='127.0.0.1:8765')
+    client=app.test_client();base='http://127.0.0.1:8765'
+    # Unknown site is rejected before any upstream connection; the same header
+    # policy wraps every bridge response, including errors and streamed HTML.
+    child=client.get('/files/unknown/',base_url=base)
+    assert child.status_code==400
+    assert child.headers['X-Frame-Options']=='SAMEORIGIN'
+    assert "frame-ancestors 'self'" in child.headers['Content-Security-Policy']
+    assert "script-src 'self';" in child.headers['Content-Security-Policy']
+    for path in ['/website/files','/website/uploads']:
+        parent=client.get(path,base_url=base)
+        assert parent.status_code==200
+        assert "frame-src 'self'" in parent.headers['Content-Security-Policy']
+        assert "frame-ancestors 'none'" in parent.headers['Content-Security-Policy']
+        assert parent.headers['X-Frame-Options']=='DENY'
+    for path in ['/website','/overview','/login']:
+        other=client.get(path,base_url=base)
+        assert "frame-src 'self'" not in other.headers['Content-Security-Policy']
+        assert other.headers['X-Frame-Options']=='DENY'
+
+
+def test_only_public_fingerprinted_filegator_assets_can_be_cached(tmp_path,monkeypatch):
+    from uz801_manager import filegator
+    register=filegator.register_filegator
+    class Connection:
+        cookie=False
+        def __init__(self,*a,**kw):pass
+        def request(self,*a,**kw):pass
+        def getresponse(self):
+            reply=io.BytesIO(b'fixture');reply.status=200
+            reply.getheaders=lambda:[('Content-Type','application/javascript')]+([('Set-Cookie','filegator=private')] if self.cookie else [])
+            return reply
+        def close(self):pass
+    monkeypatch.setattr(filegator,'register_filegator',lambda app,panel:register(app,panel,enabled=True,connection=Connection))
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),token='fixture',usb_portal=True)
+    c=app.test_client();base='http://172.16.42.1'
+    r=c.get('/files/main/js/app.1234abcd.js',base_url=base);assert r.data==b'fixture'
+    assert 'immutable' in r.headers['Cache-Control']
+    for path in ['/files/main/','/files/main/?r=/getdir','/files/main/js/app.js',
+                 '/files/main/js/app.1234abcd.js?r=/download','/files/unknown/js/app.1234abcd.js']:
+        r=c.get(path,base_url=base);r.get_data();assert r.headers['Cache-Control']=='no-store'
+    Connection.cookie=True
+    r=c.get('/files/main/js/app.1234abcd.js',base_url=base);r.get_data()
+    assert r.headers['Cache-Control']=='no-store'
+
+
+def test_plain_filegator_bundle_urls_are_versioned_without_caching_private_html(tmp_path,monkeypatch):
+    import hashlib
+    from uz801_manager import filegator
+    package=tmp_path/'package';(package/'dist/js').mkdir(parents=True)
+    (package/'dist/js/app.js').write_bytes(b'public code')
+    version=hashlib.sha256(b'public code').hexdigest()[:24]
+    monkeypatch.setattr(filegator,'MARKER',package/'installed.json')
+    register=filegator.register_filegator
+    class Connection:
+        def __init__(self,*a,**kw):pass
+        def request(self,method,path,**kw):self.path=path
+        def getresponse(self):
+            reply=io.BytesIO(b'<script src="js/app.js?1794887265"></script>' if self.path=='/' else b'public code')
+            reply.status=200;reply.getheaders=lambda:[('Content-Type','text/html' if self.path=='/' else 'application/javascript')]
+            return reply
+        def close(self):pass
+    monkeypatch.setattr(filegator,'register_filegator',lambda app,panel:register(app,panel,enabled=True,connection=Connection))
+    root=tmp_path/'public';root.mkdir()
+    app=create_hosting_app(backend=object(),site_backend=StaticSite(root,lock_path=None),usb_portal=True)
+    c=app.test_client();base='http://172.16.42.1'
+    html=c.get('/files/main/',base_url=base)
+    assert html.status_code==200 and 'js/app.js?v='+version in html.text
+    assert html.headers['Cache-Control']=='no-store'
+    assert 'immutable' in c.get('/files/main/js/app.js?v='+version,base_url=base).headers['Cache-Control']
+    for suffix in ['', '?v=old', '?v='+version+'&r=/getconfig']:
+        r=c.get('/files/main/js/app.js'+suffix,base_url=base);r.get_data()
+        assert r.headers['Cache-Control']=='no-store'

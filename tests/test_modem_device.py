@@ -154,12 +154,66 @@ def test_signal_and_registration_are_read_only_and_missing_data_is_unknown(make_
     assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
 
 
+@pytest.mark.parametrize('state', [6, 7])
+def test_unregistered_scanned_operator_is_not_a_serving_network(make_modem, state):
+    bus = Bus(state=state)
+    bus.props[THREEGPP].update(RegistrationState=0, OperatorName='VIETTEL')
+    status = make_modem(bus).call('status')
+    assert status['operator_name'] is None
+    assert not status['registered'] and not status['can_send']
+    assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
+
+
+@pytest.mark.parametrize('registration', [0, 2, 3, 4, 8, None])
+def test_connected_core_state_cannot_override_missing_3gpp_registration(make_modem, registration):
+    bus = Bus(state=11)
+    bus.props[THREEGPP].update(OperatorName='VIETTEL', RegistrationState=registration)
+    if registration is None:del bus.props[THREEGPP]['RegistrationState']
+    status = make_modem(bus).call('status')
+    assert not status['registered']
+    assert status['operator_name'] is None
+    assert not status['can_send'] and not status['can_ussd']
+    assert all(c[2] in ('Get', 'Introspect') for c in bus.calls)
+
+
 def test_active_ussd_cannot_be_replaced_by_new_code(make_modem, tmp_path):
     bus = Bus(session=3)
     with pytest.raises(RuntimeError, match='USSD_SESSION_STATE'):
         make_modem(bus).call(**request('ussd_start', code='*101#'))
     assert not list(tmp_path.iterdir())
     assert not any(c[2] == 'Initiate' for c in bus.calls)
+
+
+def test_serving_lte_query_is_optional_read_only_and_filters_private_cells(make_modem):
+    class CellsBus(Bus):
+        fail = False
+
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method == 'GetCellInfo':
+                self.calls.append((path,interface,method,signature,args))
+                assert kwargs['timeout'] == 3
+                if self.fail:raise TimeoutError('private cell detail')
+                return [{'serving':True,'cell-type':5,'earfcn':1501,'ci':'private-cell'},
+                        {'serving':False,'cell-type':5,'earfcn':1874}]
+            result = super().call_blocking(service,path,interface,method,signature,args,**kwargs)
+            if method == 'Introspect' and path != ROOT+'/Modem':
+                result = result.replace(f'<interface name="{MODEM}"/>',
+                    f'<interface name="{MODEM}"><method name="GetCellInfo"/></interface>')
+            return result
+
+    bus = CellsBus()
+    status = make_modem(bus).call('status')
+    assert status['serving_lte'] == [{'band':3,'nominal_mhz':1800,'earfcn':1501,'downlink_mhz':1835.1}]
+    assert 'private-cell' not in json.dumps(status)
+    assert all(c[2] in ('Get','Introspect','GetCellInfo') for c in bus.calls)
+    bus.fail = True
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    bus.calls.clear();bus.props[THREEGPP]['RegistrationState'] = 2
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    assert not any(c[2] == 'GetCellInfo' for c in bus.calls)
+    bus.calls.clear();bus.props[THREEGPP]['RegistrationState'] = 1;bus.props[USSD]['State'] = 2
+    assert make_modem(bus).call('status')['serving_lte'] == []
+    assert not any(c[2] == 'GetCellInfo' for c in bus.calls)
 
 
 @pytest.mark.parametrize('name,code,failure', [

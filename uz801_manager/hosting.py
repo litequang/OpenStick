@@ -243,6 +243,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
             or not re.fullmatch(r'[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,63}', hostname)):
         raise ValueError('Invalid website hostname')
     app = Flask(__name__)
+    from .portal_assets import install_assets, public_asset_response
+    install_assets(app)
     backend = backend or LinuxWifi(private_dir)
     token = token or secrets.token_urlsafe(32)
     lock = threading.Lock()
@@ -289,6 +291,7 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
                 'portal_has_website': usb_portal and site_backend is not None,
                 'portal_has_quick': usb_portal and quick_backend is not None,
                 'portal_has_power':usb_portal and power_backend is not None,
+                'portal_lan_enabled': usb_portal and (lan_settings is not None or lan_auth is not None),
                 'portal_settings_features': {'wifi': setup_backend is not None,
                                              'network': modem_backend is not None,
                                              'internet': network_backend is not None,
@@ -297,7 +300,8 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
 
     @app.after_request
     def headers(response):
-        response.headers['Cache-Control'] = 'no-store'
+        response.headers['Cache-Control'] = ('public, max-age=31536000, immutable'
+            if public_asset_response(app, response) else 'no-store')
         # Native login/logout form POSTs use no-cors mode. With no-referrer,
         # browsers serialize Origin as "null", failing our strict origin check.
         # same-origin preserves the origin locally and sends no referrer outside.
@@ -308,7 +312,10 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         response.headers['Content-Security-Policy'] = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action " + form_action + "; frame-ancestors 'none'; base-uri 'none'"
         if request.path.startswith('/files/'):
             from .filegator import CONTENT_SECURITY_POLICY
+            response.headers['X-Frame-Options'] = 'SAMEORIGIN'
             response.headers['Content-Security-Policy'] = CONTENT_SECURITY_POLICY
+        elif request.path in ('/website/files','/website/uploads'):
+            response.headers['Content-Security-Policy'] += "; frame-src 'self'"
         return response
 
     @app.get('/')
@@ -389,6 +396,14 @@ def create_hosting_app(private_dir=None, *, backend=None, token=None, port=8770,
         @app.get('/overview')
         def overview():
             return render_template('overview.html', token=token, page='overview', hostname=hostname)
+        @app.get('/sim/usage')
+        def sim_usage_page():
+            return render_template('sim_usage.html', token=token, page='usage')
+        @app.get('/settings/access')
+        def access_page():
+            if lan_settings is None and lan_auth is None:return jsonify(error='NOT_FOUND'),404
+            return render_template('access.html', token=token, page='manage',
+                                   can_manage_lan=lan_settings is not None and lan_auth is None)
         @app.get('/manage')
         def manage():
             features = {'network': network_backend is not None, 'setup': setup_backend is not None,

@@ -423,9 +423,9 @@ class SetupAP(Hotspot):
                 finally:
                     if not keep:(self.directory / 'setup-pending.json').unlink(missing_ok=True)
                 return
-            active = self.network.active('wlan0')
             from .network_startup import owns_wifi
             if owns_wifi(self.directory):return
+            active = self.network.active('wlan0')
             if active == SETUP_UUID and self.network.ready():
                 if not self.lan_ready():self.stop()
                 else:self.network.local_services(True)

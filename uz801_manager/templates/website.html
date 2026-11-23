@@ -2,13 +2,15 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OpenStick — Web Hosting</title></head><body><main class="web-panel">
 {% include 'portal_chrome.html' %}
-<link rel="stylesheet" href="/static/website.css">
+<link rel="stylesheet" href="{{ portal_asset('website.css') }}">
+{% include 'settings_workspace_start.html' %}
+{% if filegator_enabled|default(false) %}{% include 'website_filegator.html' %}{% else %}<div class="website-legacy-leaf" data-website-view="{{ website_view|default('summary') }}">
 <div class="web-heading"><div><p class="web-eyebrow">OPENSTICK HOSTING</p><h1>Không gian website</h1><p>Quản lý website tĩnh, bộ mã và tên miền trên USB.</p></div><button id="web-create">＋ Tạo website</button></div>
 <div id="web-status" class="notice" role="status" aria-live="polite">Đang đọc website…</div>
 <div id="web-recovery" hidden><p class="web-note">Có lần giải nén chưa hoàn tất. Các thao tác ghi đang khóa để giữ bản sao khôi phục. Hãy giữ nguyên USB.</p><button id="web-recover-zip" class="secondary">Khôi phục trước lần giải nén dở</button></div>
 <div class="web-site-bar"><label for="web-site">Website đang quản lý<select id="web-site" disabled></select></label><a id="web-public" target="_blank" rel="noopener noreferrer" hidden>Mở website ↗</a><button id="web-configure" class="secondary">Thông tin website</button></div>
 <div class="web-metrics"><div><span>Dung lượng website</span><strong id="web-usage">—</strong><meter id="web-meter" min="0" max="268435456" value="0" aria-label="Dung lượng website"></meter></div><div><span>File &amp; thư mục</span><strong id="web-count">—</strong><small>Tối đa 2.000 mục / website</small></div><div><span>Tên miền</span><strong id="web-domain-count">—</strong><small id="web-route-state">Chưa đọc cấu hình</small></div></div>
-<nav class="web-tabs" aria-label="Công cụ website"><button data-web-tab="files" aria-pressed="true">File manager</button><button data-web-tab="uploads" aria-pressed="false" {% if filegator_enabled %}style="display:none"{% endif %}>Tải lên &amp; giải nén</button><button data-web-tab="domains" aria-pressed="false">Tên miền</button></nav>
+<nav class="web-tabs" aria-label="Công cụ website"><button data-web-tab="files" aria-pressed="true">File manager</button><button data-web-tab="uploads" aria-pressed="false">Tải lên &amp; giải nén</button><button data-web-tab="domains" aria-pressed="false">Tên miền</button></nav>
 <div id="web-pane-files" class="web-pane">
 {% if filegator_enabled %}<section><h2>FileGator</h2><p>Tải file hoặc ZIP, giải nén, sửa mã, tạo thư mục, sao chép, di chuyển và xóa trong website đang chọn.</p><p><a id="web-filegator" class="ux-link-cta" href="/files/main/">Mở trình quản lý file →</a></p><p class="web-note">ZIP: tải lên → chọn file ZIP → Giải nén. Thay đổi file có hiệu lực ngay trên website. <a href="https://github.com/filegator/filegator" target="_blank" rel="noopener noreferrer">FileGator 7.16.9 · MIT</a></p></section>{% endif %}
 <div class="web-workspace" {% if filegator_enabled %}style="display:none"{% endif %}>
@@ -41,4 +43,6 @@
 <dialog id="web-site-dialog" aria-labelledby="web-site-title"><form id="web-site-form"><h2 id="web-site-title">Tạo website</h2><label for="web-site-name">Tên website<input id="web-site-name" required maxlength="60" autocomplete="off"></label><label for="web-site-domains">Tên miền, mỗi dòng một tên<textarea id="web-site-domains" rows="4" placeholder="web.example.com&#10;www.example.com" spellcheck="false"></textarea></label><p id="web-site-help" class="web-note">Có thể để trống tên miền và tải bộ mã trước. Lưu ở đây chưa thay đổi Nginx, Tunnel hoặc DNS.</p><div class="web-dialog-actions"><button type="button" id="web-site-cancel" class="secondary">Hủy</button><button type="submit">Lưu website</button></div></form></dialog>
 <dialog id="web-path-dialog" aria-labelledby="web-path-title"><form id="web-path-form"><h2 id="web-path-title">Thao tác file</h2><label for="web-target">Đường dẫn đích<input id="web-target" required maxlength="240" autocomplete="off"></label><p id="web-path-help" class="web-note"></p><div class="web-dialog-actions"><button type="button" id="web-path-cancel" class="secondary">Hủy</button><button type="submit">Xác nhận</button></div></form></dialog>
 <p class="web-note web-footer">Tối đa 8 website tĩnh. Website hiện tại được giữ tại thư mục cũ; website mới có thư mục riêng. Mở panel không tự xuất bản hoặc thay đổi kết nối mạng.</p>
-<script src="/static/website.js"></script></main></body></html>
+<script src="{{ portal_asset('website.js') }}"></script>
+</div>{% endif %}</div></div>
+</main></body></html>

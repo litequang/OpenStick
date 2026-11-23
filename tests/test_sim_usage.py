@@ -90,6 +90,42 @@ def test_source_failure_is_unknown_not_zero_and_recovery_does_not_double_count(m
     source.value=previous;assert tick(20,30)['total']['total_bytes']==350
 
 
+def test_modem_source_switch_and_reconnect_epoch_preserve_history_without_backfill(meter):
+    c,source,_,tick,_=meter
+    tick();tick(100,200)
+    source.value.update(source='modem_bearer',epoch='7:1:1795000000',rx=70000000,tx=30000000)
+    result=tick()
+    assert result['total']['total_bytes']==300 and result['continuity_gaps']==1
+    result=tick(1024,2048)
+    assert result['source']=='modem_bearer_counters' and result['total']['total_bytes']==3372
+    assert '1795000000' not in json.dumps(result) and 'epoch' not in json.dumps(result)
+    source.value.update(epoch='7:2:1795000100',rx=90000000,tx=40000000)
+    assert tick()['total']['total_bytes']==3372
+    assert tick(5,6)['total']['total_bytes']==3383
+    assert usage.valid_state(c.state) and c.state['version']==2
+
+
+def test_version_one_checkpoint_migrates_without_losing_history(meter):
+    c,source,clock,tick,_=meter
+    tick();tick(123,456);c.flush(force=True)
+    state=json.loads(c.path.read_text());state['version']=1
+    state['last'].pop('source');state['last'].pop('epoch');c.path.write_text(json.dumps(state))
+    assert usage.valid_state(state)
+    fresh=usage.Collector(c.path.parent,c.runtime.parent,source=source,
+                          clock=lambda:clock.wall,monotonic=lambda:clock.mono)
+    fresh.sample();fresh.flush(force=True)
+    assert fresh.state['version']==2 and fresh.state['total']==[123,456]
+    assert usage.valid_state(json.loads(c.path.read_text()))
+
+
+@pytest.mark.parametrize('value',[{}, {'rx':-1}, {'boot':None,'interface':'wwan0','index':1,'rx':0,'tx':0}])
+def test_malformed_counter_sample_is_unknown_and_keeps_existing_totals(meter,value):
+    c,source,clock,tick,root=meter
+    tick();tick(100,200);source.value=value
+    c.sample();result=usage.snapshot(root,now=lambda:clock.wall)
+    assert result['error']=='USAGE_SOURCE_UNAVAILABLE' and result['total']['total_bytes']==300
+
+
 def test_vietnam_day_month_rollover_and_clock_jump_do_not_reuse_old_period(meter):
     c,source,clock,tick,root=meter
     clock.wall=datetime(2026,11,30,16,59,50,tzinfo=timezone.utc).timestamp()
@@ -193,6 +229,28 @@ def test_counter_source_timeout_is_not_a_valid_sample(tmp_path):
     with pytest.raises(subprocess.TimeoutExpired):usage.CounterSource(tmp_path,run=timeout).read()
 
 
+def test_bam_dmux_uses_modem_counters_and_never_silently_falls_back_to_zero(tmp_path,monkeypatch):
+    base=tmp_path/'sys/class/net/wwan0';(base/'statistics').mkdir(parents=True)
+    for name,value in [('ifindex','7'),('statistics/rx_bytes','0'),('statistics/tx_bytes','0')]:
+        (base/name).write_text(value)
+    boot=tmp_path/'proc/sys/kernel/random/boot_id';boot.parent.mkdir(parents=True);boot.write_text(BOOT)
+    driver=base/'device/driver';driver.mkdir(parents=True)
+    resolve=usage.Path.resolve
+    monkeypatch.setattr(usage.Path,'resolve',lambda p,*a,**kw:usage.Path('/drivers/bam-dmux') if p==driver else resolve(p,*a,**kw))
+    def run(args,**kw):
+        text='wwan0:gsm' if args[-1]=='status' else '100 (connected)\nwwan0'
+        return subprocess.CompletedProcess(args,0,text,'')
+    def modem(interface):
+        assert interface=='wwan0'
+        return {'rx':123456,'tx':654321,'epoch':'7:3:1795000000'}
+    source=usage.CounterSource(tmp_path,run=run,bearer_read=modem)
+    value=source.read()
+    assert value['source']=='modem_bearer' and value['rx']==123456 and value['tx']==654321
+    def fail(interface):raise ValueError('unavailable')
+    source.bearer_read=fail
+    with pytest.raises(ValueError):source.read()
+
+
 @pytest.mark.parametrize('interface',['wwan0','rmnet_data0','wlan0','usb0','lo','../private','wwan0;id'])
 def test_source_only_reads_confirmed_cellular_device_and_uses_readonly_commands(tmp_path,interface):
     base=tmp_path/'sys/class/net'/interface
@@ -256,7 +314,7 @@ def test_partial_inventory_and_changed_link_are_unknown_not_idle(tmp_path):
 def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypatch):
     from contextlib import contextmanager
     import signal
-    from uz801_manager import network_startup,ap_clients,device_power
+    from uz801_manager import network_startup,ap_clients,device_power,cellular_recovery
     events=[]
     @contextmanager
     def background():
@@ -267,9 +325,10 @@ def test_background_is_started_only_by_worker_and_closed_on_worker_exit(monkeypa
     from contextlib import nullcontext
     monkeypatch.setattr(device_power,'background',lambda checkpoint:nullcontext(None))
     monkeypatch.setattr(signal,'signal',lambda *args:None)
-    monkeypatch.setattr(network_startup,'NetworkStartup',lambda:SimpleNamespace(tick=lambda:events.append('startup_tick')))
+    monkeypatch.setattr(network_startup,'NetworkStartup',lambda:SimpleNamespace(quick=object(),tick=lambda:events.append('startup_tick')))
+    monkeypatch.setattr(cellular_recovery,'CellularRecovery',lambda quick:SimpleNamespace(tick=lambda:events.append('recovery_tick')))
     monkeypatch.setattr(ap_clients,'ApClients',lambda:SimpleNamespace(tick=lambda:events.append('clients_tick')))
     def stop(seconds):raise SystemExit(0)
     monkeypatch.setattr(network_startup.time,'sleep',stop)
     with pytest.raises(SystemExit):network_startup.main()
-    assert events==['collector_started','clients_tick','startup_tick','collector_closed']
+    assert events==['collector_started','clients_tick','startup_tick','recovery_tick','collector_closed']

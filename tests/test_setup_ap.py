@@ -388,3 +388,14 @@ def test_setup_dnsmasq_excludes_nm_loopback_resolver():
     assert '--except-interface=lo' in options
     assert '--interface=wlan0' in options
     assert '--bind-dynamic' in options
+
+
+def test_saved_wifi_ownership_skips_passive_nm_read_but_not_pending_action(setup,monkeypatch):
+    backend,network,clock=setup
+    monkeypatch.setattr('uz801_manager.network_startup.owns_wifi',lambda directory:True)
+    original=network.active
+    monkeypatch.setattr(network,'active',lambda *a:pytest.fail('No idle NM read when another owner controls Wi-Fi'))
+    backend.tick()
+    monkeypatch.setattr(network,'active',original)
+    backend.call('start',confirm=True);clock[0]+=3;backend.tick()
+    assert network.wifi==SETUP_UUID  # Pending explicit work still runs before idle early return.

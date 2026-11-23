@@ -20,6 +20,7 @@ from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .cellular_profile import FIELDS as CELLULAR_FIELDS, validate_cellular
 from .apn_profiles import ApnProfiles, ERRORS as APN_ERRORS, valid_id
 from . import ap_options
+from .cellular_transport import TransportPower, ERRORS as TRANSPORT_ERRORS
 
 AP_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/hotspot'))
 CELL_UUID = str(uuid.uuid5(uuid.NAMESPACE_URL, 'https://openstick.invalid/cellular'))
@@ -35,6 +36,7 @@ HOTSPOT_ERRORS = {'AIRPLANE_ACTIVE', 'CELLULAR_DISABLED', 'NETWORK_BUSY', 'MODEM
                   'HOTSPOT_OPERATION_FAILED'}
 HOTSPOT_ERRORS |= APN_ERRORS
 HOTSPOT_ERRORS |= ap_options.ERRORS
+HOTSPOT_ERRORS |= TRANSPORT_ERRORS
 
 
 def validate_hotspot(value):
@@ -111,6 +113,7 @@ class Network:
         if not state.startswith('100'):return None
         interface = self.nm('-g', 'GENERAL.IP-IFACE', 'device', 'show', control)
         if not re.fullmatch('[A-Za-z0-9_.-]{1,32}', interface):return None
+        if TransportPower().status()['error']:return None
         return interface
 
     def internet(self, interface, control):
@@ -130,7 +133,9 @@ class Network:
         except (ValueError, OSError, subprocess.SubprocessError, RuntimeError):pass
         return False
 
-    def up(self, identity):self.nm('-w', '55', 'connection', 'up', 'uuid', identity, timeout=60)
+    def up(self, identity):
+        if identity == CELL_UUID:TransportPower().prepare()
+        self.nm('-w', '55', 'connection', 'up', 'uuid', identity, timeout=60)
     def down(self, identity):self.nm('-w', '20', 'connection', 'down', 'uuid', identity, timeout=25)
     def autoconnect(self, identity, enabled):
         self.nm('connection', 'modify', 'uuid', identity, 'connection.autoconnect', 'yes' if enabled else 'no')

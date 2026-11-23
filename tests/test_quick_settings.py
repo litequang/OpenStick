@@ -390,7 +390,27 @@ def test_typed_radio_reads_no_identifiers_and_honors_separate_qmi_session():
     radio=RadioControl(bus_factory=lambda:bus,ussd_state=lambda:1)
     radio.enable(False)
     assert bus.enabled==[False]
-    assert set(bus.properties)<={'State','PowerState','Sim','UnlockRequired'}
+    assert set(bus.properties)<={'State','PowerState','Sim','UnlockRequired','RegistrationState'}
+
+
+@pytest.mark.parametrize('registration,registered', [(0,False),(1,True),(2,False),(5,True),(None,False)])
+def test_radio_core_connected_requires_3gpp_registration(registration, registered):
+    from uz801_manager.quick_settings import RadioControl
+    class Bus:
+        def call_blocking(self, service, path, interface, method, signature, args, **kwargs):
+            if method=='Introspect':return '<node><node name="0"/></node>'
+            assert method=='Get'
+            if args[0].endswith('.Modem3gpp'):
+                assert args[1]=='RegistrationState'
+                if registration is None:raise RuntimeError('unsupported fixture')
+                return registration
+            if args[0].endswith('.Ussd'):return 1
+            return {'State':11,'PowerState':3,'Sim':'/fixture/sim','UnlockRequired':1}[args[1]]
+        def close(self):pass
+    status=RadioControl(bus_factory=Bus,ussd_state=lambda:1).status()
+    assert status['registered'] is registered
+    assert status['sim_ready']
+    assert status['registration_state']==registration
 
 
 def test_private_api_guards_and_read_only_open(quick):
@@ -422,3 +442,13 @@ def test_private_api_guards_and_read_only_open(quick):
         assert client.get('/api/quick/operation/'+identity,base_url=base,headers=headers).json['state'] == 'COMPLETED'
         assert client.post('/api/quick',base_url=base,headers=headers,
                           json={'action':'airplane_on','operation':identity,'confirm':True}).status_code == 409
+
+
+def test_airplane_off_registration_refresh_unlocks_data_without_automatic_activation():
+    import shutil,subprocess
+    from pathlib import Path
+    node=shutil.which('node')
+    if not node:pytest.skip('Node required for radio readiness UI regression')
+    result=subprocess.run([node,str(Path(__file__).with_name('radio_registration_ui_fixture.cjs'))],
+                          capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stdout+result.stderr

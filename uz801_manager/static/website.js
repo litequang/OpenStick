@@ -41,7 +41,9 @@
   function node(tag,text,cls) {const item=document.createElement(tag);if(text!==undefined)item.textContent=text;if(cls)item.className=cls;return item;}
   function canLeave(){return !dirty||confirm('Bỏ bản sửa file chưa xuất bản?');}
   function controls(){
-    panel.querySelectorAll('button,input,select,textarea').forEach(item=>item.disabled=busy);
+    // Tab switches only reveal a pane. Keep them usable while inventory loads;
+    // every file/configuration action still follows the original busy gate.
+    panel.querySelectorAll('button,input,select,textarea').forEach(item=>item.disabled=busy&&!item.dataset.webTab);
     const ready=!!listing && !!inventory;
     if(!busy){
       byId('web-site').disabled=!inventory;
@@ -78,6 +80,11 @@
     finally{busy=false;byId('web-transfer-progress').hidden=true;controls();}
   }
   function tab(name){
+    const leaf=document.querySelector('.website-legacy-leaf');
+    if(leaf?.dataset?.websiteView && leaf.dataset.websiteView!==name){
+      if(canLeave())location.href='/website/'+name;
+      return;
+    }
     panel.querySelectorAll('[data-web-tab]').forEach(item=>item.setAttribute('aria-pressed',String(item.dataset.webTab===name)));
     for(const key of ['files','uploads','domains'])byId('web-pane-'+key).hidden=key!==name;
   }

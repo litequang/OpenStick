@@ -1,5 +1,271 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — mới nhất: đã cài sửa cập nhật nút data sau tắt máy bay.**
+Đọc [AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md](AIRPLANE_DATA_BUTTON_REFRESH_2026_11_23.md).
+UI cũ có thể giữ mẫu chưa đăng ký mạng vì thường chỉ đọc lại mỗi 60 giây khi data
+tắt. Bản mới theo dõi GET 2 giây/tối đa 2 phút lúc modem/SIM đăng ký, dừng khi sẵn
+sàng/ẩn trang/dialog, nói rõ lý do khóa nút. Không tự mở data hoặc nới safety gates.
+943 test PASS/2 skip, nhóm liên quan 81 PASS, JS syntax PASS. Browser fixture trên
+trang USB: dữ liệu radio giả lập sẵn sàng sau 8 giây; cũ còn khóa ở giây 12, mới
+mở ở 8,6 giây rồi dừng đọc nhanh. Không gọi fixture là hardware PASS.
+Một chu kỳ máy bay thật qua UI (theo yêu cầu sửa mới) đạt: on/off/data-on receipt
+đều COMPLETED, nút cũ mở sau khoảng 2,1 giây, không tái hiện kẹt lâu và không rút/
+reboot USB. Kiểm tra sau: SIM HTTPS/NAT/AP/USB/cấu hình/radio choice đạt, BAM active/on,
+không thêm lỗi resume. Chưa suy ra đã sửa mọi lỗi driver/SIM hoặc nghiệm thu phone.
+Source `5716259` đã cài sau push/PR CI PASS gồm EXE; chỉ quick.js, restart hai portal,
+không restart worker/reboot/chuyển mạng lúc cài. 17 hash/723 file chủ và mạng/route/
+firewall/DNS/gadget/services/power/boot giữ nguyên; usage hợp lệ, sync. Fixture GET
+radio giả trên mã đã cài tự mở nút ở 8,56 giây rồi dừng đọc nhanh, 4 độ rộng đạt,
+không JS error/mutation. Nhiệt lấy mẫu cao nhất 80 C, không tắt bảo vệ nhiệt. Chủ
+cần tải lại trang đang mở một lần để nhận mã mới; chưa cần kiểm thử phá mạng thêm.
+
+**23/11/2026 — cập nhật chủ mới nhất: đã có Internet sau airplane on/off + rút/cắm + data/AP on.**
+Chủ báo cả neverssl.com và 1.1.1.1 đều không mở được ở trạng thái lỗi, sau đó tự
+khôi phục bằng chuỗi trên và hiện có mạng. Đây là trạng thái mới nhất; các FAIL
+bên dưới là lịch sử. Agent không yêu cầu/chạy thêm reboot, radio toggle hay reset
+AP trong lượt này. Đọc mục cuối [báo cáo NAT](AP_NAT_RESTORE_2026_11_23.md).
+Read-only xác nhận boot đã đổi, startup RESTORED/AP+data on, proof đúng boot/revision,
+BAM active/on, NAT đúng SIM, HTTPS SIM đạt, một station. Không suy ra bước riêng
+lẻ nào trong chuỗi đã xóa lỗi hoặc đã sửa tận gốc. Giữ mạng đang chạy, không reset
+để sửa lỗi đang không còn tái hiện. Bản cài vẫn ec5a752 cùng BAM guard fb7ece2.
+
+Phép thử Windows dùng profile Wi-Fi tạm đã associate USB AP và trả lại mạng cũ.
+Chưa có kết quả DHCP/Internet hợp lệ: helper so sánh string InterfaceGuid với Guid
+nên không tìm adapter; đã kiểm tra/correct sang [guid] ở helper, chưa thử lại để
+tránh ngắt mạng đang chạy. Không gọi đây là lỗi DHCP phần cứng hay PASS Internet.
+
+**23/11/2026 — mới nhất: điện thoại vẫn FAIL sau khi đã khôi phục NAT, chưa chốt nguyên nhân còn lại.**
+Chủ đã cho phép một reboot bình thường và ba chu kỳ data off/on; đã thực hiện
+qua DevicePower/QuickSettings. Boot khôi phục AP+SIM, cả ba lần HTTPS buộc qua
+SIM đạt, giữ AP/USB, BAM active/on và không thêm lỗi resume. Không hỏi lại quyền
+này hoặc tự reboot thêm. Nội dung chờ duyệt bên dưới là lịch sử đã được thay thế.
+
+Chủ tiếp tục báo điện thoại không có Internet, quản trị chậm: nghiệm thu đầu cuối
+hiện FAIL. Đọc [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md). Trước
+reboot có NAT NM; trước bản sửa NAT, AP shared/DHCP/DNS và SIM hoạt động nhưng
+không còn NAT/masquerade. SYN công khai từ client đi tới SIM, không thấy SYN-ACK về;
+gói quản trị/DNS có trả lời. Chưa xác định chính xác tác nhân xóa bảng. NAT riêng
+có giới hạn/consent source `ec5a752` đã cài sau push/PR CI PASS gồm EXE: 942 test
+PASS/2 skip, nhóm liên quan 106 PASS. Worker tự khôi phục NAT đúng interface SIM,
+không toggle AP/data/reboot. 17 hash/722 file chủ và mạng/firewall nền/gadget giữ
+nguyên; usage còn, sync. Chrome 4 độ rộng đạt, GET Windows qua USB 200/56 ms.
+Chủ ĐÃ trả lời thử lại: vẫn không có Internet. Không ghi chờ thử hoặc PASS cho
+lần này. Đối chiếu sau phản hồi vẫn đạt 17 hash/722 file chủ, NAT đúng SIM, HTTPS
+SIM đạt, BAM active/on, không thêm resume error, nhiệt cao nhất lấy mẫu 76 C.
+Capture 45 giây thấy một SYN client được SNAT đúng IP SIM, SYN-ACK về SIM rồi ra
+AP. Chưa chứng minh tải trang/TLS thành công. Có một gói còn nguồn subnet AP;
+chưa đủ kết luận conntrack cũ là nguyên nhân. Hai ping tới lease không trả lời,
+ARP chưa phân giải; chưa có thao tác điện thoại xác nhận trùng cửa sổ đo. Driver
+Wi-Fi có một cảnh báo Spurious TX complete, không có crash/timeout được chứng
+minh; không suy ra hỏng driver chỉ từ cảnh báo. Powersave AP off, MTU AP/SIM 1500.
+Đang hỏi kết quả http://neverssl.com và https://1.1.1.1 để phân biệt DNS/TLS/data.
+Chưa thay code/cấu hình, reset AP/modem hoặc reboot thêm trong lượt kiểm tra mới.
+
+**23/11/2026 — lỗi mới sau tắt/bật data: đã bắt lỗi kernel BAM-DMUX, chờ reboot/test.**
+Đọc [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). Lần này NM/MM có
+bearer/IP và receipt hoàn tất, proof đúng revision, nhưng 4 HTTPS/2 ping và phép
+thử IP trực tiếp đều FAIL. IP/gateway/DNS/route khớp; BAM runtime_status=error,
+kernel `Failed to resume: -22`, modem RX/TX không tăng. Đây là bằng chứng lỗi tầng
+truyền dữ liệu cho lần này, không suy ra mọi lần cũ hoặc tối ưu UI là nguyên nhân.
+
+Source `fb7ece2` đã cài sau push/PR CI PASS gồm EXE; 920 test PASS/2 skip. Status
+không còn nhận bearer kẹt là data usable; Quick Settings cảnh báo driver màu vàng.
+Guard trước Network.up của profile SIM giữ riêng BAM-DMUX thức qua data off/on;
+không tự mở data, không tác động AP/USB. Radio-off thả hold do guard sở hữu; có
+thể tăng điện/nhiệt. Biện pháp giảm rủi ro resume, chưa phải sửa kernel triệt để.
+Probe trên USB xác nhận phát hiện/không ghi khi đã error; Chrome thật 4 độ rộng
+đạt, 16 hash/721 file chủ/mạng/firewall/DNS/gadget/power giữ nguyên khi cài, sync.
+
+ĐÃ HỎI chủ cho reboot bình thường một lần rồi thử 3 chu kỳ off/on data: đang CHỜ
+PHÊ DUYỆT, chưa reboot/chưa thử chu kỳ. Power vẫn auto/error, data SIM vẫn chưa
+được khôi phục. Không unbind driver/reset remoteproc/flash hay đổi APN/radio để
+che lỗi. Nếu chủ đồng ý, dùng DevicePower có checkpoint/receipt, giữ nguyên USB;
+kiểm tra boot restore, hold active/on, HTTPS SIM thật và giữ AP/USB qua 3 chu kỳ.
+
+**23/11/2026 — cập nhật mới nhất từ chủ: truy cập điện thoại đã OK, không còn lỗi lúc này.**
+Chủ xác nhận “Hiện tại từ điện thoại vào ok rồi ấy, không lỗi”. Các mục FAIL phía
+dưới là lịch sử, không mô tả tình trạng hiện tại. Không tiếp tục reset/đổi mạng để
+sửa một lỗi đang không tái hiện. Không có cài mã hay thay cấu hình USB trong lượt
+ghi nhận này; mã đang cài vẫn `0026828` cùng các bản mạng/usage trước đó.
+Đây là xác nhận truy cập hoạt động do chủ báo, không phải phép đo mới của agent;
+chủ chưa mô tả riêng URL, website công khai và trạng thái dữ liệu di động trong
+lần xác nhận mới. Không suy ra đã sửa tận gốc lỗi gián đoạn hoặc đạt soak/cold boot.
+Không còn cần IP/Gateway chỉ để chứng minh một lỗi hiện đang không xuất hiện.
+
+**23/11/2026 — kết quả điện thoại mới nhất: vào Wi-Fi, không vào quản trị/Internet.**
+Đọc mục Owner follow-up trong [báo cáo AP](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Nghiệm thu đầu cuối vẫn FAIL, không chỉ đang chờ. Chưa đổi code/mạng hay restart AP
+trong lượt kiểm tra này. Một station xác thực có lease đúng subnet, nhưng capture
+35 giây chỉ thấy 22 ARP đi ra AP, không frame vào/không tăng RX-TX station; 2 ping
+nội bộ tới lease không trả lời, ARP không phân giải dù route đúng wlan0. Probe
+HTTP gắn wlan0 tại USB trả 200, DHCP/DNS/8765 được firewall cho phép. Chưa có thao
+tác điện thoại được xác nhận trùng lúc capture; không suy ra ngay lỗi driver hay
+firewall. Đang hỏi IP/Gateway thật trên điện thoại và kết quả URL chính xác
+http://192.168.8.1:8765/overview. Giữ AP để bắt lỗi, không thêm reset mù.
+
+**23/11/2026 — điện thoại báo không thấy/kết nối Wi-Fi; đã khôi phục và sửa kiểm tra profile.**
+Đọc [AP_VISIBILITY_RECHECK_2026_11_23.md](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Không coi lần nghiệm thu điện thoại đang chờ bên dưới là PASS: chủ đã báo FAIL.
+Lúc đó AP/supplicant báo chạy, SIM có Internet, nhưng hai lượt quét Windows không
+thấy SSID/BSSID USB. Một lần down/up AP hiện có giữ phiên SIM/tên/mật khẩu/radio;
+sau đó directed scan thấy mạng, ba lượt broadcast và một lượt sau cài đều có frame
+mới đúng mạng. Một station xác thực, DNS AP đạt; chưa có chủ xác nhận Internet.
+
+Source `0026828` đã cài sau push/PR CI PASS gồm EXE; 907 test PASS/2 skip. Sửa lỗi
+NM bỏ hidden=false khi chuẩn hóa profile làm validator chặn bật AP lại. Mặc định
+vắng key chỉ chấp nhận khi lưu hidden=false; hidden=true vẫn fail closed. Probe
+validator dùng file thật với transport giả, không nhận là thử bật radio/cold boot.
+14 hash/721 file chủ và mạng/route/firewall/DNS/gadget giữ nguyên khi cài, SIM và
+usage hoạt động, sync xong. Không reboot/reset modem/power-cycle radio hoặc đổi
+firmware. Nguyên nhân AP biến mất gián đoạn vẫn UNVERIFIED; không thêm tự restart
+mù hoặc nói đã sửa triệt để driver. Chờ trả lời phép thử lại điện thoại mới nhất.
+
+**23/11/2026 — đã sửa và cài phục hồi phiên SIM + thống kê dung lượng.**
+Đọc [SIM_RECOVERY_RECHECK_2026_11_23.md](SIM_RECOVERY_RECHECK_2026_11_23.md) và
+[SIM_USAGE_BAM_DMUX.md](SIM_USAGE_BAM_DMUX.md). Source mạng `4125c2e`, usage
+`a368faa`, nhánh UI/PR #7; cả hai có push/PR CI PASS, gồm Windows EXE. Suite cuối
+902 PASS/2 skip Windows, exit 0. Không merge main/dev hoặc tạo release.
+
+Lúc lỗi, SIM đăng ký LTE nhưng NM disconnected, không bearer/IP; proof phục hồi
+không khớp revision đang lưu. Bản mới ghi proof ngay trong giao dịch data-on và
+chuyển proof/budget qua lần lưu AP, không cần đợi poll. Phép thử race có kiểm soát
+trên USB giữ lock qua data-on/AP-save rồi ngắt một phiên: worker thật nối lại sau
+42,8 giây, Internet buộc qua SIM đạt, mở lại forwarding AP. Không kết luận nguyên
+nhân ban đầu làm rớt modem hoặc quy lỗi tối ưu UI; hành động thật của chủ cách nhau
+khoảng 38 giờ, không phải bằng chứng chủ thao tác race 20 giây. Profile toàn bộ
+không giữ nguyên: AP hidden/randomization/timestamp và cellular timestamp đổi;
+SSID/PSK và field khác không đổi. Không gọi phép so hash profile đó là PASS.
+
+BAM-DMUX trả sysfs RX/TX=0 dù có lưu lượng. Collector hiện đọc stats modem đúng
+bearer, v2 giữ tổng/ngày/tháng/start date, không cộng ngược phần lịch sử đã mất.
+USB thật tải 1 MiB: RX +1.131.849, TX +61.686 byte (gồm lưu lượng nền/protocol), API
+và checkpoint 0600 tăng; không manual tick/reset. Đã kiểm tra Chrome trang USB
+320/390/768/1366 px, không lỗi JS/overflow/mutation; không phải test điện thoại.
+
+Cài đặt và kiểm tra cuối giữ 721 file chủ, mạng/route/firewall/DNS/gadget; 13 hash
+mạng/band/usage đúng. SIM Internet, AP, USB admin, radio đã lưu đạt, sync xong.
+Chỉ restart hai portal + worker startup, không reboot/NM/MM/AP, firmware hay gỡ
+package. Hai mẫu tải trực tiếp SIM khoảng 13,39/12,88 Mbps, không phải Speedtest
+điện thoại hay cam kết tốc độ. Chờ chủ xác nhận lại Internet qua Wi-Fi điện thoại;
+chưa thử nguồn lạnh/soak. Số liệu ngày 21 bên dưới là lịch sử, không ghi đè kết quả
+ngày 23. Khi rollback usage v2 phải giữ tổng mới (xem tài liệu), không phục hồi bộ
+đếm cũ làm mất phần đã tích lũy.
+
+**21/11/2026 — đã cài hiển thị băng LTE thật, source `9e78ce7`.**
+Đọc [SERVING_LTE_BAND.md](SERVING_LTE_BAND.md). Hai CI PASS gồm EXE; 877 test
+local PASS/2 skip Windows. Ba file thêm/sửa sau gói phục hồi SIM; không đổi mạng.
+Decoder cài trên USB trả B3/1800 MHz, DL 1835,1 MHz, EARFCN 1501. Chrome mở trang
+USB thật ở 320/390/768/1366 px thấy `4G · B3`, chi tiết cả SIM và Mạng & sóng;
+popover trong viewport, đổi icon/bấm ngoài đóng đúng, không JS error/mutation.
+Đây là Chrome trên PC dùng trang USB thật, không phải nghiệm thu điện thoại.
+Hash/asset, 721 file chủ, mạng/route/firewall/DNS/gadget giữ nguyên, sync xong.
+Không khẳng định thông tin băng chứng minh Internet hoặc sửa nguyên nhân rớt sóng.
+
+**21/11/2026 — đã cài sửa phục hồi phiên SIM, kiểm chứng worker thật.**
+Đọc [CELLULAR_RECOVERY.md](CELLULAR_RECOVERY.md). Sáu file ở source `eaa7471`
+đã cài sau hai CI PASS; baseline USB thực tế có cả thay đổi cache/radio từ nhánh
+dev, không còn được mô tả đầy đủ bởi `747f49c`. Đã tích hợp hai nhánh trên nhánh
+UI/PR #7, không merge main/dev. Worker thật nối lại hai lần ngắt có kiểm soát sau
+47,3 và 31,7 giây; HTTPS buộc qua SIM đạt. Tắt data giữ tắt sau 45 giây, rồi bật
+lại thành công. Giữ AP, radio đã lưu và USB quản trị. Không nhận kiểm thử này là
+đã sửa nguyên nhân modem rớt phiên hoặc treo beacon Wi-Fi; chưa thử nguồn/điện
+thoại mới. Kiểm tra byte profile đầu tiên không đạt; đối chiếu toàn bộ field ở
+lần sau chỉ đổi cellular connection.timestamp, cấu hình/0600 giữ nguyên.
+Phần hiển thị băng LTE đang dùng được bổ sung riêng, đọc GetCellInfo; tuyệt đối
+không dùng CurrentBands/SupportedBands thay cho băng phục vụ thật. Đọc
+[SERVING_LTE_BAND.md](SERVING_LTE_BAND.md) và kết quả cài sau CI trước khi kết luận.
+
+**21/11/2026 — đã khôi phục khả năng nhìn thấy AP bằng một lần restart riêng Wi-Fi.**
+Chủ không thấy mạng trên điện thoại. USB báo AP/kênh 6, không ẩn, supplicant
+completed; quét Windows mới thấy 13 mạng nhưng không thấy AP USB. Một lần
+down/up profile AP hiện có (giữ USB quản trị, tên/mật khẩu, radio và phiên SIM)
+đã hoàn tất. Quét mới sau đó thấy AP USB trong 9 mạng; Internet SIM vẫn đạt.
+Chủ đã xác nhận điện thoại thấy mạng và vào Internet được sau restart (trả lời
+phép thử yêu cầu tắt dữ liệu di động điện thoại). Đây là nghiệm thu điện thoại
+thật do chủ xác nhận, không phải fixture. Chưa rõ nguyên nhân treo
+phát hoặc độ bền sau đó; không gọi restart là sửa driver triệt để. Không cài mã
+mới, nguồn USB vẫn `747f49c`. Chi tiết trong báo cáo SIM bên dưới. Lưu ý giới
+hạn client lưu 10 nhưng supplicant đang báo 128; chưa nghiệm thu giới hạn thực.
+
+**21/11/2026 — kiểm tra SIM/hotspot chỉ đọc; chưa cài bản sửa trạng thái.**
+Đọc [SIM_NETWORK_DIAGNOSIS_2026_11_19.md](SIM_NETWORK_DIAGNOSIS_2026_11_19.md).
+USB hiện có Internet SIM thật (4 phép HTTPS 204, 2 ping); AP/DHCP/DNS, NAT và
+luật `wlan*` có mặt, không chặn client. Ban đầu 1 station, sau còn 0; đợt đếm
+gói không thấy yêu cầu IPv4 từ client. Đang chờ chủ thử lại điện thoại; không
+nhận đó là nghiệm thu Internet qua Wi-Fi. Không đổi mạng/dịch vụ/radio trên USB.
+Mã nguồn sửa lỗi core modem báo connected trong khi 3GPP đang searching đã qua
+815 PASS/2 skip trên Windows; chưa cài USB (vẫn `747f49c`). Giữ nguyên radio đã
+lưu, không tự khóa PLMN hay bật retry dữ liệu để che lỗi. Các số đo 19/11 phía
+dưới là lịch sử, có lúc đăng ký/bearer nhưng không có Internet.
+
+**19/11/2026 — đã cài gói tối ưu ưu tiên và đo trước/sau USB thật.**
+Đọc [PORTAL_OPTIMIZATION_2026_11_19.md](PORTAL_OPTIMIZATION_2026_11_19.md).
+Source đang cài `747f49c4486e698e9d5bbac7877f48912b43fd92`, nhánh UI/PR #7;
+chưa merge/release. Catalog metadata không quét cây file; asset portal/FileGator
+có hash, hỗ trợ numeric cachebuster thật của FileGator; stale hiển thị ngay,
+pending GET backoff, header tối đa một followup; LED 6 s, setup bỏ đọc NM thừa;
+log allowlist xoay trong worker startup, archive riêng giới hạn và backup log cũ.
+802 PASS/2 Windows skip, hai CI source cuối PASS gồm EXE; Linux log fixture PASS.
+Năm lượt File Manager: trung vị 7,911 → 1,102 s; inventory 5.517,703 → 20,252 ms.
+Cache browser thật lượt hai 11/11 JS/CSS hit, 0 byte tải lại cho các asset đó.
+CPU nền mẫu ~1 phút 14,21 → 11,65%, nhưng RAM khả dụng sau thấp hơn, chưa chứng
+minh tiết kiệm RAM; AP/đọc phần cứng còn dao động. Không tuyên bố mọi màn nhanh hơn.
+USB thật: 160 layout/8 ngang ở gói chính, FileGator 8 rộng ở source cuối,
+không override, không JS error/mutation; không ảnh/trace. Kiểm tra cuối 41 hash,
+717 file bảo vệ, mạng/route/firewall/DNS/gadget và 20 GET LAN đạt, worker/usage
+tiến, checkpoint riêng hợp lệ, tổng usage không giảm, hai log archive đúng, backup
+checksum đạt, không pending, sync xong. Chỉ restart portal và setup/LED/startup
+cần thiết, không reboot/đổi mạng/Tunnel/Nginx. Không thử thao tác file hay radio
+thật, chu kỳ nguồn hoặc điện thoại; giữ phạm vi nghiệm thu trong báo cáo.
+
+**19/11/2026 — đã rà hiệu năng toàn USB, chưa cài tối ưu mới (mốc trước triển khai).**
+Đọc [DEVICE_PERFORMANCE_REVIEW_2026_11_19.md](DEVICE_PERFORMANCE_REVIEW_2026_11_19.md).
+Source vẫn `06d151a`, cùng nhánh UI/PR #7. Đo USB thật: RAM khả dụng 114–142 MiB
+trong lượt mở ba màn, CPU trung bình tổng bốn lõi 17,12%; zram thực dùng 51,5 MiB,
+không có swap đĩa. Nút thắt File Manager: inventory 4,793 s trước navbar 5,882 s;
+profile xác nhận listing 676 mục chiếm 3,494/3,505 s, metadata đơn thuần dưới 1 ms.
+Ưu tiên metadata nhẹ, asset version/cache, giảm đọc/polling thụ động và giới hạn log.
+Package đồ họa/âm thanh là ứng viên giảm dung lượng đĩa, chưa đủ bằng chứng gỡ an toàn;
+không được coi dung lượng LLVM/Mesa là RAM đang dùng. Giữ dịch vụ mạng, FileGator,
+mDNS/NTP, worker recovery; chưa hợp nhất portal hoặc xóa fallback. Không đổi runtime,
+package, mạng hay reboot. Kiểm tra cuối: 32 source/717 file bảo vệ và trạng thái mạng
+giữ nguyên, không pending. Đây là audit ngắn, chưa benchmark tải nặng/soak hoặc sau sửa.
+
+**19/11/2026 — đã gộp Phát Wi-Fi và nhúng FileGator.**
+Source đang cài `06d151aacec526ef9acf7562365b62a7b33d3bd5`, cùng nhánh UI/PR #7,
+chưa merge/release. Đọc [AP_AND_FILEGATOR_UI.md](AP_AND_FILEGATOR_UI.md).
+Chỉ còn menu Phát Wi-Fi `/setup/ap`; `/hotspot` và `/setup/recovery` chuyển về
+đây. File manager tự mở FileGator trong khung, không cần bấm thêm; Mở riêng là
+tùy chọn. Giữ xác nhận, cấu hình, phiên cũ và giới hạn bảo mật cùng origin.
+790 PASS/1 Windows skip, hai CI source cuối PASS; USB thật: 160 layout + 8 ngang
+ở bản gộp, bản cuối mở FileGator thật ở 8 kích thước, không đăng nhập lần hai,
+không lỗi JS/thao tác ghi, hai alias AP đúng. Hash 32 file nguồn, 717 file riêng,
+mạng/route/firewall/gadget/dịch vụ và 20 GET LAN đạt; worker/usage tiến, sync xong.
+Không thử file-write, radio/AP/tethering, reboot hay điện thoại thật. FileGator
+mount Vue sau load; chờ DOM tối đa 20 giây, không retry yêu cầu file. Hai lần
+kiểm tra trước đó bắt được báo lỗi tải giả, không gọi chúng là nghiệm thu PASS.
+Chủ vừa yêu cầu rà toàn USB để đề xuất tối ưu/loại phần thừa; audit tiếp theo
+chỉ đọc/đo, chưa có lựa chọn cho việc bỏ dịch vụ hoặc thay kiến trúc mới.
+
+**19/11/2026 — đã cài màn con riêng và bỏ điều khiển file cũ khi có FileGator.**
+Source đang cài `61125aa3dab81001232ab862679fe9bba669645e` trên nhánh
+`ui/settings-parent-child-nav-20261119`, PR #7; chưa merge main/dev, chưa release.
+Đọc [SETTINGS_CHILD_SCREENS.md](SETTINGS_CHILD_SCREENS.md) và đầu HANDOFF.
+Wi-Fi nhận/đã lưu/phát/client/dự phòng, USB, usage SIM, quyền quản trị và website
+có URL riêng; chỉ hiện phần đang chọn. FileGator không còn menu/nút upload,
+kiểm tra ZIP hoặc editor cũ. Backend thao tác và xác nhận giữ nguyên.
+788 PASS/1 Windows skip, hai CI PASS; Chrome preview hai chế độ và USB thật
+đạt 176 trang/kích thước + 8 ngang, không lỗi JS. Kiểm tra USB chỉ điều hướng,
+không gửi thao tác mạng/nguồn/file/SMS. Hash 28 file nguồn, 717 file bảo vệ,
+mạng/route/firewall/gadget và quyền LAN đạt; worker/usage vẫn tiến, sync xong.
+Sau kiểm tra toàn bộ ở `66b5850`, bản `61125aa` chuyển thông báo Wi-Fi ra ngoài
+phần ẩn; CI hai nhánh PASS, 10 layout Wi-Fi và lỗi đọc thông tin kết nối được
+kiểm tra lại trên HTML USB thật (response lỗi mô phỏng, không đọc mật khẩu).
+Chủ đã tắt/rút/cắm giữa lần kiểm tra V4 cũ; dùng mốc sau thao tác đó, giữ receipt.
+Website nội bộ HTTP 200; public Cloudflare **530 trước và sau lần cài này**,
+log Tunnel có `network is unreachable`. Không đổi Tunnel/mạng để che lỗi đó.
+Không nhận public Internet, đăng nhập lại mật khẩu hay điện thoại thật là PASS.
+Các ghi chú dưới đây là lịch sử; source `4cca1fa` đã được thay bằng bản này.
 **19/11/2026 — đã cài nhớ trạng thái cho toàn bộ cài đặt USB.**
 Đọc [SETTINGS_STATE_CACHE.md](SETTINGS_STATE_CACHE.md). 14 màn cài đặt khôi phục
 ngay trạng thái gần nhất khi mở lại trang/tab rồi đọc nền; không khóa do refresh,

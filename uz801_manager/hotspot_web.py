@@ -2,7 +2,7 @@
 import threading
 import time
 
-from flask import jsonify, render_template, request
+from flask import jsonify, render_template, request, redirect
 
 from .hotspot import HOTSPOT_ERRORS, validate_hotspot
 
@@ -16,6 +16,7 @@ def register_hotspot_routes(app, backend, token):
 
     @app.get('/hotspot')
     def hotspot_page():
+        if 'setup_page' in app.view_functions:return redirect('/setup/ap')
         return render_template('hotspot.html', token=token, page='hotspot')
 
     @app.get('/sim/apn')

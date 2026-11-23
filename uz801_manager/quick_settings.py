@@ -12,6 +12,7 @@ from .network_policy import NetworkPolicy
 from .quick_intent import data_allowed, load_intent, radio_allowed, save_intent
 from .setup_ap import SETUP_UUID, SetupAP, SetupNetwork
 from . import ap_options
+from .cellular_transport import TransportPower, ERRORS as TRANSPORT_ERRORS
 
 ACTIONS = ('airplane_on', 'airplane_off', 'data_on', 'data_off', 'local_ap_on', 'local_ap_off', 'usb_tether_on', 'usb_tether_off',
            'wifi_auto', 'wifi_saved', 'wifi_scan', 'wifi_connect', 'wifi_off')
@@ -28,6 +29,8 @@ ERRORS |= {'WIFI_SAVED_NOT_FOUND', 'WIFI_PROFILE_NOT_FOUND', 'WIFI_NOT_CONNECTED
            'WIFI_AUTH_REQUIRED', 'WIFI_TIMEOUT', 'WIFI_NOT_FOUND'}
 ERRORS.add('NETWORK_SAVE_FAILED')
 ERRORS |= ap_options.ERRORS
+ERRORS |= TRANSPORT_ERRORS
+ERRORS.add('AP_SHARING_FAILED')
 from .ap_clients import ERRORS as CLIENT_ERRORS
 ERRORS |= CLIENT_ERRORS
 
@@ -93,6 +96,9 @@ class RadioControl:
             if enabled is not None:
                 if session in (2, 3):
                     raise RuntimeError('MODEM_BUSY')
+                if not enabled:
+                    try:TransportPower().release()
+                    except RuntimeError:pass  # Never prevent the owner's radio-off veto.
                 if enabled and not sim_ready:
                     return {'waiting_sim': True}
                 if enabled and state >= 5:
@@ -101,8 +107,14 @@ class RadioControl:
                     return {'radio_request_needed': False}
                 bus.call_blocking(service, path, interface, 'Enable', 'b', [enabled], timeout=60)
                 return {'radio_request_needed': True}
+            try:
+                registration = int(bus.call_blocking(service, path, props, 'Get', 'ss',
+                    [interface + '.Modem3gpp', 'RegistrationState'], timeout=8))
+            except Exception:
+                registration = None
             return {'state': state, 'power_state': power, 'sim_ready': sim_ready,
-                    'registered': state >= 8, 'ussd_state': session}
+                    'registered': state >= 8 and registration in (1, 5, 6, 7, 9, 10),
+                    'registration_state': registration, 'ussd_state': session}
         except RuntimeError:
             raise
         except Exception:
@@ -140,15 +152,30 @@ class QuickSettings:
 
     def _ap_forwarding(self, allowed):
         """Only our AP guard; never alter the base firewall or USB gadget."""
+        from .ap_sharing import ApSharing
+        sharing=ApSharing(self.network)
+        interface=None
+        if allowed and self.network.active('wlan0')==AP_UUID:
+            controls=self.network.devices()
+            intent=load_intent(self.directory)
+            if intent and not intent['airplane'] and intent['data_allowed'] and len(controls)==1:
+                control=controls[0]
+                if self.network.active(control)==CELL_UUID:interface=self.network.cellular_interface(control)
+            allowed=bool(interface)
+            if interface:
+                method=self.network.nm('-g','ipv4.method,ipv4.addresses','connection','show','uuid',AP_UUID).splitlines()
+                if method!=['shared','192.168.8.1/24']:raise RuntimeError('AP_SHARING_FAILED')
         exists = self.network.run(['nft', 'list', 'table', 'inet', 'openstick_quick_ap'],
             capture_output=True, timeout=8).returncode == 0
         if allowed:
+            sharing.reconcile(interface)  # NAT must be restored before opening the forwarding gate.
             if exists:self.network.command(['nft', 'delete', 'table', 'inet', 'openstick_quick_ap'])
         elif not exists:
             rules = ('table inet openstick_quick_ap {\n chain forward {\n type filter hook forward '
                      'priority -6; policy accept;\n iifname "wlan0" drop;\n oifname "wlan0" drop;\n }\n}\n')
             result = self.network.run(['nft', '-f', '-'], input=rules, text=True, capture_output=True, timeout=8)
             if result.returncode:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+        if not allowed:sharing.reconcile(None)
 
     def _start_shared_ap(self, control):
         """One AP with stable DHCP/gateway, independent of cellular connectivity."""
@@ -167,6 +194,7 @@ class QuickSettings:
             if previous == SETUP_UUID:self.setup.network.local_services(False)
             self.hotspot.activate_ap(AP_UUID)
             if self.network.active('wlan0') != AP_UUID:raise RuntimeError('LOCAL_AP_UNAVAILABLE')
+            self.ap_forwarding(connected and radio_allowed(self.directory) and data_allowed(self.directory))
         except Exception as error:
             self.hotspot._restore_setup_snapshot({'setup_handoff': snapshot})
             if previous == SETUP_UUID:
@@ -202,6 +230,7 @@ class QuickSettings:
 
     def status(self):
         from .network_startup import public
+        from .cellular_recovery import public as recovery_status
         intent = load_intent(self.directory)
         radio = self.radio.status()
         wifi = self.network.active('wlan0')
@@ -209,9 +238,13 @@ class QuickSettings:
         cell = self.network.active(controls[0]) if len(controls) == 1 else None
         tethering = self.tethering.status()
         pending = bool(self._read('setup-pending.json') or self._read('hotspot-pending.json') or tethering.get('reboot_pending'))
+        transport = TransportPower().status()
         return {'intent': intent, 'radio': radio, 'startup': public(self.directory),
+                'cellular_recovery': recovery_status(self.directory),
+                'cellular_transport': transport,
                 'wifi_role': 'local_ap' if wifi == SETUP_UUID else 'sim_ap' if wifi == AP_UUID else 'station' if wifi else 'offline',
-                'mobile_data_connected': bool(cell == CELL_UUID and self.network.cellular_interface(controls[0])),
+                'mobile_data_connected': bool(not transport['error'] and radio.get('registered') and cell == CELL_UUID
+                                              and self.network.cellular_interface(controls[0])),
                 'foreign_cellular_active': bool(cell and cell != CELL_UUID),
                 'pending_network_trial': pending, 'internet_verified': False,
                 'hardware_validation': 'NOT_TESTED',
@@ -296,6 +329,9 @@ class QuickSettings:
                 raise RuntimeError('USB_REBOOT_PENDING')
             receipt = self.journal.begin(values['operation'], action)
             try:
+                from .network_startup import load
+                previous_selection = load(self.directory)
+                connection_observed = False
                 old = load_intent(self.directory)
                 airplane = bool(old and old['airplane'])
                 if action in ('airplane_on', 'airplane_off', 'data_off'):
@@ -330,9 +366,13 @@ class QuickSettings:
                         if self.network.active('wlan0') == SETUP_UUID:self._start_shared_ap(control)
                         self.network.autoconnect(CELL_UUID, False)
                         try:self.network.up(CELL_UUID)
-                        except RuntimeError:raise RuntimeError('DATA_CONNECT_FAILED') from None
+                        except RuntimeError as error:
+                            raise RuntimeError(str(error) if str(error) in TRANSPORT_ERRORS else 'DATA_CONNECT_FAILED') from None
                         if not self.network.cellular_interface(control):
                             raise RuntimeError('QUICK_OPERATION_FAILED')
+                        if not self.radio.status().get('registered'):
+                            raise RuntimeError('DATA_CONNECT_FAILED')
+                        connection_observed = True
                         if self.network.active('wlan0') == AP_UUID:self.ap_forwarding(True)
                         self.tethering.update_uplinks()
                     except Exception:
@@ -368,9 +408,15 @@ class QuickSettings:
                 if not clients.active():clients.suspend()
                 if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
                     from .network_startup import save_current
-                    try:save_current(self)
+                    try:saved_selection = save_current(self)
                     except Exception:raise RuntimeError('NETWORK_SAVE_FAILED') from None
                 result = self.status()
+                if action not in ('wifi_scan','usb_tether_on','usb_tether_off'):
+                    from .cellular_recovery import record_selection, public as recovery_status
+                    record_selection(self.directory,saved_selection,self.boot(),
+                        connected=connection_observed or result['mobile_data_connected'],
+                        previous=previous_selection,rearm=action=='data_on')
+                    result['cellular_recovery'] = recovery_status(self.directory)
                 self.journal.finish(receipt, 'COMPLETED')
                 return result
             except Exception as error:

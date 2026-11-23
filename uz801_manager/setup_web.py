@@ -1,5 +1,5 @@
 """Same-origin provisioning, protected by the existing USB/LAN portal guard."""
-from flask import jsonify, render_template, request, Response
+from flask import jsonify, render_template, request, Response, redirect
 
 from .setup_ap import validate_setup
 from .lan_access import LAN_URL
@@ -32,8 +32,12 @@ def register_setup_routes(app, backend, token):
             if isinstance(value,dict):value.clear()
 
     @app.get('/setup')
-    def setup_page():
-        return render_template('setup.html', token=token, page='wifi')
+    @app.get('/setup/<view>')
+    def setup_page(view='connect'):
+        if view=='recovery':return redirect('/setup/ap')
+        if view not in ('connect','saved','ap','clients','recovery'):
+            return jsonify(error='NOT_FOUND'),404
+        return render_template('setup.html', token=token, page='wifi',setup_view=view)
 
     @app.get('/api/setup')
     def setup_status():

@@ -85,7 +85,7 @@ function renderUsage(u){
   put('metric-sim-usage',today?usageBytes(u.today.total_bytes):'—');
   put('note-sim-usage',(u.stale||u.error?'Lần đo gần nhất · ':'')+(today?'hôm nay · ↓ '+usageBytes(u.today.download_bytes)+' / ↑ '+usageBytes(u.today.upload_bytes):'Chờ đồng bộ ngày giờ')+' · '+(month?usageBytes(u.month.total_bytes)+' tháng này':'chưa xác định tháng'));
  });
- const status=u.error==='USAGE_SAVE_FAILED'?'Chưa lưu được: giữ USB có nguồn; số mới hiện chỉ nằm trong RAM.':u.error||u.stale?'Số liệu lần gần nhất; bộ đếm chưa có cập nhật mới.':u.status==='idle'?'Chưa có kết nối dữ liệu SIM; lịch sử vẫn được giữ.':'Đang theo dõi lưu lượng giao diện SIM; không xác nhận Internet.';
+ const status=u.error==='USAGE_SAVE_FAILED'?'Chưa lưu được: giữ USB có nguồn; số mới hiện chỉ nằm trong RAM.':u.error||u.stale?'Số liệu lần gần nhất; bộ đếm chưa có cập nhật mới.':u.status==='idle'?'Chưa có kết nối dữ liệu SIM; lịch sử vẫn được giữ.':u.source==='modem_bearer_counters'?'Đang theo dõi bộ đếm modem; số liệu cập nhật theo chu kỳ.':'Đang theo dõi lưu lượng giao diện SIM; không xác nhận Internet.';
  const parts=[status];
  if(month)parts.push('Tháng này: ↓ '+usageBytes(u.month.download_bytes)+' / ↑ '+usageBytes(u.month.upload_bytes));
  if(finite(u.session?.total_bytes))parts.push('Phiên đang theo dõi: '+usageBytes(u.session.total_bytes));
