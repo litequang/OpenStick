@@ -1,5 +1,22 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — điện thoại báo không thấy/kết nối Wi-Fi; đã khôi phục và sửa kiểm tra profile.**
+Đọc [AP_VISIBILITY_RECHECK_2026_11_23.md](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Không coi lần nghiệm thu điện thoại đang chờ bên dưới là PASS: chủ đã báo FAIL.
+Lúc đó AP/supplicant báo chạy, SIM có Internet, nhưng hai lượt quét Windows không
+thấy SSID/BSSID USB. Một lần down/up AP hiện có giữ phiên SIM/tên/mật khẩu/radio;
+sau đó directed scan thấy mạng, ba lượt broadcast và một lượt sau cài đều có frame
+mới đúng mạng. Một station xác thực, DNS AP đạt; chưa có chủ xác nhận Internet.
+
+Source `0026828` đã cài sau push/PR CI PASS gồm EXE; 907 test PASS/2 skip. Sửa lỗi
+NM bỏ hidden=false khi chuẩn hóa profile làm validator chặn bật AP lại. Mặc định
+vắng key chỉ chấp nhận khi lưu hidden=false; hidden=true vẫn fail closed. Probe
+validator dùng file thật với transport giả, không nhận là thử bật radio/cold boot.
+14 hash/721 file chủ và mạng/route/firewall/DNS/gadget giữ nguyên khi cài, SIM và
+usage hoạt động, sync xong. Không reboot/reset modem/power-cycle radio hoặc đổi
+firmware. Nguyên nhân AP biến mất gián đoạn vẫn UNVERIFIED; không thêm tự restart
+mù hoặc nói đã sửa triệt để driver. Chờ trả lời phép thử lại điện thoại mới nhất.
+
 **23/11/2026 — đã sửa và cài phục hồi phiên SIM + thống kê dung lượng.**
 Đọc [SIM_RECOVERY_RECHECK_2026_11_23.md](SIM_RECOVERY_RECHECK_2026_11_23.md) và
 [SIM_USAGE_BAM_DMUX.md](SIM_USAGE_BAM_DMUX.md). Source mạng `4125c2e`, usage

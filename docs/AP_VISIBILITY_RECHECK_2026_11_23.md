@@ -64,3 +64,38 @@ Final local complete suite: **907 PASS, two Windows skips, exit 0**. The first
 run had one new-test fixture failure (no existing cellular profile had yet been
 created); its setup was corrected to establish that profile before testing its
 preservation. No product assertion or existing test was removed.
+
+## Installed result and remaining acceptance
+
+Source **`0026828298f76085de86120c7b6daa63d525be65`** was installed after
+[push CI](https://github.com/litequang/OpenStick/actions/runs/45098027481) and
+[PR CI](https://github.com/litequang/OpenStick/actions/runs/45098034225) passed,
+including Windows EXE checks. One reviewed Python file was replaced, with a
+private checksum-verified source backup. Only both portals and the existing
+startup worker restarted; no additional AP transition, firmware/kernel update,
+radio power-cycle, modem reset, reboot or package removal during installation.
+
+Installed validation accepted the real normalized visible-AP keyfile (hidden
+absent). The validation probe replaced activation/firewall transports in its
+short-lived process; this is validation against the real file, **not** another
+physical AP activation or cold-boot acceptance. Unit tests establish rejection
+of the missing key when saved hidden=true. Do not conflate these results.
+
+Three ordinary native scans about 20 seconds apart each received a new matching
+Beacon or Probe Response after its request, RSSI between -37 and -54 dBm. Another
+ordinary scan after source installation still received a fresh matching frame
+at -38 dBm. This is a short observation window, not long-term AP stability.
+
+Read-only follow-up observed one authenticated/authorized/associated station,
+no blocked client, shared DHCP lease records and a successful fixed public-name
+query through the AP DNS. These are not proof that the owner's phone successfully
+opened a public site with its own mobile data disabled. The owner has not yet
+answered the new phone reacceptance question; the earlier phone result was FAIL.
+
+Final 14 installed-source hashes, permissions and 721 protected owner files
+matched; network/routes/firewall/DNS/gadget/services matched this installation's
+snapshot. SIM-bound Internet, USB admin, live modem-counter usage, valid v2 usage
+checkpoint and idle operation gates passed; storage synced. No runtime/private
+identity/credentials were committed. The cause of intermittent AP invisibility
+remains **UNVERIFIED**; do not describe this compatibility fix or manual diagnostic
+restart as a permanent firmware/driver fix.

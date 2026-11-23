@@ -1,5 +1,28 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: phone Wi-Fi reacceptance failed, AP visibility recovered
+
+Read [AP_VISIBILITY_RECHECK_2026_11_23.md](AP_VISIBILITY_RECHECK_2026_11_23.md).
+Owner reported no Wi-Fi/could not connect; the pending phone test below is NOT
+a PASS. Two external broadcast scans missed the USB despite active AP/local
+supplicant and working SIM. One bounded existing-AP restart preserved identity,
+security, SIM, saved radio and USB admin. Later directed scan found it; three
+ordinary native BSS scans and a post-install scan each received a new matching
+Beacon/Probe Response. One associated/authorized station and answering AP DNS
+were observed. Await owner response to the new phone Internet test.
+
+Source `0026828` installed after both push/PR CI PASS including EXE; 907 local
+tests PASS/two Windows skips. NM can omit default hidden=false in rewritten
+profiles; old validation rejected that legal file before AP activation. Missing
+hidden now means false, still rejecting saved hidden=true and malformed values.
+Installed validation accepted the actual normalized file using fake mutation
+transports in a short-lived probe, NOT a physical AP transition/cold-boot test.
+Final 14 source hashes, 721 owner files, unchanged installation network/routes/
+firewall/DNS/gadget/services, bound SIM Internet, live usage, idle gates and sync
+passed. Only portals/startup worker restarted during install; no reboot, modem
+reset, firmware, radio power-cycle or package removal. Intermittent AP invisibility
+cause remains UNVERIFIED: no claim of permanent driver fix or blind AP watchdog.
+
 ## 2026-11-23 latest: SIM session proof and BAM-DMUX usage installed
 
 Read [SIM_RECOVERY_RECHECK_2026_11_23.md](SIM_RECOVERY_RECHECK_2026_11_23.md)
