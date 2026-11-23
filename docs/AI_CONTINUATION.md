@@ -1,5 +1,26 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — lỗi mới sau tắt/bật data: đã bắt lỗi kernel BAM-DMUX, chờ reboot/test.**
+Đọc [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). Lần này NM/MM có
+bearer/IP và receipt hoàn tất, proof đúng revision, nhưng 4 HTTPS/2 ping và phép
+thử IP trực tiếp đều FAIL. IP/gateway/DNS/route khớp; BAM runtime_status=error,
+kernel `Failed to resume: -22`, modem RX/TX không tăng. Đây là bằng chứng lỗi tầng
+truyền dữ liệu cho lần này, không suy ra mọi lần cũ hoặc tối ưu UI là nguyên nhân.
+
+Source `fb7ece2` đã cài sau push/PR CI PASS gồm EXE; 920 test PASS/2 skip. Status
+không còn nhận bearer kẹt là data usable; Quick Settings cảnh báo driver màu vàng.
+Guard trước Network.up của profile SIM giữ riêng BAM-DMUX thức qua data off/on;
+không tự mở data, không tác động AP/USB. Radio-off thả hold do guard sở hữu; có
+thể tăng điện/nhiệt. Biện pháp giảm rủi ro resume, chưa phải sửa kernel triệt để.
+Probe trên USB xác nhận phát hiện/không ghi khi đã error; Chrome thật 4 độ rộng
+đạt, 16 hash/721 file chủ/mạng/firewall/DNS/gadget/power giữ nguyên khi cài, sync.
+
+ĐÃ HỎI chủ cho reboot bình thường một lần rồi thử 3 chu kỳ off/on data: đang CHỜ
+PHÊ DUYỆT, chưa reboot/chưa thử chu kỳ. Power vẫn auto/error, data SIM vẫn chưa
+được khôi phục. Không unbind driver/reset remoteproc/flash hay đổi APN/radio để
+che lỗi. Nếu chủ đồng ý, dùng DevicePower có checkpoint/receipt, giữ nguyên USB;
+kiểm tra boot restore, hold active/on, HTTPS SIM thật và giữ AP/USB qua 3 chu kỳ.
+
 **23/11/2026 — cập nhật mới nhất từ chủ: truy cập điện thoại đã OK, không còn lỗi lúc này.**
 Chủ xác nhận “Hiện tại từ điện thoại vào ok rồi ấy, không lỗi”. Các mục FAIL phía
 dưới là lịch sử, không mô tả tình trạng hiện tại. Không tiếp tục reset/đổi mạng để

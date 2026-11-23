@@ -67,3 +67,33 @@ CI/deployment/restart/off-on hardware results are recorded after execution.
 Local full suite: **920 PASS, two Windows platform skips, exit 0**. Final affected
 transport/recovery/UI fixture group: **43 PASS**, exit 0; quick.js syntax PASS.
 These are software results, not restarted-device/off-on acceptance.
+
+## Installed, awaiting normal-restart validation
+
+Four reviewed source files from **`fb7ece27a438fd203a7097275aed2f4771b56683`**
+were installed after [push CI](https://github.com/litequang/OpenStick/actions/runs/45104629790)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/45104636126) passed,
+including Windows EXE checks. Source/served-asset hashes, permissions and private
+source-backup checksum passed. Both portals and the existing startup worker
+restarted; no reboot, firmware, kernel, driver rebind, modem/airplane/AP reset.
+
+The candidate read-only probe and installed code both positively identified the
+actual errored BAM-DMUX controller. Preparation failed closed before writing.
+Installed status now rejects the existing NM-connected bearer as a usable data
+interface. Real Chrome on the USB overview at 320/390/768/1366 px displayed the
+specific driver error and amber data state, with no horizontal overflow, JS error
+or mutating browser request. This is not a phone test or physical proof that the
+hold prevents recurrence.
+
+Final 16 source hashes, 721 protected owner files, network/routes/firewall/DNS/
+gadget/services and BAM power policy matched installation baseline. AP and USB
+administration remained, usage checkpoint was valid, gates idle, storage synced.
+The pre-existing power/control=auto and runtime_status=error remained; no hold
+was installed by merely loading the UI or restarting the workers.
+
+A normal restart followed by three real data-off/data-on cycles has been
+requested from the owner because it temporarily interrupts Wi-Fi/web/Tunnel.
+**Approval is pending; no restart or cycle test has been performed.** Do not
+declare the stuck kernel state cleared or off/on prevention physically PASS.
+The proposed upstream kernel patch has not been installed. The distinction
+between detecting this failure and validating its mitigation is mandatory.

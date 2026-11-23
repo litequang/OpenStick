@@ -1,5 +1,34 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: data off/on exposes BAM-DMUX PM error; restart approval pending
+
+Read [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). New owner off/on
+receipts completed with registered LTE/NM connected/MM bearer, correct current
+recovery proof, addresses/routes/DNS; four HTTPS, two pings and direct-IP checks
+failed. Actual BAM runtime_status=error and Failed to resume: -22 were captured,
+with no modem byte delta. This incident has kernel data-transport failure proof;
+do not attribute every old failure or the optimization to the same mechanism.
+
+Source `fb7ece2` installed after push/PR CI PASS incl EXE; 920 local PASS/two skips.
+It exposes the error and rejects false usable-data status; before consented SIM
+activation, the common NM-up path holds the single identified BAM controller
+awake across data off/on. Own holds release before radio disable; external holds
+are untouched, radio-off veto still wins. Mitigation may raise power/temperature,
+not a kernel repair or physical recurrence-prevention acceptance.
+
+Candidate/installed real error detection and fail-closed/no-write proof passed.
+Real USB Chrome four widths showed driver warning/amber tile with no mutation.
+Final 16 hashes/721 owner files/network/routes/firewall/DNS/gadget/services/power
+matched install baseline, AP/USB preserved, usage valid/gates idle/synced. Power
+remains auto/error and SIM Internet is not restored. No reboot/reset/rebind/flash.
+
+Owner was asked to approve ONE normal reboot and THREE off/on cycle tests;
+**awaiting approval**, do not perform the dependent work before an answer. After
+approval use existing DevicePower checkpoint/receipt, retain USB, verify boot
+restore + active/on hold, real bound HTTPS and AP/USB through each cycle. No new
+kernel/firmware or blind airplane/APN reset. Earlier phone-OK entry predates this
+new off/on failure and cannot be used as current Internet acceptance.
+
 ## 2026-11-23 latest: owner reports phone access now working
 
 Owner clarified: phone access is now OK, without an error. The FAIL entries
