@@ -6,7 +6,7 @@
     const term=document.createElement('dt'),value=document.createElement('dd');term.textContent=label;
     value.textContent=size(part?.total_bytes)+' · ↓ '+size(part?.download_bytes)+' · ↑ '+size(part?.upload_bytes);target.append(term,value);
    }
-   el('usage-status').textContent=v._display_cached?'Số liệu gần nhất · đang cập nhật nền.':!v.available?'Chưa có thống kê SIM; tự kiểm tra lại ở nền.':'Đã cập nhật · tự làm mới mỗi 60 giây.';
+   el('usage-status').textContent=v._display_cached?'Số liệu gần nhất · đang cập nhật nền.':!v.available?'Chưa có thống kê SIM; tự kiểm tra lại ở nền.':v.source==='modem_bearer_counters'?'Đã cập nhật từ bộ đếm modem · tự làm mới trang mỗi 60 giây.':'Đã cập nhật · tự làm mới mỗi 60 giây.';
  }
  const size=value=>typeof value==='number'?(value/1048576).toFixed(2)+' MiB':'Chưa có số liệu';
  let followupTimer=null;

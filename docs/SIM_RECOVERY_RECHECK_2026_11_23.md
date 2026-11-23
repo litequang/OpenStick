@@ -75,3 +75,43 @@ CI and physical installation results are recorded after execution.
 No new code was installed or network state changed during the initial diagnosis.
 The separate unfinished BAM-DMUX usage-accounting work is preserved locally and
 is not part of this network patch or its installed-source claim.
+
+## Physical results after network deployment
+
+Installed five reviewed files from **`4125c2ea62925e08b2c41e0f4ebc5c751796d961`**
+after [push CI](https://github.com/litequang/OpenStick/actions/runs/45094655865)
+and [PR CI](https://github.com/litequang/OpenStick/actions/runs/45094659569) passed,
+including the Windows EXE checks. Source/served assets/permissions matched,
+721 protected owner files and network/routes/firewall/DNS/gadget matched the
+pre-install snapshot. No reboot, firmware, NM/MM/AP-service restart or rollback;
+only both portals and the existing startup worker restarted.
+
+Real Chrome using the USB page at 320/390/768/1366 px verified amber while data
+was requested but disconnected, then blue after a connected session existed;
+no overflow, JS errors or mutating browser requests. This is not phone acceptance.
+
+For the real race test, the existing network/modem locks were held across a
+successful product data-on and AP save; this prevented a worker poll between
+them. One controlled cellular disconnect occurred during the AP transaction.
+The saved proof was present before the first poll and survived the new revision.
+After releasing the locks, the actual worker recovered in **42.8 s**, one attempt;
+bound SIM Internet passed, default route used SIM, the AP guard was correctly
+removed, AP/USB admin/saved radio/data intent remained. No direct recovery tick,
+modem reset, APN/band/operator change or SMS/USSD operation was used.
+
+Whole-profile field equality was **false**: cellular connection.timestamp and
+AP wifi.hidden, wifi.mac-address-randomization, connection.timestamp changed
+during NM operations. SSID/PSK and other profile fields did not change. Do not
+claim every profile field was preserved; these differences are retained in the
+private test result. Installation preservation above precedes this explicit
+network test, which necessarily changes the active session/routes.
+
+Two bounded direct-SIM 1 MiB downloads afterward measured approximately
+**13.39 and 12.88 Mbps**. These are small single-connection samples from the USB,
+not the phone's Speedtest or a bandwidth guarantee. Phone acceptance is pending.
+
+The observed owner's AP save was about 136716 seconds (38 hours) after the last
+data-on receipt. Do not represent the owner's actions as an observed rapid
+20-second race. The physical test deliberately exercised that race; the actual
+diagnosis established missing revision-matched proof and no bearer, not the
+precise timing/cause of the original modem disconnect.

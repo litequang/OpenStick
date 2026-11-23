@@ -69,8 +69,9 @@ def atomic(path, value, durable=False):
 
 class CounterSource:
     """Discover exactly one connected GSM data interface, never a default route."""
-    def __init__(self, root=Path('/'), run=subprocess.run):
+    def __init__(self, root=Path('/'), run=subprocess.run, *, bearer_read=None):
         self.root, self.run = Path(root), run
+        self.bearer_read = bearer_read
 
     def command(self, *args):
         result = self.run(['nmcli', *args], capture_output=True, text=True,
@@ -99,16 +100,44 @@ class CounterSource:
             return int(raw)
         index = number(base / 'ifindex')
         rx = number(base / 'statistics/rx_bytes');tx = number(base / 'statistics/tx_bytes')
+        source, epoch = 'netdev', ''
+        # Physical UZ801 BAM-DMUX returns zero sysfs byte counters despite live
+        # traffic. MM's connected bearer has verified, periodically updated
+        # modem counters. Do not treat missing MM statistics as a valid zero.
+        driver = base / 'device/driver'
+        if driver.exists() and driver.resolve().name == 'bam-dmux':
+            from .modem_counters import bearer_counters
+            value = (self.bearer_read or bearer_counters)(interface)
+            if not isinstance(value,dict) or set(value) != {'rx','tx','epoch'}:raise ValueError()
+            rx, tx, epoch = value['rx'], value['tx'], value['epoch']
+            source = 'modem_bearer'
         boot = (self.root / 'proc/sys/kernel/random/boot_id').read_text().strip()
         if (not re.fullmatch(r'[0-9a-f-]{36}', boot) or not index or index != number(base / 'ifindex')
                 or self.command(*args).splitlines() != state):raise ValueError()
-        return {'boot':boot, 'interface':interface, 'index':index, 'rx':rx, 'tx':tx}
+        return reading({'boot':boot,'interface':interface,'index':index,'rx':rx,'tx':tx,
+                        'source':source,'epoch':epoch})
+
+
+def reading(value):
+    if value is None:return None
+    basic = {'boot','interface','index','rx','tx'}
+    if not isinstance(value,dict) or set(value) not in (basic,basic|{'source','epoch'}):raise ValueError()
+    result = {'source':'netdev','epoch':'',**value}
+    if (not isinstance(result['boot'],str) or not re.fullmatch(r'[0-9a-f-]{36}',result['boot'])
+            or not isinstance(result['interface'],str) or not re.fullmatch(r'(?:wwan|rmnet)[A-Za-z0-9_.-]{0,26}',result['interface'])
+            or any(not integer(result[k]) for k in ('index','rx','tx')) or not result['index']
+            or result['source'] not in ('netdev','modem_bearer')
+            or result['source']=='netdev' and result['epoch'] != ''
+            or result['source']=='modem_bearer' and (not isinstance(result['epoch'],str)
+                or not re.fullmatch(r'[0-9]{1,10}:[0-9]{1,20}:[0-9]{1,20}',result['epoch']))):
+        raise ValueError()
+    return result
 
 
 def valid_state(value):
     try:
         if (set(value) != {'version','started_at','sampled_at','saved_at','total','undated',
-                           'days','last','session','gaps'} or type(value['version']) is not int or value['version'] != 1
+                           'days','last','session','gaps'} or type(value['version']) is not int or value['version'] not in (1,2)
                 or any(not stamp(value[k]) for k in ('started_at','sampled_at','saved_at'))
                 or any(not pair(value[k]) for k in ('total','undated','session'))
                 or not integer(value['gaps']) or not isinstance(value['days'], dict)
@@ -120,10 +149,9 @@ def valid_state(value):
                     or value['session'][i] > value['total'][i]):return False
         last = value['last']
         if last is not None:
-            if (set(last) != {'boot','interface','index','rx','tx'}
-                    or not re.fullmatch(r'[0-9a-f-]{36}', last['boot'])
-                    or not re.fullmatch(r'(?:wwan|rmnet)[A-Za-z0-9_.-]{0,26}', last['interface'])
-                    or any(not integer(last[k]) for k in ('index','rx','tx'))):return False
+            expected = {'boot','interface','index','rx','tx'} | ({'source','epoch'} if value['version']==2 else set())
+            if set(last) != expected:return False
+            reading(last)
         return True
     except (TypeError, ValueError, KeyError, AttributeError, OverflowError):return False
 
@@ -142,7 +170,8 @@ def public(state, now, *, status='unknown', error=None):
             'session':counts(state['session']), 'total':counts(state['total']),
             'undated':counts(state['undated']), 'continuity_gaps':state['gaps'],
             'timezone':'Asia/Ho_Chi_Minh', 'scope':'all_sims_on_this_usb',
-            'source':'cellular_interface_counters', 'checkpoint_seconds':CHECKPOINT}
+            'source':'modem_bearer_counters' if (state.get('last') or {}).get('source')=='modem_bearer' else 'cellular_interface_counters',
+            'checkpoint_seconds':CHECKPOINT}
 
 
 class Collector:
@@ -161,12 +190,16 @@ class Collector:
             try:
                 value = read_json(self.path)
                 if not valid_state(value):raise ValueError()
+                if value['version'] == 1:
+                    value['version'] = 2
+                    value['last'] = reading(value['last'])
+                    self.dirty = True
                 self.state = value
                 self.observed = True
             except (OSError, ValueError, TypeError, UnicodeError):
                 raise RuntimeError('USAGE_STATE_INVALID') from None
         else:
-            self.state = {'version':1, 'started_at':now, 'sampled_at':now, 'saved_at':0,
+            self.state = {'version':2, 'started_at':now, 'sampled_at':now, 'saved_at':0,
                           'total':[0,0], 'undated':[0,0], 'days':{}, 'last':None,
                           'session':[0,0], 'gaps':0}
             self.dirty = True
@@ -201,21 +234,21 @@ class Collector:
         except RuntimeError:
             atomic(self.runtime, {'available':False,'error':'USAGE_STATE_INVALID','sampled_at':now});return
         self.error = None
-        try:reading = self.source.read()
+        try:sample = reading(self.source.read())
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
             self.error = 'USAGE_SOURCE_UNAVAILABLE';self.status = 'unknown'
             if not self.observed:
                 atomic(self.runtime, {'available':False,'error':self.error,'sampled_at':now});return
             self.flush();atomic(self.runtime, public(self.state, now, error=self.error));return
         self.observed = True
-        previous = self.state['last'];delta = [0,0];changed = reading != previous
-        if reading is None:
+        previous = self.state['last'];delta = [0,0];changed = sample != previous
+        if sample is None:
             self.status = 'idle';self.state['session'] = [0,0]
         else:
             self.status = 'connected'
-            same = (previous and all(reading[k] == previous[k] for k in ('boot','interface','index')))
-            if same and all(reading[k] >= previous[k] for k in ('rx','tx')):
-                delta = [reading['rx']-previous['rx'], reading['tx']-previous['tx']]
+            same = (previous and all(sample[k] == previous[k] for k in ('boot','interface','index','source','epoch')))
+            if same and all(sample[k] >= previous[k] for k in ('rx','tx')):
+                delta = [sample['rx']-previous['rx'], sample['tx']-previous['tx']]
             else:
                 self.state['session'] = [0,0]
                 if previous:self.state['gaps'] += 1
@@ -229,10 +262,10 @@ class Collector:
             target[:] = [a+b for a,b in zip(target,delta)]
             if not stable:self.state['gaps'] += 1
         for old in sorted(self.state['days'])[:-400]:del self.state['days'][old]
-        self.state['last'] = reading;self.state['sampled_at'] = now
+        self.state['last'] = sample;self.state['sampled_at'] = now
         self.last_wall = now;self.last_mono = mono
         self.dirty = self.dirty or changed or bool(sum(delta))
-        self.flush(force=previous is not None and reading is None)
+        self.flush(force=previous is not None and sample is None)
         atomic(self.runtime, public(self.state, now, status=self.status, error=self.error))
 
 
@@ -254,6 +287,7 @@ def snapshot(root=Path('/'), *, now=time.time):
         # RAM carries live period totals. Never use another day's cached total
         # as today's usage while waiting for a new collector sample.
         result = public(state, current, status=value['status'], error=value.get('error'))
+        if value.get('source') == 'modem_bearer_counters':result['source'] = 'modem_bearer_counters'
         for key in ('today','month'):
             result[key] = value[key] if day(current) == day(value['sampled_at']) else None
     except FileNotFoundError:
