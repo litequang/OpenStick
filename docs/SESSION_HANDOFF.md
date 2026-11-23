@@ -1,5 +1,19 @@
 # Handoff — 2026-11-14, home machine
 
+## 2026-11-23 latest: owner reports phone access now working
+
+Owner clarified: phone access is now OK, without an error. The FAIL entries
+below are historical, not the current owner-reported condition. No code/device
+configuration or AP reset was performed for this acknowledgement; installed
+source remains `0026828` plus the earlier network/usage fixes. Do not continue
+blind resets or demand IP/gateway to prove a currently absent failure.
+
+This is owner-confirmed current phone access, not a new agent-operated test.
+The latest reply did not separately specify URL/public-site result or phone
+mobile-data state, so do not manufacture that narrower end-to-end acceptance.
+Intermittent failure root cause and cold-power/long-duration stability remain
+unverified. Preserve the previous negative evidence with its timing limitations.
+
 ## 2026-11-23 latest: owner joins Wi-Fi, admin and Internet still FAIL
 
 Read the Owner follow-up in [AP report](AP_VISIBILITY_RECHECK_2026_11_23.md).

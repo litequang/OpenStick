@@ -1,5 +1,8 @@
 # AP visibility and normalized visible-profile validation — 2026-11-23
 
+**Latest owner update:** phone access is now working without an error. The
+failure observations below are historical; see the closing update for scope.
+
 The owner's phone reacceptance after the SIM recovery fix failed: Wi-Fi was
 absent or could not be joined. Do not retain the prior pending phone test as a
 PASS, or infer AP reachability from SIM-bound Internet and local AP-active state.
@@ -131,3 +134,20 @@ firewall or driver root cause, weaken rules, or add blind resets from this alone
 The first diagnostic helper failed before capture because minimal BusyBox ip
 lacks JSON neighbor output; it was corrected to use the existing safe text
 fallback, then the 35-second observation completed. No product code was changed.
+
+## Latest owner clarification: phone access now OK
+
+The owner subsequently stated that access from the phone is now OK, without an
+error. Record the current condition as **OWNER-REPORTED ACCESS WORKING**; do not
+leave the earlier FAIL as the latest state or keep resetting a working AP.
+No additional code deployment, device configuration or AP restart accompanied
+this acknowledgement. Installed source remains `0026828` with the previous
+network/usage fixes. This documentation-only update needs no new USB mutation.
+
+The new reply did not individually specify the URL, public-site result or phone
+mobile-data state. It confirms current access as reported, without inventing a
+fresh independently witnessed SIM-to-phone end-to-end test. The prior passive
+capture had no confirmed simultaneous phone action; it cannot establish a
+permanent driver fault or explain the subsequent recovery. The intermittent
+failure's root cause, recurrence and long-duration/cold-power behavior remain
+unverified. Further disruptive diagnosis is unnecessary while the fault is absent.

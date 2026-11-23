@@ -1,5 +1,15 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
+**23/11/2026 — cập nhật mới nhất từ chủ: truy cập điện thoại đã OK, không còn lỗi lúc này.**
+Chủ xác nhận “Hiện tại từ điện thoại vào ok rồi ấy, không lỗi”. Các mục FAIL phía
+dưới là lịch sử, không mô tả tình trạng hiện tại. Không tiếp tục reset/đổi mạng để
+sửa một lỗi đang không tái hiện. Không có cài mã hay thay cấu hình USB trong lượt
+ghi nhận này; mã đang cài vẫn `0026828` cùng các bản mạng/usage trước đó.
+Đây là xác nhận truy cập hoạt động do chủ báo, không phải phép đo mới của agent;
+chủ chưa mô tả riêng URL, website công khai và trạng thái dữ liệu di động trong
+lần xác nhận mới. Không suy ra đã sửa tận gốc lỗi gián đoạn hoặc đạt soak/cold boot.
+Không còn cần IP/Gateway chỉ để chứng minh một lỗi hiện đang không xuất hiện.
+
 **23/11/2026 — kết quả điện thoại mới nhất: vào Wi-Fi, không vào quản trị/Internet.**
 Đọc mục Owner follow-up trong [báo cáo AP](AP_VISIBILITY_RECHECK_2026_11_23.md).
 Nghiệm thu đầu cuối vẫn FAIL, không chỉ đang chờ. Chưa đổi code/mạng hay restart AP
