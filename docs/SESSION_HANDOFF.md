@@ -1,6 +1,6 @@
 # Handoff — 2026-11-14, home machine
 
-## 2026-11-23 newest: approved reboot/three SIM cycles PASS; phone Internet FAIL, NAT missing
+## 2026-11-23 newest: phone reacceptance FAIL even with restored NAT; further cause unresolved
 
 Owner granted ONE normal reboot and THREE data-off/on cycles. These have now
 run using DevicePower and QuickSettings receipts: saved AP+SIM restored, all
@@ -10,16 +10,25 @@ This supersedes the pending-approval wording in the older entry below.
 
 Owner then reported Wi-Fi Internet still fails and administration is slow. This
 is a separate, current end-to-end FAIL. Read [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md):
-pre-reboot NM NAT existed; current shared AP/DHCP/DNS and USB uplink work but no
-NAT/masquerade remains. Client public SYNs reach SIM with no returning SYN-ACK;
+pre-reboot NM NAT existed; before the correction, shared AP/DHCP/DNS and USB
+uplink worked but no NAT/masquerade remained. Client SYNs reached SIM without SYN-ACK;
 administration/DNS frames do return. Exact table-removal event is unverified.
 Scoped, consent-gated NAT source `ec5a752` is now installed after push/PR CI PASS
 incl EXE: 942 tests PASS/two skips, 106 affected PASS. Existing worker restored
 own NAT matching the connected SIM without AP/data toggle/reboot. 17 hashes/722
 owner files and base network/firewall/gadget matched; usage preserved, synced.
-Chrome four widths passed; Windows USB overview GET 200/56 ms. New phone test
-requested, not yet confirmed: do not label phone Internet PASS from USB HTTPS.
-No AP reset or modem/airplane/APN change. Peak sampled zone 75 C, no resume error.
+Chrome four widths passed; Windows USB overview GET 200/56 ms. Owner answered
+the subsequent phone test: STILL NO INTERNET. This is FAIL, not pending or PASS.
+Read the latest section of the NAT report. Post-answer 17 hashes/722 owner files,
+NAT/SIM HTTPS and BAM active/on still pass, peak sampled zone 76 C/no resume error.
+One client SYN was correctly translated and a matching SYN-ACK returned via SIM
+to AP; this does not prove completed HTTP/TLS. One untranslated AP-subnet packet
+is not proof of stale conntrack as the remaining cause. Two client pings failed,
+ARP unresolved; captures did not overlap a confirmed phone action. One public
+Spurious TX complete driver warning is not proof of a Wi-Fi hang. AP power save
+off and AP/SIM MTU 1500. Await phone results for neverssl.com and 1.1.1.1.
+No new code/device configuration, AP/modem reset, APN/radio change or reboot in
+this post-answer diagnostic turn. Do not add speculative watchdogs or flash.
 
 ## 2026-11-23 latest: data off/on exposes BAM-DMUX PM error; restart approval pending
 

@@ -87,3 +87,46 @@ phone acceptance. A subsequent 35-second passive window had zero associated
 stations and only SIM traffic, so it supplies no new phone-path result. Long
 soak, another cold-power test and an independently
 confirmed explanation of NM table removal remain unverified.
+
+## Owner reacceptance after installation: FAIL
+
+The owner answered the post-installation phone test: **still no Internet**.
+This supersedes the pending phone result above. NAT restoration is a verified
+correction of missing state, not a completed resolution of phone access.
+
+Read-only follow-up again passed the 17 source hashes/722 protected owner files,
+unchanged base network/firewall/gadget, valid/nondecreasing usage history, owned
+NAT matching the actual SIM interface, SIM-bound HTTPS and healthy BAM active/on.
+No new resume errors occurred; peak sampled zone was 76 C. No additional code,
+profile/network/route/firewall change, restart, radio toggle or reboot was made.
+
+One 35-second window saw only two incoming client IPv4 frames, no station TX
+byte delta and nine outgoing AP ARPs. The associated client had a current lease;
+two bounded local pings failed and ARP did not resolve. A later 45-second
+header-only observation saw 44 AP IPv4 inputs/45 outputs and one new public TCP
+SYN correctly translated to the actual SIM source IP. Its matching SYN-ACK
+returned on SIM and was sent onto AP. NAT matched before/after. This proves that
+at least that new TCP path traversed NAT both ways, not a completed page load or
+delivery acknowledged by the phone. A single additional untranslated AP-subnet
+packet was observed; its origin/connection age was not established, so stale
+conntrack is a hypothesis, not an established remaining cause.
+
+AP and SIM MTU are both 1500 and AP power saving is off. One kernel warning
+matched the public WCN36xx template `Spurious TX complete indication`; no firmware
+crash/HAL timeout was established. The warning alone does not prove a permanent
+driver failure. Device station inactivity was later about 42 seconds, and none
+of these captures overlapped a separately confirmed phone page-open action.
+
+The phone has been asked to open http://neverssl.com and https://1.1.1.1 with
+mobile data off. Those results are pending; they help separate name resolution,
+TLS/content transfer and intermittent Wi-Fi delivery. Do not infer that another
+APN change, blind AP restart or kernel/firmware replacement is justified yet.
+Minimal BusyBox ip rejected one diagnostic JSON-address request before capture;
+the helper was corrected to parse text and then completed. The device has no
+conntrack tool/proc listing; a fixed read-only CT_GET netlink request returned
+EINVAL. No conntrack deletion/reset was attempted, and no diagnostic identities
+or packet payloads were exported or committed.
+
+A final 45-second TCP-stage observation still had one associated station and
+matching NAT, but zero AP IPv4 frames at all (SIM background traffic continued).
+It cannot diagnose a page-open failure without a simultaneous phone attempt.

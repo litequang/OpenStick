@@ -1,6 +1,6 @@
 # Bàn giao cho AI tiếp theo — 14/11/2026
 
-**23/11/2026 — mới nhất: đã reboot được duyệt, 3 chu kỳ SIM PASS; điện thoại vẫn FAIL do thiếu NAT.**
+**23/11/2026 — mới nhất: điện thoại vẫn FAIL sau khi đã khôi phục NAT, chưa chốt nguyên nhân còn lại.**
 Chủ đã cho phép một reboot bình thường và ba chu kỳ data off/on; đã thực hiện
 qua DevicePower/QuickSettings. Boot khôi phục AP+SIM, cả ba lần HTTPS buộc qua
 SIM đạt, giữ AP/USB, BAM active/on và không thêm lỗi resume. Không hỏi lại quyền
@@ -8,15 +8,24 @@ này hoặc tự reboot thêm. Nội dung chờ duyệt bên dưới là lịch 
 
 Chủ tiếp tục báo điện thoại không có Internet, quản trị chậm: nghiệm thu đầu cuối
 hiện FAIL. Đọc [AP_NAT_RESTORE_2026_11_23.md](AP_NAT_RESTORE_2026_11_23.md). Trước
-reboot có NAT NM; hiện AP shared/DHCP/DNS và SIM trên USB hoạt động nhưng không
-còn NAT/masquerade. SYN công khai từ client đi tới SIM, không thấy SYN-ACK về;
+reboot có NAT NM; trước bản sửa NAT, AP shared/DHCP/DNS và SIM hoạt động nhưng
+không còn NAT/masquerade. SYN công khai từ client đi tới SIM, không thấy SYN-ACK về;
 gói quản trị/DNS có trả lời. Chưa xác định chính xác tác nhân xóa bảng. NAT riêng
 có giới hạn/consent source `ec5a752` đã cài sau push/PR CI PASS gồm EXE: 942 test
 PASS/2 skip, nhóm liên quan 106 PASS. Worker tự khôi phục NAT đúng interface SIM,
 không toggle AP/data/reboot. 17 hash/722 file chủ và mạng/firewall nền/gadget giữ
 nguyên; usage còn, sync. Chrome 4 độ rộng đạt, GET Windows qua USB 200/56 ms.
-Đang chờ chủ thử lại điện thoại; không dùng HTTPS tại USB để kết luận đã có mạng
-trên điện thoại. Đỉnh nhiệt lấy mẫu 75 C, không thêm lỗi resume; cần theo dõi dài.
+Chủ ĐÃ trả lời thử lại: vẫn không có Internet. Không ghi chờ thử hoặc PASS cho
+lần này. Đối chiếu sau phản hồi vẫn đạt 17 hash/722 file chủ, NAT đúng SIM, HTTPS
+SIM đạt, BAM active/on, không thêm resume error, nhiệt cao nhất lấy mẫu 76 C.
+Capture 45 giây thấy một SYN client được SNAT đúng IP SIM, SYN-ACK về SIM rồi ra
+AP. Chưa chứng minh tải trang/TLS thành công. Có một gói còn nguồn subnet AP;
+chưa đủ kết luận conntrack cũ là nguyên nhân. Hai ping tới lease không trả lời,
+ARP chưa phân giải; chưa có thao tác điện thoại xác nhận trùng cửa sổ đo. Driver
+Wi-Fi có một cảnh báo Spurious TX complete, không có crash/timeout được chứng
+minh; không suy ra hỏng driver chỉ từ cảnh báo. Powersave AP off, MTU AP/SIM 1500.
+Đang hỏi kết quả http://neverssl.com và https://1.1.1.1 để phân biệt DNS/TLS/data.
+Chưa thay code/cấu hình, reset AP/modem hoặc reboot thêm trong lượt kiểm tra mới.
 
 **23/11/2026 — lỗi mới sau tắt/bật data: đã bắt lỗi kernel BAM-DMUX, chờ reboot/test.**
 Đọc [SIM_DATA_TOGGLE_BAM_PM.md](SIM_DATA_TOGGLE_BAM_PM.md). Lần này NM/MM có
