@@ -227,6 +227,43 @@ def test_enabling_and_disabling_hidden_and_isolation_reach_both_ap_profiles(setu
     assert profile.getint('wifi', 'ap-isolation') == int(enabled)
 
 
+@pytest.mark.parametrize('identity', [SETUP_UUID, AP_UUID])
+@pytest.mark.parametrize('hidden', [False, True])
+def test_nm_omitted_default_hidden_is_accepted_only_for_saved_visible_ap(setup, identity, hidden):
+    backend, network, _ = setup
+    save(backend, hidden=hidden, max_clients=10, isolation=False)
+    if identity == AP_UUID:backend._adopt_setup_ap()
+    path = backend.profiles / ('openstick-setup.nmconnection' if identity == SETUP_UUID else 'openstick-hotspot.nmconnection')
+    profile = configparser.ConfigParser();profile.read(path)
+    profile.remove_option('wifi', 'hidden')  # Real NM normalization of false.
+    with path.open('w') as stream:profile.write(stream)
+    before = path.read_bytes();bus = Bus();bus.isolation = 0
+    backend.ap_backend = ap.SupplicantAP(lambda: bus);network.events.clear()
+    if hidden:
+        with pytest.raises(RuntimeError, match='^AP_OPTIONS_INVALID$'):backend.activate_ap(identity)
+        assert not network.events and not bus.calls
+    else:
+        backend.activate_ap(identity)
+        assert network.wifi == identity and bus.limit == 10 and bus.closed
+        assert [e[0] for e in network.events] == ['up']
+    assert path.read_bytes() == before, 'activation must not rewrite saved security settings'
+
+
+def test_shared_ap_adopts_normalized_visible_setup_profile_without_changing_cellular(setup):
+    backend, network, _ = setup
+    save(backend, hidden=False, max_clients=10, isolation=False)
+    backend._adopt_setup_ap()  # Establish an existing cellular profile to preserve.
+    source = backend.profiles / 'openstick-setup.nmconnection'
+    profile = configparser.ConfigParser();profile.read(source);profile.remove_option('wifi', 'hidden')
+    with source.open('w') as stream:profile.write(stream)
+    cell = backend.profiles / 'openstick-cellular.nmconnection';before = cell.read_bytes()
+    backend._adopt_setup_ap();bus = Bus();bus.isolation = 0
+    backend.ap_backend = ap.SupplicantAP(lambda: bus);network.events.clear()
+    backend.activate_ap(AP_UUID)
+    assert network.wifi == AP_UUID and bus.limit == 10
+    assert [e[0] for e in network.events] == ['up'] and cell.read_bytes() == before
+
+
 def test_boot_replay_uses_same_advanced_ap_hook_without_granting_sim_data(quick, tmp_path):
     from contextlib import nullcontext
     from uz801_manager.network_startup import NetworkStartup, save as save_startup, STATE
